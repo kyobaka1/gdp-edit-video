@@ -26,9 +26,9 @@
     "enabled": false
   },
   "outro": {
-    "file": "outro/outro.mp4",
-    "enabled": false,
-    "cta": ""
+    "file": "outro/GDP Outro v2.mp4",
+    "enabled": true,
+    "note": "Video outro Sếp đưa (logo GDP hoạt hình, 1080x1440, 3,8s, không tiếng). Không tự dựng outro."
   },
   "music": {
     "default": null

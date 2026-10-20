@@ -121,12 +121,11 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
     needs = any(L.get("template") for L in layers if L["mode"] == "label")
     if needs and not shop:
         raise EdlError("edl.json có ô dùng `template` nhưng chưa khai `shop` (mã shop trong assets/shops/)")
-    op = outro.plan(edl)  # outro theo shop (video Sếp đưa hoặc thẻ HTML) — None nếu job không bật
+    op = outro.plan(edl)  # video outro Sếp đưa sẵn của shop — None nếu job không bật
     total = round(meta["duration"] + (op["duration"] if op else 0.0), 3)
-    renderer = TemplateRenderer(shop).__enter__() if (needs or (op and op["kind"] == "card")) else None
+    renderer = TemplateRenderer(shop).__enter__() if needs else None
     try:
         drawn = {id(L): _draw_label(L, renderer, W, H) for L in layers if L["mode"] == "label"}
-        outro_png = outro.card_png(edl, meta, renderer, job_dir / "outro.png") if op and op["kind"] == "card" else None
     finally:
         if renderer is not None:
             renderer.__exit__(None, None, None)
@@ -156,15 +155,11 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
     scale = ",scale=-2:960" if not final else ""
     n_in = n_png + 1
     if op:
-        # nối outro sau video chính: cùng kích thước/fps/định dạng điểm ảnh rồi concat
-        fps = meta["fps"]
-        if op["kind"] == "card":
-            inputs += ["-loop", "1", "-framerate", f"{fps}", "-t", f"{op['duration']:.3f}", "-i", str(outro_png)]
-            chain.append(f"[{n_in}:v]format=yuv420p,setsar=1,fade=t=in:st=0:d=0.35[ov]")
-        else:
-            inputs += ["-i", str(op["path"])]
-            chain.append(f"[{n_in}:v]scale={W}:{H}:force_original_aspect_ratio=decrease,"
-                         f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color=black,fps={fps},format=yuv420p,setsar=1[ov]")
+        # nối video outro của shop sau video chính: đưa về cùng kích thước (giữ tỉ lệ, viền đen nếu lệch)/fps rồi concat.
+        # Tiếng của outro (nếu có) chưa trộn — outro GDP hiện không có tiếng; nhạc nền + câu chốt chạy tiếp qua outro.
+        inputs += ["-i", str(op["path"])]
+        chain.append(f"[{n_in}:v]scale={W}:{H}:force_original_aspect_ratio=decrease,"
+                     f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color=black,fps={meta['fps']},format=yuv420p,setsar=1[ov]")
         chain.append(f"[{prev}]format=yuv420p,setsar=1[vm]")
         chain.append(f"[vm][ov]concat=n=2:v=1:a=0,format=yuv420p{scale}[vout]")
         n_in += 1

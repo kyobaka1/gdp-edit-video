@@ -1,10 +1,23 @@
-"""Outro theo shop: ưu tiên video Sếp đưa (assets/shops/<shop>/outro/outro.mp4); không có thì dựng THẺ toàn khung
-từ mẫu `outro` (HTML) của shop. Bật cho job bằng edl.outro = {text, sub, duration?}."""
+"""Outro theo shop = video Sếp đưa sẵn trong assets/shops/<shop>/outro/ (KHÔNG tự dựng — Sếp chốt 20/10).
+Bật cho job bằng edl.outro = {"enabled": true}. Tên file lấy từ shop.json outro.file; không có thì lấy file video
+đầu tiên trong thư mục outro/."""
 
 from pathlib import Path
 
 from studio import media
-from studio.templates import SHOPS, manifest, shop_profile
+from studio.templates import SHOPS, shop_profile
+
+VIDEO_EXT = (".mp4", ".mov", ".webm", ".mkv")
+
+
+def find_video(shop: str, kind: str = "outro") -> Path | None:
+    prof = shop_profile(shop)
+    declared = prof.get(kind, {}).get("file")
+    if declared and (SHOPS / shop / declared).exists():
+        return SHOPS / shop / declared
+    folder = SHOPS / shop / kind
+    vids = sorted(p for p in folder.glob("*") if p.suffix.lower() in VIDEO_EXT and not p.name.startswith(("_", ".")))
+    return vids[0] if vids else None
 
 
 def plan(edl: dict) -> dict | None:
@@ -14,26 +27,14 @@ def plan(edl: dict) -> dict | None:
     shop = edl.get("shop")
     if not shop:
         raise ValueError("edl.outro cần edl.shop")
-    prof = shop_profile(shop)
-    mp4 = SHOPS / shop / prof.get("outro", {}).get("file", "outro/outro.mp4")
-    if mp4.exists():
-        return {"kind": "video", "path": mp4, "duration": float(media.probe(mp4)["duration"])}
-    spec = manifest(shop)["slots"].get("outro")
-    if not spec:
-        raise FileNotFoundError(f"Shop {shop} không có outro.mp4 và mẫu thẻ 'outro' — thêm một trong hai")
-    logo_rel = prof["logo"]["files"].get(spec.get("logo", "primary")) or prof["logo"]["files"].get("primary")
-    logo = SHOPS / shop / logo_rel if logo_rel else None
-    return {"kind": "card", "duration": float(o.get("duration", spec.get("duration", 3.0))),
-            "text": o.get("text", ""), "sub": o.get("sub", ""), "logo": logo if logo and logo.exists() else None}
+    path = find_video(shop)
+    if path is None:
+        raise FileNotFoundError(f"Shop {shop} chưa có video outro — thả file vào assets/shops/{shop}/outro/ "
+                                f"(hoặc bỏ edl.outro). Không tự dựng outro.")
+    info = media.probe(path)
+    return {"path": path, "duration": float(info["duration"]), "has_audio": info["has_audio"]}
 
 
 def total_duration(edl: dict, meta: dict) -> float:
     p = plan(edl)
     return round(meta["duration"] + (p["duration"] if p else 0.0), 3)
-
-
-def card_png(edl: dict, meta: dict, renderer, out: Path) -> Path:
-    p = plan(edl)
-    img = renderer.render_card("outro", meta["width"], meta["height"], text=p["text"], sub=p["sub"], logo=p["logo"])
-    img.convert("RGB").save(out)
-    return out

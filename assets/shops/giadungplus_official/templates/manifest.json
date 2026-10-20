@@ -7,7 +7,6 @@
     "badge": {"file": "badge.html", "use": "nhãn tính năng ngắn: chữ đỏ nền trắng viền đỏ, IN HOA", "fs_min": 36, "fs_max": 64},
     "info": {"file": "info.html", "use": "thông tin có dòng phụ: nền đỏ, chữ trắng đậm + dòng phụ thường", "fs_min": 30, "fs_max": 56},
     "outline-black": {"file": "outline-black.html", "use": "chữ ĐEN viền TRẮNG, không nền — CHỈ chèn chữ mới", "fs_min": 40, "fs_max": 72, "covers": false},
-    "outline-red": {"file": "outline-red.html", "use": "chữ ĐỎ viền TRẮNG, không nền — CHỈ chèn chữ mới", "fs_min": 40, "fs_max": 72, "covers": false},
-    "outro": {"file": "outro.html", "use": "màn kết toàn khung: logo + câu kêu gọi + dòng phụ", "card": true, "logo": "on_dark", "duration": 3.0}
+    "outline-red": {"file": "outline-red.html", "use": "chữ ĐỎ viền TRẮNG, không nền — CHỈ chèn chữ mới", "fs_min": 40, "fs_max": 72, "covers": false}
   }
 }
