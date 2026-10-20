@@ -21,10 +21,19 @@ _FIT_JS = """
 ([fsMin, fsMax]) => {
   const root = document.documentElement, label = document.getElementById('label');
   const parts = ['text', 'sub'].map(id => document.getElementById(id)).filter(Boolean);
+  // Đo so với VÙNG TRONG phần đệm: chữ tràn vào padding không làm #label báo tràn (scrollWidth gồm cả padding)
+  // → bản đầu tưởng vừa, chữ chạm sát mép (Sếp chê 20/10).
   const fits = fs => {
     root.style.setProperty('--fs', fs + 'px');
-    if (label.scrollHeight > label.clientHeight + 1 || label.scrollWidth > label.clientWidth + 1) return false;
-    return parts.every(p => p.scrollWidth <= p.clientWidth + 1);
+    const cs = getComputedStyle(label);
+    const innerW = label.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const innerH = label.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    const gap = parseFloat(cs.rowGap) || 0;
+    const cols = cs.flexDirection.startsWith('column');
+    const widest = Math.max(...parts.map(p => p.scrollWidth));
+    const tall = cols ? parts.reduce((s, p) => s + p.scrollHeight, 0) + gap * (parts.length - 1)
+                      : Math.max(...parts.map(p => p.scrollHeight));
+    return widest <= innerW + 1 && tall <= innerH + 1;
   };
   let lo = Math.floor(fsMin), hi = Math.ceil(fsMax), best = -1;
   while (lo <= hi) { const mid = (lo + hi) >> 1; if (fits(mid)) { best = mid; lo = mid + 1; } else hi = mid - 1; }
@@ -76,15 +85,17 @@ class TemplateRenderer:
         if self._pw:
             self._pw.stop()
 
-    def _load(self, slot: str, text: str, sub: str) -> None:
+    def _load(self, slot: str, lines: list[str], sub: str) -> None:
+        """Nạp mẫu với chữ đã chia dòng sẵn (renderer tự quyết chỗ xuống dòng, trình duyệt không tự bẻ)."""
         spec = self.man["slots"].get(slot)
         if not spec:
             raise KeyError(f"Shop {self.shop} không có mẫu '{slot}' (có: {', '.join(self.man['slots'])})")
         src = (self.dir / spec["file"]).read_text(encoding="utf-8")
         # Font thiếu ký tự (UTM Avo/HelvetIns không có · – — •) → Chrome mượn font khác cho riêng ký tự đó → thay trước
         for a, b in self.man.get("replace", {}).items():
-            text, sub = text.replace(a, b), sub.replace(a, b)
-        filled = src.replace("{{text}}", html.escape(text)).replace("{{sub}}", html.escape(sub))
+            lines, sub = [ln.replace(a, b) for ln in lines], sub.replace(a, b)
+        text_html = "<br>".join(html.escape(ln) for ln in lines)
+        filled = src.replace("{{text}}", text_html).replace("{{sub}}", html.escape(sub))
         tmp = self.dir / "_render_tmp.html"  # cùng thư mục để font tương đối tải được
         tmp.write_text(filled, encoding="utf-8")
         self._page.goto(tmp.as_uri())
@@ -100,14 +111,18 @@ class TemplateRenderer:
                                     f"— kiểm đường dẫn url(...) tới assets/fonts/")
         if not sub:
             self._page.evaluate("() => { const s = document.getElementById('sub'); if (s) s.remove(); }")
-        if spec.get("nowrap"):  # mẫu một dòng (vd hook xoay chéo): không xuống dòng, cỡ chữ tự co
-            self._page.evaluate("() => { document.getElementById('text').style.whiteSpace = 'nowrap'; }")
+        # Luôn nowrap: chỗ xuống dòng do renderer chọn (tại dấu ngắt câu) — trình duyệt tự bẻ thì ra kiểu
+        # "…khoan, Chịu / lực tốt" (Sếp chê 20/10).
+        self._page.evaluate("() => { document.getElementById('text').style.whiteSpace = 'nowrap'; }")
 
-    def _fit(self, w: int, h: int, spec: dict) -> int:
+    def _fit(self, w: int, h: int, spec: dict, n_lines: int = 1) -> int:
+        """Cỡ chữ lớn nhất vừa khung, -1 nếu không cỡ nào vừa. fs_min/fs_max (% chiều cao ô) là cho MỘT dòng →
+        chia cho số dòng; không chia thì nới ô cao cho 2 dòng lại đẩy cỡ tối thiểu lên theo → càng nới càng tràn."""
         self._page.set_viewport_size({"width": max(w, 16), "height": max(h, 16)})
         self._page.evaluate(f"() => {{ const r = document.documentElement.style;"
                             f" r.setProperty('--w', '{w}px'); r.setProperty('--h', '{h}px'); }}")
-        return self._page.evaluate(_FIT_JS, [h * spec["fs_min"] / 100, h * spec["fs_max"] / 100])
+        n = max(1, n_lines)
+        return self._page.evaluate(_FIT_JS, [h * spec["fs_min"] / 100 / n, h * spec["fs_max"] / 100 / n])
 
     def covers(self, slot: str) -> bool:
         """Mẫu có nền đục (che được chữ Trung)? `covers: false` = chữ không nền, chỉ để chèn chữ mới."""
@@ -117,17 +132,88 @@ class TemplateRenderer:
                max_w: int | None = None, max_h: int | None = None) -> tuple[Image.Image, int, int]:
         """Trả (ảnh RGBA, w, h thực dùng). Nới w rồi h khi chữ < min_px hoặc không vừa."""
         spec = self.man["slots"][slot]
-        self._load(slot, text, sub)
         max_w, max_h = max_w or w, max_h or h * 3
-        fs = self._fit(w, h, spec)
+        explicit = [ln.strip() for ln in text.split("\n") if ln.strip()]
+        if len(explicit) > 1:  # đạo diễn tự xuống dòng bằng "\n"
+            lines = explicit
+        else:
+            lines = [text.strip()]
+        self._load(slot, lines, sub)
+        nl = len(lines) + (1 if sub else 0)
+        fs = self._fit(w, h, spec, nl)
+        two = None if (spec.get("nowrap") or len(lines) > 1) else split_two(text)
+        if two and not has_separator(text):
+            # không có dấu ngắt câu: nới NGANG một dòng trước; chia đôi theo từ chỉ khi nới hết cỡ vẫn thiếu
+            # (bản trước chia ngay → "Gỡ miếng cố định / tạm là dùng được", gãy giữa cụm từ)
+            while (fs < 0 or fs < min_px) and w < max_w:
+                w = min(max_w, round(w * 1.08) + 4)
+                fs = self._fit(w, h, spec, nl)
+        if two and (fs < 0 or fs < min_px):
+            # một dòng không đủ cỡ chữ → hai dòng, tách tại dấu ngắt câu (Sếp 20/10)
+            self._load(slot, two, sub)
+            fs2 = self._fit(w, h, spec, nl + 1)
+            if fs2 >= fs:
+                lines, fs, nl = two, fs2, nl + 1
+            else:
+                self._load(slot, lines, sub)
+                fs = self._fit(w, h, spec, nl)
         while (fs < 0 or fs < min_px) and w < max_w:
             w = min(max_w, round(w * 1.08) + 4)
-            fs = self._fit(w, h, spec)
+            fs = self._fit(w, h, spec, nl)
         while (fs < 0 or fs < min_px) and h < max_h:
             h = min(max_h, round(h * 1.08) + 4)
-            fs = self._fit(w, h, spec)
+            fs = self._fit(w, h, spec, nl)
+        if fs < 0:
+            raise ValueError(f"Chữ '{text}' không vừa mẫu {slot} kể cả khi nới tới {w}×{h} — rút câu")
         png = self._page.locator("#label").screenshot(omit_background=True)
         return Image.open(io.BytesIO(png)).convert("RGBA"), w, h
+
+
+_SEPARATORS = [" · ", " • ", " - ", " – ", " — ", ". ", "! ", "? ", "; ", ": ", ", "]
+
+
+def has_separator(text: str) -> bool:
+    """Câu có dấu ngắt ở khoảng giữa (20–80% độ dài) để xuống dòng đẹp không."""
+    text = " ".join(text.split())
+    n = len(text)
+    return any(0.2 * n <= i <= 0.8 * n for sep in _SEPARATORS for i in _find_all(text, sep))
+
+
+def _find_all(text: str, sep: str) -> list[int]:
+    out, start = [], 0
+    while (i := text.find(sep, start)) >= 0:
+        out.append(i)
+        start = i + 1
+    return out
+
+
+def split_two(text: str) -> list[str] | None:
+    """Chia câu dài thành 2 dòng: ưu tiên dấu ngắt câu mạnh nhất (· . ! ? ; : rồi ,), chọn chỗ gần giữa nhất,
+    BỎ dấu ngắt ở chỗ xuống dòng ("Kệ treo tường không cần khoan · Chịu lực tốt" → 2 dòng). Không có dấu →
+    chia theo từ sao cho 2 dòng dài gần bằng nhau (không để chữ mồ côi), chỉ khi câu ≥5 từ. Muốn tự quyết chỗ
+    xuống dòng: đạo diễn ghi "\\n" trong text_vi."""
+    text = " ".join(text.split())
+    words = text.split(" ")
+    if len(words) < 3:
+        return None
+    mid = len(text) / 2
+    for sep in _SEPARATORS:
+        idx, start = [], 0
+        while (i := text.find(sep, start)) >= 0:
+            idx.append(i)
+            start = i + 1
+        idx = [i for i in idx if 0.2 * len(text) <= i <= 0.8 * len(text)]  # đừng tách ra 1 dòng quá ngắn
+        if idx:
+            i = min(idx, key=lambda k: abs(k - mid))
+            left = text[:i].rstrip()
+            if sep.strip() in ".!?":  # giữ dấu kết câu ở cuối dòng 1, bỏ các dấu nối (· - ; : ,)
+                left += sep.strip()
+            right = text[i + len(sep):].strip()
+            return [left, right[:1].upper() + right[1:]]  # dòng 2 là ý mới → viết hoa chữ đầu
+    if len(words) < 5:  # câu ngắn không có dấu ngắt: giữ 1 dòng (nới ô) thay vì bẻ "Chịu / lực tốt"
+        return None
+    k = min(range(1, len(words)), key=lambda k: max(len(" ".join(words[:k])), len(" ".join(words[k:]))))
+    return [" ".join(words[:k]), " ".join(words[k:])]
 
 
 def preview_sheet(shop: str) -> Path:
@@ -144,7 +230,7 @@ def preview_sheet(shop: str) -> Path:
     with TemplateRenderer(shop) as r:
         for slot in r.man["slots"]:
             text, sub, w, h = samples.get(slot, ("Chữ mẫu tiếng Việt", "", 560, 90))
-            img, _, _ = r.render(slot, text, w, h, sub=sub)
+            img, _, _ = r.render(slot, text, w, h, sub=sub, min_px=29, max_w=round(w * 1.15))  # 29px ≈ 3% khung 960
             tiles.append(img)
     pad = 24
     sheet = Image.new("RGB", (max(t.width for t in tiles) + 2 * pad, sum(t.height + pad for t in tiles) + pad), "#7a8a8a")

@@ -8,7 +8,7 @@ html, body { margin: 0; background: transparent; }
   width: var(--w); height: var(--h); box-sizing: border-box;
   display: flex; align-items: center; justify-content: center;
   background: linear-gradient(180deg, #8f1f1a 0%, #5a1410 100%);
-  border-radius: calc(var(--h) * 0.15);
+  border-radius: calc(var(--h) * 0.1);
 }
 #text, #sub { text-align: center; line-height: 1.12; color: #ffffff; }
 #text { font-family: "HelvetIns", sans-serif; font-weight: 400; font-size: var(--fs); letter-spacing: 0.01em; }
