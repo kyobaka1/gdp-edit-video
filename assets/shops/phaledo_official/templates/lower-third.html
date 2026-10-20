@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><link rel="stylesheet" href="_base.css">
+<style>
+  /* LOWER THIRD — CHÈN MỚI (covers:false): thanh tên ở mép dưới-trái, không dùng để che chữ Trung */
+  #label { background: none; border: 0; justify-content: flex-start; padding: 0; }
+  #bar { display: flex; align-items: stretch; height: 100%; max-width: 100%; box-sizing: border-box; }
+  #accent { flex: none; width: max(4px, calc(var(--h) * 0.08)); background: #b89a6a; }
+  #box { display: flex; flex-direction: column; justify-content: center; gap: calc(var(--h) * 0.03);
+          padding: calc(var(--h) * 0.1) calc(var(--h) * 0.4) calc(var(--h) * 0.1) calc(var(--h) * 0.25);
+          background: linear-gradient(180deg,#1f1f1f,#121212); border-radius: 0 calc(var(--h) * 0.1) calc(var(--h) * 0.1) 0; min-width: 0; flex: 1; }
+  #text { color: #ffffff; text-align: left;  }
+  #sub { color: #e8e2d8; text-align: left;  }
+</style></head>
+<body><div id="label"><div id="bar"><div id="accent"></div><div id="box"><div id="text">{{text}}</div><div id="sub">{{sub}}</div></div></div></div></body></html>

@@ -34,6 +34,8 @@ def run(job_dir: Path, final: bool = False) -> dict:
     if not video.exists():
         raise FileNotFoundError(f"Chưa render: {video.name}")
     analysis = json.loads((job_dir / "analysis.json").read_text(encoding="utf-8"))
+    # Chỉ kiểm PHẦN VIDEO CHÍNH (meta.duration): outro nối sau là video có sẵn của shop → bỏ qua, không tốn
+    # token kiểm lại mỗi lần (Sếp chốt 20/10). Logo/watermark cũng không đặt trên outro.
     dur = meta["duration"]
 
     times = {round(d["t"], 2) for d in analysis["detections"] if d["items"]}
@@ -60,7 +62,8 @@ def run(job_dir: Path, final: bool = False) -> dict:
     picked = frames if len(frames) <= 24 else frames[:: max(1, len(frames) // 24)][:24]
     sheet = contact_sheet([(float(p.stem.split("_")[1]), p) for p in picked], job_dir / "contact.jpg")
 
-    report = {"video": video.name, "frames_checked": len(times), "residual_chinese": residual,
+    report = {"video": video.name, "frames_checked": len(times), "checked_until": dur, "outro_skipped": True,
+              "residual_chinese": residual,
               "tiny_ignored": tiny, "scene_kept": scene, "pass": not residual, "contact_sheet": sheet.name}
     (job_dir / "qa.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     return report

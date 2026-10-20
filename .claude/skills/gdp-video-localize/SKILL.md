@@ -111,6 +111,23 @@ Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong t
   · `lteng_hcm`: đen/đỏ sậm, tiêu đề **UTM HelvetIns**, chữ thường **UTM Avo**; thêm `outline-black` / `outline-red`.
 - Mẫu `covers: false` (chữ viền, KHÔNG nền) chỉ để CHÈN CHỮ MỚI (CTA, nhấn ý) — renderer chặn nếu dùng che chữ Trung.
 - `manifest.replace`: UTM Avo/HelvetIns thiếu `· – — •` → renderer thay ` · ` → ` - ` (thay `, ` từng ra "tường, Chịu").
+- **Hiệu ứng ô chữ** (`studio/motion.py`, tự động): mặc định caption/info = trượt lên, hook/badge/callout = bật phóng,
+  lower third = trượt ngang; ép bằng `anim` ("fade" | "slide-up" | "slide-right" | "pop" | "none") trên overlay/extra.
+  ⛔ Luật che phủ: ô che chữ Trung VÀO SỚM 0,25s để đục 100% đúng lúc chữ Trung hiện; ô bắt đầu ~0s không có hiệu ứng vào
+  (không thể mà không lộ). Chuyển nhãn cùng chỗ = nhãn mới đè lên nhãn cũ (KHÔNG mờ chéo — lộ ~25% chữ Trung). Mờ dần khi
+  tắt chỉ khi không có nhãn khác vào thay chỗ. Morph co giãn khung: KHÔNG làm (tốn công, lợi ích nhỏ).
+- **Phần tử CHÈN MỚI** `edl.extras` (mẫu `covers:false`, không bao giờ dùng che chữ Trung):
+  `{"template": "lower-third", "text", "sub", "start", "end", "position": "lower-left"|"upper-left"}` ·
+  `{"template": "callout-left"|"callout-right", "text", "target": [x, y], "start", "end"}` — `target` = điểm trên sản phẩm
+  (pixel khung gốc; cắt khung kèm lưới toạ độ để chọn). Render đo ORB xem CAMERA có làm điểm dời không (> ~2% khung → ⚠);
+  đồ được thêm/tay cử động trong cảnh không tính. Callout chỉ đặt ở cảnh máy đứng yên; 1–2 callout/video là đủ.
+- **Watermark chống lấy cắp** (`studio/watermark.py`, theo `shop.json.watermark`: GDP/LTENG bật, Phaledo tắt như brand kit
+  prod; `edl.watermark` ghi đè): chữ thương hiệu mờ 12–15%, rộng 40% khung, đổi chỗ êm mỗi ~6s trong vùng giữa, né ô chữ +
+  góc logo, nằm DƯỚI ô chữ, không có trên outro. Nói thật với Sếp: không watermark nhìn thấy nào chống tuyệt đối (công cụ
+  xoá AI vẫn xoá được) — chỉ làm khó: logo dán tĩnh/cắt góc không che hết; muốn xoá phải bám từng khung.
+  `watermark/watermark.png` của shop (nếu có) dùng thay chữ.
+- **QA / soát mắt BỎ QUA OUTRO**: `qa` chỉ kiểm phần video chính (`meta.duration`, báo cáo `outro_skipped`); khi soát
+  khung đừng lấy mốc nằm trong outro (video có sẵn của shop, không cần kiểm lại).
 - **Logo chính** (Sếp 20/10: đã đưa logo thì phải có trên video): `edl.logo = {"enabled": true}` → `studio/logo.py`
   đặt logo `shop.json.logo.files.primary` rộng 22% khung, cách mép 3%, suốt phần video chính (KHÔNG đè outro), vẽ trên
   cùng. Góc trên-trái/trên-phải MÁY TỰ CHỌN theo video: điểm = chồng ô chữ (đè + trong cảnh, diện tích × thời gian) ×10

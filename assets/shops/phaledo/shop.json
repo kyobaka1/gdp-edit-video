@@ -48,5 +48,13 @@
     "gender": "nữ",
     "style": "theo phaledo_official",
     "model_note": "Gemini TTS prebuilt voice; Sếp chốt nhóm giọng 20/10 (GDP hiện tại, LTENG VN nam, LTENG HCM nam khác, PHALEDO nữ ấm)"
+  },
+  "watermark": {
+    "enabled": false,
+    "opacity": 0.12,
+    "text": "PHALEDO",
+    "period": 6.0,
+    "width_pct": 0.4,
+    "note": "Watermark trôi chống lấy cắp (studio/watermark.py). enabled theo brand kit prod (Phaledo prod tắt); edl.watermark ghi đè."
   }
 }

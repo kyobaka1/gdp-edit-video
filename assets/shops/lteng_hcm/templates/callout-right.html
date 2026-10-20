@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><link rel="stylesheet" href="_base.css">
+<style>
+  /* CALLOUT — CHÈN MỚI (covers:false): hộp chữ + đường chỉ + chấm tròn; renderer đặt TÂM CHẤM đúng điểm mục tiêu */
+  #label { background: none; border: 0; padding: 0; flex-direction: row-reverse; justify-content: flex-start; }
+  #box { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center;
+          padding: 0 calc(var(--h) * 0.35); height: 72%; background: linear-gradient(180deg,#8f1f1a,#5a1410); border-radius: calc(var(--h) * 0.12);
+          box-shadow: 0 calc(var(--h) * 0.04) calc(var(--h) * 0.12) rgba(0,0,0,.35); }
+  #text { color: #ffffff;  }
+  #line { flex: none; width: calc(var(--h) * 0.9); height: max(2px, calc(var(--h) * 0.045)); background: #ffffff;
+           box-shadow: 0 0 calc(var(--h) * 0.05) rgba(0,0,0,.5); }
+  #dot { flex: none; width: calc(var(--h) * 0.34); height: calc(var(--h) * 0.34); border-radius: 50%; box-sizing: border-box;
+          background: #a83030; border: max(2px, calc(var(--h) * 0.06)) solid #ffffff; box-shadow: 0 0 calc(var(--h) * 0.08) rgba(0,0,0,.45); }
+</style></head>
+<body><div id="label"><div id="box"><div id="text">{{text}}</div></div><div id="line"></div><div id="dot"></div></div></body></html>

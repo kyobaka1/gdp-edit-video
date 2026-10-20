@@ -1,10 +1,62 @@
 {
   "_note": "LTENG VN — xanh dương gradient, font UTM Avo (Sếp chốt 20/10). Màu/gradient theo brand kit prod (../shop.json). Hợp đồng: assets/shops/README.md",
-  "replace": {" · ": " - ", "·": "-", " – ": " - ", "–": "-", " — ": " - ", "—": "-", "•": "-"},
+  "replace": {
+    " · ": " - ",
+    "·": "-",
+    " – ": " - ",
+    "–": "-",
+    " — ": " - ",
+    "—": "-",
+    "•": "-"
+  },
   "slots": {
-    "caption": {"file": "caption.html", "use": "phụ đề / câu mô tả, nền xanh gradient chữ trắng", "fs_min": 34, "fs_max": 60},
-    "hook": {"file": "hook.html", "use": "câu mở đầu, MỘT dòng IN HOA, viền trắng, có thể xoay", "fs_min": 30, "fs_max": 64, "nowrap": true},
-    "badge": {"file": "badge.html", "use": "nhãn tính năng / số liệu ngắn, IN HOA", "fs_min": 36, "fs_max": 64},
-    "info": {"file": "info.html", "use": "thông tin có dòng phụ, gạch xanh ngọc phía trên", "fs_min": 30, "fs_max": 56}
+    "caption": {
+      "file": "caption.html",
+      "use": "phụ đề / câu mô tả, nền xanh gradient chữ trắng",
+      "fs_min": 34,
+      "fs_max": 60
+    },
+    "hook": {
+      "file": "hook.html",
+      "use": "câu mở đầu, MỘT dòng IN HOA, viền trắng, có thể xoay",
+      "fs_min": 30,
+      "fs_max": 64,
+      "nowrap": true
+    },
+    "badge": {
+      "file": "badge.html",
+      "use": "nhãn tính năng / số liệu ngắn, IN HOA",
+      "fs_min": 36,
+      "fs_max": 64
+    },
+    "info": {
+      "file": "info.html",
+      "use": "thông tin có dòng phụ, gạch xanh ngọc phía trên",
+      "fs_min": 30,
+      "fs_max": 56
+    },
+    "lower-third": {
+      "file": "lower-third.html",
+      "use": "CHÈN MỚI: thanh tên dưới-trái (tiêu đề + dòng phụ)",
+      "fs_min": 30,
+      "fs_max": 50,
+      "covers": false
+    },
+    "callout-left": {
+      "file": "callout-left.html",
+      "use": "CHÈN MỚI: chỉ vào chi tiết sản phẩm, hộp chữ bên trái điểm chỉ",
+      "fs_min": 30,
+      "fs_max": 50,
+      "covers": false,
+      "nowrap": true
+    },
+    "callout-right": {
+      "file": "callout-right.html",
+      "use": "CHÈN MỚI: chỉ vào chi tiết sản phẩm, hộp chữ bên phải điểm chỉ",
+      "fs_min": 30,
+      "fs_max": 50,
+      "covers": false,
+      "nowrap": true
+    }
   }
 }

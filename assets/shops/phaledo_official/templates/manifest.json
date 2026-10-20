@@ -1,9 +1,53 @@
 {
   "_note": "PHALEDO (phaledo_official, các shop PHALEDO khác mượn qua templates_from) — tone tối, chữ trắng bóng nhẹ, font Averta mọi trường hợp (Sếp chốt 20/10). Màu ở ../shop.json. Hợp đồng: assets/shops/README.md",
   "slots": {
-    "caption": {"file": "caption.html", "use": "phụ đề / câu mô tả ngắn, viên thuốc tối, chữ trắng", "fs_min": 34, "fs_max": 60},
-    "hook": {"file": "hook.html", "use": "câu mở đầu / câu hỏi, MỘT dòng IN HOA, có thể xoay theo chữ gốc", "fs_min": 30, "fs_max": 64, "nowrap": true},
-    "badge": {"file": "badge.html", "use": "nhãn tính năng ngắn (2–5 chữ), IN HOA, viền vàng đồng", "fs_min": 36, "fs_max": 64},
-    "info": {"file": "info.html", "use": "thông tin kỹ thuật / hướng dẫn có dòng phụ", "fs_min": 30, "fs_max": 56}
+    "caption": {
+      "file": "caption.html",
+      "use": "phụ đề / câu mô tả ngắn, viên thuốc tối, chữ trắng",
+      "fs_min": 34,
+      "fs_max": 60
+    },
+    "hook": {
+      "file": "hook.html",
+      "use": "câu mở đầu / câu hỏi, MỘT dòng IN HOA, có thể xoay theo chữ gốc",
+      "fs_min": 30,
+      "fs_max": 64,
+      "nowrap": true
+    },
+    "badge": {
+      "file": "badge.html",
+      "use": "nhãn tính năng ngắn (2–5 chữ), IN HOA, viền vàng đồng",
+      "fs_min": 36,
+      "fs_max": 64
+    },
+    "info": {
+      "file": "info.html",
+      "use": "thông tin kỹ thuật / hướng dẫn có dòng phụ",
+      "fs_min": 30,
+      "fs_max": 56
+    },
+    "lower-third": {
+      "file": "lower-third.html",
+      "use": "CHÈN MỚI: thanh tên dưới-trái (tiêu đề + dòng phụ)",
+      "fs_min": 30,
+      "fs_max": 50,
+      "covers": false
+    },
+    "callout-left": {
+      "file": "callout-left.html",
+      "use": "CHÈN MỚI: chỉ vào chi tiết sản phẩm, hộp chữ bên trái điểm chỉ",
+      "fs_min": 30,
+      "fs_max": 50,
+      "covers": false,
+      "nowrap": true
+    },
+    "callout-right": {
+      "file": "callout-right.html",
+      "use": "CHÈN MỚI: chỉ vào chi tiết sản phẩm, hộp chữ bên phải điểm chỉ",
+      "fs_min": 30,
+      "fs_max": 50,
+      "covers": false,
+      "nowrap": true
+    }
   }
 }

@@ -31,10 +31,17 @@ _FIT_JS = """
     const innerH = label.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
     const gap = parseFloat(cs.rowGap) || 0;
     const cols = cs.flexDirection.startsWith('column');
-    const widest = Math.max(...parts.map(p => p.scrollWidth));
+    // bề rộng mỗi phần so với KHUNG CHA TRỰC TIẾP (callout: chữ nằm trong #box cạnh đường chỉ + chấm)
+    const roomOf = p => {
+      const par = p.parentElement;
+      if (par === label) return innerW;
+      const pcs = getComputedStyle(par);
+      return par.clientWidth - parseFloat(pcs.paddingLeft) - parseFloat(pcs.paddingRight);
+    };
+    const wide = parts.every(p => p.scrollWidth <= roomOf(p) + 1);
     const tall = cols ? parts.reduce((s, p) => s + p.scrollHeight, 0) + gap * (parts.length - 1)
                       : Math.max(...parts.map(p => p.scrollHeight));
-    return widest <= innerW + 1 && tall <= innerH + 1;
+    return wide && tall <= innerH + 1;
   };
   let lo = Math.floor(fsMin), hi = Math.ceil(fsMax), best = -1;
   while (lo <= hi) { const mid = (lo + hi) >> 1; if (fits(mid)) { best = mid; lo = mid + 1; } else hi = mid - 1; }
@@ -239,6 +246,9 @@ def preview_sheet(shop: str) -> Path:
         "info": ("Chờ keo khô 48 giờ", "Trời lạnh: chờ 72 giờ", 520, 130),
         "outline-black": ("Lắp đặt chỉ 3 phút", "", 620, 110),
         "outline-red": ("Giảm 50% hôm nay", "", 620, 110),
+        "lower-third": ("Kệ treo tường nhà tắm", "Lắp không cần khoan", 460, 82),
+        "callout-left": ("Đáy thoát nước", "", 400, 66),
+        "callout-right": ("Thanh treo khăn", "", 400, 66),
     }
     tiles = []
     with TemplateRenderer(shop) as r:

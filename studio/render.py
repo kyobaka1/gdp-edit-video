@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from studio import config, logo, media, outro
+from studio import config, logo, media, motion, outro, watermark
 from studio.overlay import grow_to_min_font, render_label
 from studio.templates import TemplateRenderer
 
@@ -95,6 +95,67 @@ def _normalize_loudness(path: Path, target: float, tolerance: float = 0.5) -> fl
     return measure_lufs(path)
 
 
+def _point_drift(video: Path, t0: float, t1: float, cx: int, cy: int) -> float:
+    """Điểm (cx,cy) bị CAMERA dời bao nhiêu px giữa 2 mốc: khớp đặc trưng ORB → ước lượng dịch/xoay/phóng của cả khung.
+    (Bản đầu đo chênh điểm ảnh tại chỗ → báo nhầm khi máy đứng yên nhưng đồ được thêm dần lên kệ.)"""
+    import cv2
+    import numpy as np
+    cap = cv2.VideoCapture(str(video))
+    grays = []
+    for t in (t0, t1):
+        cap.set(cv2.CAP_PROP_POS_MSEC, t * 1000)
+        ok, fr = cap.read()
+        if not ok:
+            return 0.0
+        grays.append(cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY))
+    cap.release()
+    orb = cv2.ORB_create(1500)
+    k1, d1 = orb.detectAndCompute(grays[0], None)
+    k2, d2 = orb.detectAndCompute(grays[1], None)
+    if d1 is None or d2 is None or len(k1) < 12 or len(k2) < 12:
+        return 999.0  # không khớp được (cắt cảnh/đổi cảnh) → coi như lệch
+    matches = sorted(cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True).match(d1, d2), key=lambda m: m.distance)[:300]
+    if len(matches) < 12:
+        return 999.0
+    src = np.float32([k1[m.queryIdx].pt for m in matches])
+    dst = np.float32([k2[m.trainIdx].pt for m in matches])
+    A, inl = cv2.estimateAffinePartial2D(src, dst, method=cv2.RANSAC, ransacReprojThreshold=4.0)
+    if A is None or inl is None or inl.sum() < 10:
+        return 999.0
+    moved = A @ np.array([cx, cy, 1.0])
+    return float(np.hypot(moved[0] - cx, moved[1] - cy))
+
+
+def _draw_extra(e: dict, renderer, meta: dict, job_dir: Path) -> dict:
+    """Phần tử CHÈN MỚI (không che chữ Trung): lower third, callout chỉ vào sản phẩm."""
+    W, H = meta["width"], meta["height"]
+    tpl = e["template"]
+    min_px = round(H * 0.026)
+    if tpl == "lower-third":
+        w, h = round(W * e.get("w_pct", 0.64)), round(H * 0.085)
+        img, w, h = renderer.render(tpl, e["text"], w, h, sub=e.get("sub", ""), min_px=min_px, max_w=round(W * 0.9))
+        x = round(W * 0.04)
+        y = round(H * {"lower-left": 0.66, "upper-left": 0.14}.get(e.get("position", "lower-left"), 0.66))
+    elif tpl in ("callout-left", "callout-right"):
+        tx, ty = (int(v) for v in e["target"])  # điểm trên sản phẩm (pixel khung gốc) mà chấm tròn chỉ vào
+        w, h = round(W * e.get("w_pct", 0.5)), round(H * 0.07)
+        img, w, h = renderer.render(tpl, e["text"], w, h, min_px=min_px, max_w=round(W * 0.7))
+        dot = round(img.height * 0.17)  # tâm chấm nằm sát mép (mẫu: chấm = 0,34×h)
+        x = tx - img.width + dot if tpl == "callout-left" else tx - dot
+        y = ty - img.height // 2
+        drift = _point_drift(job_dir / meta["source"], e["start"], e["end"], tx, ty)
+        e["_drift"] = round(drift, 1)
+        if drift > max(12, W * 0.02):
+            print(f"  ⚠ callout '{e['text']}' {e['start']}–{e['end']}s: máy quay làm điểm chỉ dời {drift:.0f}px — "
+                  f"chọn cảnh tĩnh hơn hoặc rút ngắn khung giờ")
+        if x < 0 or y < 0 or x + img.width > W or y + img.height > H:
+            print(f"  ⚠ callout '{e['text']}' tràn ra ngoài khung — đổi phía (callout-left/right) hoặc rút chữ")
+    else:
+        raise EdlError(f"extras: mẫu '{tpl}' không hỗ trợ (lower-third | callout-left | callout-right)")
+    return {"img": img, "x": x, "y": y, "w": img.width, "h": img.height, "start": e["start"], "end": e["end"],
+            "anim": e.get("anim") or motion.DEFAULT_ANIM.get(tpl, "fade"), "template": tpl}
+
+
 def validate(edl: dict, meta: dict, allow_empty: bool) -> list[dict]:
     """Trả danh sách lớp phủ cần vẽ (ô chữ + phụ đề), mỗi lớp {start,end,x,y,w,h,text,style}."""
     W, H, dur = meta["width"], meta["height"], meta["duration"]
@@ -116,7 +177,7 @@ def validate(edl: dict, meta: dict, allow_empty: bool) -> list[dict]:
             problems.append(f"{o['id']}: mode '{mode}' không hỗ trợ (label | blur | keep)")
         layers.append({"start": o["start"], "end": o["end"], "x": x, "y": y, "w": w, "h": h,
                        "text": text, "sub": (o.get("sub_vi") or "").strip(), "mode": mode, "zh": o.get("zh", ""),
-                       "angle": float(o.get("angle") or 0.0), "template": o.get("template"),
+                       "angle": float(o.get("angle") or 0.0), "template": o.get("template"), "anim": o.get("anim"),
                        "style": {**style, **o.get("style", {})}})
     sb = edl.get("subtitle_box", {"y_pct": 0.78, "h_pct": 0.075, "w_pct": 0.9})
     sw, sh = round(W * sb["w_pct"]), round(H * sb["h_pct"])
@@ -149,47 +210,73 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
         old.unlink()
     W, H = meta["width"], meta["height"]
     shop = edl.get("shop") or ""
-    needs = any(L.get("template") for L in layers if L["mode"] == "label")
+    extras = [e for e in edl.get("extras", []) if not e.get("skip")]
+    needs = any(L.get("template") for L in layers if L["mode"] == "label") or bool(extras)
     if needs and not shop:
-        raise EdlError("edl.json có ô dùng `template` nhưng chưa khai `shop` (mã shop trong assets/shops/)")
+        raise EdlError("edl.json có ô dùng `template`/extras nhưng chưa khai `shop` (mã shop trong assets/shops/)")
     op = outro.plan(edl)  # video outro Sếp đưa sẵn của shop — None nếu job không bật
     total = round(meta["duration"] + (op["duration"] if op else 0.0), 3)
     renderer = TemplateRenderer(shop).__enter__() if needs else None
     try:
         drawn = {id(L): _draw_label(L, renderer, W, H) for L in layers if L["mode"] == "label"}
+        extra_items = [_draw_extra(e, renderer, meta, job_dir) for e in extras]
     finally:
         if renderer is not None:
             renderer.__exit__(None, None, None)
 
     inputs = ["-i", str(job_dir / meta["source"])]
     chain, prev, n_png = [], "0:v", 0
-    # blur vẽ trước (nằm dưới), ô chữ vẽ sau để luôn nổi trên cùng
-    for i, L in enumerate(sorted(layers, key=lambda L: L["mode"] != "blur"), 1):
-        out = f"v{i}"
+    # 1) làm mờ (dưới cùng)
+    for i, L in enumerate([L for L in layers if L["mode"] == "blur"], 1):
+        out = f"vb{i}"
         enable = f"enable='between(t,{L['start']:.3f},{L['end']:.3f})'"
-        if L["mode"] == "blur":
-            # bán kính ≤ nửa cạnh ngắn; kênh màu yuv420 chỉ bằng nửa kích thước → bán kính màu chia đôi
-            bw, bh = L["w"] // 2 * 2, L["h"] // 2 * 2
-            r = max(2, min(bw, bh) // 5)
-            chain.append(f"[{prev}]split[s{i}a][s{i}b]")
-            chain.append(f"[s{i}b]crop={bw}:{bh}:{L['x']}:{L['y']},"
-                         f"boxblur=luma_radius={r}:luma_power=3:chroma_radius={max(1, r // 2)}:chroma_power=3[b{i}]")
-            chain.append(f"[s{i}a][b{i}]overlay={L['x']}:{L['y']}:{enable}[{out}]")
-        else:
-            img, ox, oy = drawn[id(L)]
-            n_png += 1
-            png = labels_dir / f"l{n_png:03}.png"
-            img.save(png)
-            inputs += ["-i", str(png)]
-            chain.append(f"[{prev}][{n_png}:v]overlay={ox}:{oy}:{enable}[{out}]")
+        # bán kính ≤ nửa cạnh ngắn; kênh màu yuv420 chỉ bằng nửa kích thước → bán kính màu chia đôi
+        bw, bh = L["w"] // 2 * 2, L["h"] // 2 * 2
+        r = max(2, min(bw, bh) // 5)
+        chain.append(f"[{prev}]split[s{i}a][s{i}b]")
+        chain.append(f"[s{i}b]crop={bw}:{bh}:{L['x']}:{L['y']},"
+                     f"boxblur=luma_radius={r}:luma_power=3:chroma_radius={max(1, r // 2)}:chroma_power=3[b{i}]")
+        chain.append(f"[s{i}a][b{i}]overlay={L['x']}:{L['y']}:{enable}[{out}]")
         prev = out
-    # Logo chính của shop: suốt phần video chính, vẽ trên cùng; góc do logo.plan tự chọn (né ô chữ + chỗ nhiều chi tiết).
-    # Gắn TRƯỚC khi nối outro → outro không có logo đè.
-    boxes = [{"x": ox, "y": oy, "w": img.width, "h": img.height, "start": L["start"], "end": L["end"]}
-             for L in layers if L["mode"] == "label" for img, ox, oy in [drawn[id(L)]]]
+
+    # 2) ô chữ + phần tử chèn (lower third, callout) — có hiệu ứng vào/ra theo motion.py (giữ che phủ chữ Trung)
+    items = []
+    for L in layers:
+        if L["mode"] != "label":
+            continue
+        img, ox, oy = drawn[id(L)]
+        n = len(items) + 1
+        png = labels_dir / f"l{n:03}.png"
+        img.save(png)
+        items.append({"png": png, "x": ox, "y": oy, "w": img.width, "h": img.height, "start": L["start"],
+                      "end": L["end"], "covers": bool(L.get("zh")),
+                      "anim": L.get("anim") or motion.DEFAULT_ANIM.get(L.get("template") or "", "fade")})
+    for e in extra_items:
+        n = len(items) + 1
+        png = labels_dir / f"l{n:03}.png"
+        e.pop("img").save(png)
+        items.append({**e, "png": png, "covers": False})
+    motion.plan_layers(items)
+    boxes = [{"x": it["x"], "y": it["y"], "w": it["w"], "h": it["h"], "start": it["s0"], "end": it["e1"]} for it in items]
     boxes += [{"x": o["box"][0], "y": o["box"][1], "w": o["box"][2], "h": o["box"][3], "start": o["start"], "end": o["end"]}
               for o in edl.get("overlays", []) if o.get("mode") == "keep"]
+
+    # watermark trôi (dưới ô chữ, trên hình) — chống lấy cắp; né ô chữ + góc logo; không có trên outro
     lp = logo.plan(job_dir, edl, meta, boxes)
+    wp = watermark.plan(job_dir, edl, meta, boxes, (lp["x"], lp["y"], lp["w"], lp["h"]) if lp else None)
+    if wp:
+        n_png += 1
+        inputs += ["-i", str(wp["png"])]
+        chain.append(f"[{prev}][{n_png}:v]overlay=x='{wp['x']}':y='{wp['y']}':eval=frame[vwm]")
+        prev = "vwm"
+    for j, it in enumerate(items, 1):
+        n_png += 1
+        ins, lines = motion.chain(n_png, prev, f"v{j}", it, meta["fps"])
+        inputs += ins
+        chain += lines
+        prev = f"v{j}"
+    # Logo chính của shop: suốt phần video chính, vẽ trên cùng; góc do logo.plan tự chọn (né ô chữ + chỗ nhiều chi tiết).
+    # Gắn TRƯỚC khi nối outro → outro không có logo đè.
     if lp:
         n_png += 1
         inputs += ["-i", str(lp["png"])]
