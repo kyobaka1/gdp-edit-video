@@ -81,6 +81,9 @@ class TemplateRenderer:
         if not spec:
             raise KeyError(f"Shop {self.shop} không có mẫu '{slot}' (có: {', '.join(self.man['slots'])})")
         src = (self.dir / spec["file"]).read_text(encoding="utf-8")
+        # Font thiếu ký tự (UTM Avo/HelvetIns không có · – — •) → Chrome mượn font khác cho riêng ký tự đó → thay trước
+        for a, b in self.man.get("replace", {}).items():
+            text, sub = text.replace(a, b), sub.replace(a, b)
         filled = src.replace("{{text}}", html.escape(text)).replace("{{sub}}", html.escape(sub))
         tmp = self.dir / "_render_tmp.html"  # cùng thư mục để font tương đối tải được
         tmp.write_text(filled, encoding="utf-8")
@@ -106,6 +109,10 @@ class TemplateRenderer:
                             f" r.setProperty('--w', '{w}px'); r.setProperty('--h', '{h}px'); }}")
         return self._page.evaluate(_FIT_JS, [h * spec["fs_min"] / 100, h * spec["fs_max"] / 100])
 
+    def covers(self, slot: str) -> bool:
+        """Mẫu có nền đục (che được chữ Trung)? `covers: false` = chữ không nền, chỉ để chèn chữ mới."""
+        return bool(self.man["slots"].get(slot, {}).get("covers", True))
+
     def render(self, slot: str, text: str, w: int, h: int, *, sub: str = "", min_px: int = 0,
                max_w: int | None = None, max_h: int | None = None) -> tuple[Image.Image, int, int]:
         """Trả (ảnh RGBA, w, h thực dùng). Nới w rồi h khi chữ < min_px hoặc không vừa."""
@@ -126,10 +133,12 @@ class TemplateRenderer:
 def preview_sheet(shop: str) -> Path:
     """Bảng xem trước mọi mẫu của shop với chữ mẫu → <thư mục mẫu>/_preview.png"""
     samples = {
-        "caption": ("Kệ treo tường không cần khoan", "", 640, 80),
-        "hook": ("Bồn rửa bừa bộn, đồ dùng không chỗ để?", "", 700, 110),
+        "caption": ("Kệ treo tường không cần khoan · Chịu lực tốt", "", 700, 80),
+        "hook": ("Bồn rửa bừa bộn, đồ dùng không chỗ để?", "", 760, 100),
         "badge": ("Chịu lực tốt", "", 360, 90),
         "info": ("Chờ keo khô 48 giờ", "Trời lạnh: chờ 72 giờ", 520, 130),
+        "outline-black": ("Lắp đặt chỉ 3 phút", "", 620, 110),
+        "outline-red": ("Giảm 50% hôm nay", "", 620, 110),
     }
     tiles = []
     with TemplateRenderer(shop) as r:

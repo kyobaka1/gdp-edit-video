@@ -44,6 +44,9 @@ def _draw_label(L: dict, renderer, W: int, H: int) -> tuple[Image.Image, int, in
     w, h = rotated_rect(L["w"], L["h"], angle) if angle else (L["w"], L["h"])
     max_w = round(W * 0.92) if not angle else round(w * 1.25)
     if renderer is not None and L.get("template"):
+        if L.get("zh") and not renderer.covers(L["template"]):
+            raise EdlError(f"Ô che chữ Trung '{L['zh']}' dùng mẫu '{L['template']}' KHÔNG nền (covers:false) — "
+                           f"mẫu này chỉ để chèn chữ mới; chọn mẫu có nền")
         img, w, h = renderer.render(L["template"], L["text"] or " ", w, h, sub=L["sub"], min_px=min_px,
                                     max_w=max(max_w, w), max_h=h * 3)
     else:
@@ -81,7 +84,7 @@ def validate(edl: dict, meta: dict, allow_empty: bool) -> list[dict]:
         if mode not in ("label", "blur"):
             problems.append(f"{o['id']}: mode '{mode}' không hỗ trợ (label | blur | keep)")
         layers.append({"start": o["start"], "end": o["end"], "x": x, "y": y, "w": w, "h": h,
-                       "text": text, "sub": (o.get("sub_vi") or "").strip(), "mode": mode,
+                       "text": text, "sub": (o.get("sub_vi") or "").strip(), "mode": mode, "zh": o.get("zh", ""),
                        "angle": float(o.get("angle") or 0.0), "template": o.get("template"),
                        "style": {**style, **o.get("style", {})}})
     sb = edl.get("subtitle_box", {"y_pct": 0.78, "h_pct": 0.075, "w_pct": 0.9})

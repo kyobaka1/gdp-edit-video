@@ -1,0 +1,12 @@
+{
+  "_note": "LTENG HCM — đen / đỏ sậm. Tiêu đề UTM HelvetIns, chữ thường UTM Avo (Sếp chốt 20/10). Màu/gradient theo brand kit prod (../shop.json). Hợp đồng: assets/shops/README.md",
+  "replace": {" · ": ", ", "·": ",", " – ": " - ", "–": "-", " — ": " - ", "—": "-", "•": "-"},
+  "slots": {
+    "caption": {"file": "caption.html", "use": "phụ đề / câu mô tả: nền đỏ sậm chữ trắng (UTM Avo)", "fs_min": 34, "fs_max": 60},
+    "hook": {"file": "hook.html", "use": "câu mở đầu, MỘT dòng IN HOA, gradient đỏ viền đen (HelvetIns), có thể xoay", "fs_min": 30, "fs_max": 66, "nowrap": true},
+    "badge": {"file": "badge.html", "use": "nhãn tính năng / số liệu: nền đen viền đỏ sậm, IN HOA (HelvetIns)", "fs_min": 36, "fs_max": 66},
+    "info": {"file": "info.html", "use": "thông tin có dòng phụ: tiêu đề HelvetIns + dòng phụ Avo", "fs_min": 30, "fs_max": 58},
+    "outline-black": {"file": "outline-black.html", "use": "chữ ĐEN bọc TRẮNG, không nền (HelvetIns) — CHỈ chèn chữ mới", "fs_min": 40, "fs_max": 76, "covers": false},
+    "outline-red": {"file": "outline-red.html", "use": "chữ ĐỎ SẬM viền TRẮNG, không nền (HelvetIns) — CHỈ chèn chữ mới", "fs_min": 40, "fs_max": 76, "covers": false}
+  }
+}

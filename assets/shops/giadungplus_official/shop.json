@@ -16,11 +16,9 @@
   "logo": {
     "placement": "top-center",
     "files": {
-      "primary": "logo/logo.png",
-      "on_dark": "logo/logo-white.png",
-      "on_light": "logo/logo-dark.png",
-      "icon": "logo/icon.png",
-      "vector": "logo/logo.svg"
+      "primary": "logo/logo-red-white.png",
+      "on_dark": "logo/logo-white-red.png",
+      "on_light": "logo/nguyen-ban-tach-nen.png"
     }
   },
   "intro": {
@@ -42,5 +40,22 @@
     "watermark_image": "shop/brand-kit/giadungplus_official/ac96a7139c0f449db1ea331fc72c29a6.png",
     "font_reference": "shop/brand-kit/giadungplus_official/ddcbcb60482c435d99858fb5d6bbad3f.jpg"
   },
-  "notes": "Đã có bảng màu trên prod nhưng CHƯA có mẫu chữ HTML — cần thiết kế (Claude Design → templates/)."
+  "notes": "",
+  "fonts": {
+    "heading": "UTM Avo/UTM_AvoBold.ttf",
+    "body": "UTM Avo/UTM_Avo.ttf",
+    "rule": "UTM Avo mọi trường hợp (Bold + Regular)"
+  },
+  "style": "tone đỏ/trắng: chữ trắng nền đỏ · chữ đen viền trắng · chữ đỏ viền trắng",
+  "brand_kit": {
+    "badge": {
+      "bg": "#f1c40f",
+      "text": "#c01818"
+    },
+    "typography": {
+      "header": "Bold, ALL CAPS, 1 hàng, 6-8 từ",
+      "sub": "Regular, tối đa 2 dòng, factual"
+    },
+    "text_radius_pct": 15
+  }
 }

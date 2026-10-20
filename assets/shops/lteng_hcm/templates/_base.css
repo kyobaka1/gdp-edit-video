@@ -1,0 +1,15 @@
+/* LTENG HCM — đen / đỏ sậm (brand kit prod: heading_gradient 90° #c0392b→#a83030→#5a1410).
+   Font: UTM HelvetIns cho tiêu đề/nhấn mạnh, UTM Avo cho chữ thường (Sếp chốt 20/10). */
+@font-face { font-family: "HelvetIns"; src: url("../../../fonts/UTM HelvetIns/UTM HelvetIns.ttf"); font-weight: 400; }
+@font-face { font-family: "Avo"; src: url("../../../fonts/UTM Avo/UTM_AvoBold.ttf"); font-weight: 700; }
+@font-face { font-family: "Avo"; src: url("../../../fonts/UTM Avo/UTM_Avo.ttf"); font-weight: 400; }
+html, body { margin: 0; background: transparent; }
+#label {
+  width: var(--w); height: var(--h); box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #8f1f1a 0%, #5a1410 100%);
+  border-radius: calc(var(--h) * 0.15);
+}
+#text, #sub { text-align: center; line-height: 1.12; color: #ffffff; }
+#text { font-family: "HelvetIns", sans-serif; font-weight: 400; font-size: var(--fs); letter-spacing: 0.01em; }
+#sub { font-family: "Avo", sans-serif; font-weight: 400; font-size: calc(var(--fs) * 0.6); color: #f3d9d6; }

@@ -1,0 +1,18 @@
+/* PHALEDO — tone tối, chữ trắng có bóng nhẹ, font Averta mọi trường hợp (Sếp chốt 20/10). Màu theo shop.json. */
+@font-face { font-family: "Averta"; src: url("../../../fonts/Averta/Averta-Bold.otf"); font-weight: 700; }
+@font-face { font-family: "Averta"; src: url("../../../fonts/Averta/Averta-Semibold.otf"); font-weight: 600; }
+@font-face { font-family: "Averta"; src: url("../../../fonts/Averta/Averta-Regular.otf"); font-weight: 400; }
+html, body { margin: 0; background: transparent; }
+#label {
+  width: var(--w); height: var(--h); box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #1f1f1f 0%, #121212 100%);
+  border: max(1px, calc(var(--h) * 0.02)) solid rgba(184, 154, 106, 0.55);
+  border-radius: calc(var(--h) * 0.15);
+}
+#text, #sub {
+  font-family: "Averta", sans-serif; text-align: center; line-height: 1.16; color: #ffffff;
+  text-shadow: 0 calc(var(--fs) * 0.05) calc(var(--fs) * 0.16) rgba(0, 0, 0, 0.6);
+}
+#text { font-weight: 700; font-size: var(--fs); letter-spacing: 0.01em; }
+#sub { font-weight: 400; font-size: calc(var(--fs) * 0.62); color: #e8e2d8; }

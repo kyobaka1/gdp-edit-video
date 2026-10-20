@@ -16,11 +16,8 @@
   "logo": {
     "placement": "top-center",
     "files": {
-      "primary": "logo/logo.png",
-      "on_dark": "logo/logo-white.png",
-      "on_light": "logo/logo-dark.png",
-      "icon": "logo/icon.png",
-      "vector": "logo/logo.svg"
+      "primary": "logo/logo-ngang.png",
+      "icon": "logo/logo-nen-trang-vuong.jpg"
     }
   },
   "intro": {
@@ -42,5 +39,39 @@
     "watermark_image": "shop/brand-kit/lteng_vn/52b07ec349664f4b83573c0148d5a1e9.png",
     "font_reference": "shop/brand-kit/lteng_vn/b97889a6b9e6488da77ecc22c3836863.jpg"
   },
-  "notes": "Đã có bảng màu trên prod nhưng CHƯA có mẫu chữ HTML — cần thiết kế (Claude Design → templates/)."
+  "notes": "",
+  "fonts": {
+    "heading": "UTM Avo/UTM_AvoBold.ttf",
+    "body": "UTM Avo/UTM_Avo.ttf",
+    "rule": "UTM Avo"
+  },
+  "style": "xanh dương gradient",
+  "brand_kit": {
+    "cover_style": "badge_heavy",
+    "heading_gradient": {
+      "angle": 40,
+      "stops": [
+        "#0b649c",
+        "#062955",
+        "#041e40"
+      ]
+    },
+    "badge": {
+      "bg": "#004878",
+      "text": "#ffffff",
+      "gradient": {
+        "angle": 15,
+        "stops": [
+          "#0b649c",
+          "#062955",
+          "#041E40"
+        ]
+      }
+    },
+    "typography": {
+      "header": "Bold, ALL CAPS, ≤5 từ/hàng, tối đa 2 hàng, chữ rất lớn",
+      "sub": "Regular, 1 dòng ngắn, factual"
+    },
+    "text_radius_pct": 15
+  }
 }

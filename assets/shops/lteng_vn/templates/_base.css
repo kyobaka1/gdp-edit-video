@@ -1,0 +1,13 @@
+/* LTENG VN — xanh dương gradient (brand kit prod: heading_gradient 40° #0b649c→#062955→#041e40), font UTM Avo (Sếp chốt 20/10). */
+@font-face { font-family: "Avo"; src: url("../../../fonts/UTM Avo/UTM_AvoBold.ttf"); font-weight: 700; }
+@font-face { font-family: "Avo"; src: url("../../../fonts/UTM Avo/UTM_Avo.ttf"); font-weight: 400; }
+html, body { margin: 0; background: transparent; }
+#label {
+  width: var(--w); height: var(--h); box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(40deg, #0b649c 0%, #062955 55%, #041e40 100%);
+  border-radius: calc(var(--h) * 0.15);
+}
+#text, #sub { font-family: "Avo", sans-serif; text-align: center; line-height: 1.16; color: #ffffff; }
+#text { font-weight: 700; font-size: var(--fs); }
+#sub { font-weight: 400; font-size: calc(var(--fs) * 0.62); color: #d6e8f7; }

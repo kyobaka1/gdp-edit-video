@@ -3,3 +3,4 @@ Pillow==13.0.0
 opencv-python-headless==5.0.0.93
 python-dotenv==1.2.4
 playwright==1.64.0
+fonttools==4.67.0

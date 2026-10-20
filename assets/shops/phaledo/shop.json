@@ -16,11 +16,8 @@
   "logo": {
     "placement": "top-center",
     "files": {
-      "primary": "logo/logo.png",
-      "on_dark": "logo/logo-white.png",
-      "on_light": "logo/logo-dark.png",
-      "icon": "logo/icon.png",
-      "vector": "logo/logo.svg"
+      "primary": "logo/logo-ngang.png",
+      "on_dark": "logo/logo-tach-nen.png"
     }
   },
   "intro": {
@@ -39,5 +36,11 @@
     "marketing_shop_id": 2,
     "shopee_logo_url": "https://cf.shopee.vn/file/vn-11134216-820l4-mgnua2w5rrbi5c"
   },
-  "notes": "Prod chưa cấu hình nhận diện riêng (bảng màu mặc định trung tính). Tạm mượn mẫu của phaledo_official."
+  "notes": "Sếp 20/10: dùng chung nhận diện phaledo_official (mẫu chữ mượn qua templates_from). Bảng màu prod của shop này còn mặc định.",
+  "fonts": {
+    "heading": "Averta/Averta-Bold.otf",
+    "body": "Averta/Averta-Regular.otf",
+    "rule": "Averta (theo phaledo_official)"
+  },
+  "style": "theo phaledo_official: tone tối, chữ trắng có bóng nhẹ"
 }

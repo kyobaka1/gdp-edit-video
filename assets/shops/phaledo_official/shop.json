@@ -16,11 +16,8 @@
   "logo": {
     "placement": "top-center",
     "files": {
-      "primary": "logo/logo.png",
-      "on_dark": "logo/logo-white.png",
-      "on_light": "logo/logo-dark.png",
-      "icon": "logo/icon.png",
-      "vector": "logo/logo.svg"
+      "primary": "logo/logo-ngang.png",
+      "on_dark": "logo/logo-tach-nen.png"
     }
   },
   "intro": {
@@ -42,5 +39,26 @@
     "watermark_image": "shop/brand-kit/phaledo_official/5c843d4ebbcd4f09a00da04ecb0325d7.png",
     "font_reference": "shop/brand-kit/phaledo_official/9d507936d4bd403bbe44c4ddb8b05fe8.jpg"
   },
-  "notes": ""
+  "notes": "",
+  "fonts": {
+    "heading": "Averta/Averta-Bold.otf",
+    "body": "Averta/Averta-Regular.otf",
+    "rule": "Averta mọi trường hợp (áp cho cả shop phaledo)"
+  },
+  "style": "tone tối, chữ trắng có bóng nhẹ",
+  "brand_kit": {
+    "cover_style": "minimal_premium",
+    "heading_color": "#f2e9e3",
+    "badge": {
+      "bg": "#c0b7a6",
+      "text": "#f2e9e3",
+      "bg_opacity": 35,
+      "border": "#f2e9e3"
+    },
+    "typography": {
+      "header": "Bold, ALL CAPS, ≤5 từ/hàng, tối đa 2 hàng",
+      "sub": "Regular, 1 dòng ngắn, factual"
+    },
+    "text_radius_pct": 15
+  }
 }

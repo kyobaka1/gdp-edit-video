@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><link rel="stylesheet" href="_base.css">
+<style>
+  /* KHÔNG nền (covers:false) — chỉ chèn chữ mới, không dùng để che chữ Trung */
+  #label { padding: 0 calc(var(--fs) * 0.3); }
+  #text {
+    color: #c01818; -webkit-text-stroke: calc(var(--fs) * 0.14) #ffffff; paint-order: stroke fill;
+    filter: drop-shadow(0 calc(var(--fs) * 0.04) calc(var(--fs) * 0.06) rgba(0, 0, 0, 0.35));
+  }
+</style></head>
+<body><div id="label"><div id="text">{{text}}</div></div></body></html>

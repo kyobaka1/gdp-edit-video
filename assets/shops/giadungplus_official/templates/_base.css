@@ -1,0 +1,8 @@
+/* Gia Dụng Plus + — dùng chung cho mọi mẫu của shop. Màu theo shop.json: đỏ #c01818, đỏ sậm #7a1010. */
+@font-face { font-family: "Avo"; src: url("../../../fonts/UTM Avo/UTM_AvoBold.ttf"); font-weight: 700; }
+@font-face { font-family: "Avo"; src: url("../../../fonts/UTM Avo/UTM_Avo.ttf"); font-weight: 400; }
+html, body { margin: 0; background: transparent; }
+#label { width: var(--w); height: var(--h); box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
+#text, #sub { font-family: "Avo", sans-serif; text-align: center; line-height: 1.16; }
+#text { font-weight: 700; font-size: var(--fs); }
+#sub { font-weight: 400; font-size: calc(var(--fs) * 0.62); }
