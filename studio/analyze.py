@@ -3,6 +3,7 @@ chép lời thoại tiếng Trung (Gemini audio). Ghi analysis.json + edl.json n
 """
 
 import json
+import math
 import re
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
@@ -12,6 +13,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from google.genai import types
+from PIL import Image
 
 from studio import gemini, media
 
@@ -26,7 +28,9 @@ BOX_SCHEMA = {
             "text": {"type": "string"},
             "box_2d": {"type": "array", "items": {"type": "integer"}},
             "kind": {"type": "string", "enum": ["overlay", "scene"]},
-        }, "required": ["text", "box_2d", "kind"]}},
+            "left": {"type": "array", "items": {"type": "integer"}},
+            "right": {"type": "array", "items": {"type": "integer"}},
+        }, "required": ["text", "box_2d", "kind", "left", "right"]}},
     }, "required": ["frame_index", "items"]}}},
     "required": ["frames"],
 }
@@ -36,9 +40,24 @@ BOX_PROMPT = (
     "box_2d = [ymin, xmin, ymax, xmax] chuẩn hoá 0-1000, bao TRỌN chữ và cả nền/khung trang trí ôm sát chữ "
     "nếu có. kind = \"overlay\" nếu là chữ ĐỒ HOẠ chèn khi dựng video (phụ đề, tiêu đề, nhãn tính năng, "
     "chú thích, giá, chữ trên màn hình đen/đồ hoạ); kind = \"scene\" nếu là chữ IN SẴN trên vật thể có thật "
-    "trong cảnh quay (sản phẩm, bao bì, nhãn dán, chai lọ, hộp, phụ kiện, đạo cụ). Không có chữ Hán → items "
-    "rỗng. Bỏ qua chữ Latin/số đứng riêng."
+    "trong cảnh quay (sản phẩm, bao bì, nhãn dán, chai lọ, hộp, phụ kiện, đạo cụ). left = [y, x] điểm GIỮA "
+    "cạnh trái (đầu dòng chữ), right = [y, x] điểm GIỮA cạnh phải (cuối dòng), chuẩn hoá 0-1000. "
+    "Một dòng chữ xoay chéo liền mạch là MỘT mục (đừng cắt đôi). Không có chữ Hán → items rỗng. "
+    "Bỏ qua chữ Latin/số đứng riêng."
 )
+
+
+def _angle(it: dict, aspect: float) -> float:
+    """Góc dòng chữ (độ, dương = đi lên trái→phải) từ 2 đầu dòng. Hỏi Gemini số góc trực tiếp thì nó dùng
+    trục ảnh (y xuống) → ngược dấu (đo 20/10: báo −18° cho dòng đi lên); toạ độ 2 điểm thì không nhập nhằng."""
+    try:
+        (ly, lx), (ry, rx) = it["left"], it["right"]
+    except (KeyError, TypeError, ValueError):
+        return 0.0
+    dx, dy = (rx - lx), (ry - ly) * aspect  # quy về cùng thang pixel (aspect = H/W)
+    if abs(dx) < 1:
+        return 0.0
+    return -math.degrees(math.atan2(dy, dx))
 
 TRANSCRIPT_SCHEMA = {
     "type": "object",
@@ -71,11 +90,13 @@ def _detect_batch(paths: list[Path], usage: Path, label: str) -> list[list[dict]
         contents += [f"Khung {i}:", gemini.image_part(p)]
     contents.append(BOX_PROMPT.format(n=len(paths), last=len(paths) - 1))
     data = gemini.generate_json(contents, BOX_SCHEMA, usage_log=usage, label=label)
+    with Image.open(paths[0]) as im:
+        aspect = im.height / im.width
     out: list[list[dict]] = [[] for _ in paths]
     for fr in data.get("frames", []):
         idx = fr.get("frame_index")
         if isinstance(idx, int) and 0 <= idx < len(paths):
-            out[idx] = [it for it in fr.get("items", [])
+            out[idx] = [{**it, "angle": round(_angle(it, aspect), 1)} for it in fr.get("items", [])
                         if len(it.get("box_2d", [])) == 4 and has_cjk(it.get("text", ""))]
     return out
 
@@ -147,7 +168,8 @@ def group_events(detections: list[dict], w: int, h: int, interval: float) -> lis
             if best is None:
                 best = {"obs": [], "missed": 0}
                 open_ev.append(best)
-            best["obs"].append({"t": t, "box": box, "text": it["text"], "kind": it.get("kind", "overlay")})
+            best["obs"].append({"t": t, "box": box, "text": it["text"], "kind": it.get("kind", "overlay"),
+                                "angle": float(it.get("angle") or 0.0)})
             best["missed"] = 0
             matched_ids.add(id(best))
         still_open = []
@@ -169,6 +191,7 @@ def group_events(detections: list[dict], w: int, h: int, interval: float) -> lis
         out.append({
             "zh": Counter(o["text"] for o in obs).most_common(1)[0][0],
             "kind": Counter(o.get("kind", "overlay") for o in obs).most_common(1)[0][0],
+            "angle": round(float(np.median([o.get("angle", 0.0) for o in obs])), 1),
             "t_first": obs[0]["t"], "t_last": obs[-1]["t"], "n_frames": len(obs),
             "box_union": union,
             # tâm ô dịch > 15% bề rộng ô (và > 2% khung) = chữ chạy; dưới mức đó là nhiễu vị trí của Gemini
@@ -288,6 +311,7 @@ def run(job_dir: Path, interval: float = 0.5, regroup: bool = False) -> dict:
             "id": f"o{i}", "start": start, "end": end, "box": box, "zh": ev["zh"], "text_vi": "",
             # chữ in trên sản phẩm/bao bì/phụ kiện trong cảnh → giữ nguyên (Sếp chốt 20/10)
             "kind": ev["kind"], "mode": "keep" if ev["kind"] == "scene" else "label",
+            "angle": ev["angle"] if abs(ev["angle"]) >= 4 else 0.0,  # <4° coi như ngang (nhiễu)
             "moving": ev["moving"], "n_frames": ev["n_frames"],
             "needs_review": ev["moving"] and box[2] * box[3] > 0.35 * w * h,
         })

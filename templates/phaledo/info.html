@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<style>
+  @font-face { font-family: "BVP"; src: url("../../assets/fonts/BeVietnamPro-Bold.ttf"); font-weight: 700; }
+  @font-face { font-family: "BVP"; src: url("../../assets/fonts/BeVietnamPro-Regular.ttf"); font-weight: 400; }
+  html, body { margin: 0; background: transparent; }
+  #label {
+    width: var(--w); height: var(--h); box-sizing: border-box;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: calc(var(--h) * 0.04); padding: 0 calc(var(--h) * 0.3);
+    background: #161616;
+    border-top: max(3px, calc(var(--h) * 0.06)) solid #b89a6a;
+    border-bottom: max(1px, calc(var(--h) * 0.02)) solid #3a3326;
+    border-radius: calc(var(--h) * 0.1);
+  }
+  #text {
+    font-family: "BVP", sans-serif; font-weight: 700; font-size: var(--fs);
+    line-height: 1.12; color: #ececec; text-align: center;
+  }
+  #sub {
+    font-family: "BVP", sans-serif; font-weight: 400; font-size: calc(var(--fs) * 0.62);
+    line-height: 1.15; color: #c0b7a6; text-align: center;
+  }
+</style></head>
+<body><div id="label"><div id="text">{{text}}</div><div id="sub">{{sub}}</div></div></body></html>

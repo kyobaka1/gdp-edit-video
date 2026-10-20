@@ -1,0 +1,12 @@
+{
+  "brand": "PHALEDO",
+  "tone": "cao cấp, tinh tế, tối giản — nhấn chất liệu, độ bền, sang trọng",
+  "palette": {"dark": "#161616", "accent": "#b89a6a", "primary": "#c0b7a6", "text": "#ececec"},
+  "source": "marketing_shop id 5 phaledo_official brand_kit (prod)",
+  "slots": {
+    "caption": {"file": "caption.html", "use": "phụ đề / câu mô tả ngắn, thường ở đáy khung", "fs_min": 34, "fs_max": 60},
+    "hook": {"file": "hook.html", "use": "câu mở đầu / câu hỏi gây chú ý, MỘT dòng, có thể xoay theo chữ gốc", "fs_min": 30, "fs_max": 64, "nowrap": true},
+    "badge": {"file": "badge.html", "use": "nhãn tính năng ngắn (2–5 chữ) nằm giữa khung", "fs_min": 36, "fs_max": 64},
+    "info": {"file": "info.html", "use": "thông tin kỹ thuật / hướng dẫn có dòng phụ (vd thời gian chờ keo)", "fs_min": 30, "fs_max": 56}
+  }
+}

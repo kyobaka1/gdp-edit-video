@@ -6,3 +6,5 @@ inbox/*
 !inbox/.gitkeep
 jobs/*
 !jobs/.gitkeep
+
+templates/*/_render_tmp.html

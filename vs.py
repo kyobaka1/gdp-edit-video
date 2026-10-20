@@ -7,7 +7,10 @@
   qa <id> [--final]            kiểm còn sót chữ Hán → qa.json + contact.jpg
   patch <id>                   đưa chỗ sót của qa.json vào edl.json (nới giờ ô cũ / thêm ô blur cần xem)
   music <id> [--prompt P]      tạo nhạc nền không lời bằng Lyria → jobs/<id>/music.mp3
-  voice <id>                   giọng Việt Gemini TTS cho edl.voiceover (kiểm ngược từng câu) → voice.json
+  voice <id>                   (cũ) đọc rời từng câu — KHÔNG dùng nữa, thay bằng narrate
+  narrate <id>                 thuyết minh liền mạch edl.narration: 1 lượt TTS, kiểm ngược, đặt đoạn theo cảnh
+  audiocheck <id> [--final]    đo LUFS cả bản + nhạc ở khoảng không giọng
+  templates <brand>            liệt kê mẫu chữ của brand + ảnh xem trước
   cost <id>                    tổng token Gemini của job
 """
 
@@ -95,10 +98,55 @@ def cmd_voice(a) -> None:
         print(f"  ⚠ {msg}")
 
 
+def cmd_narrate(a) -> None:
+    from studio import narration
+    d = job_dir(a.id)
+    t0 = time.time()
+    rep = narration.build(d)
+    print(f"Xong {time.time() - t0:.1f}s · 1 lượt đọc {rep['take_seconds']}s · khớp {rep['match']} · giọng {rep['voice']}")
+    for p in rep["pieces"]:
+        flag = f"  (trễ {p['drift']}s)" if p["drift"] > 0.3 else ""
+        print(f"  {p['start']:6.2f}–{p['end']:6.2f}s  [cảnh {p['at']}] khớp {p.get('match')}{flag}  {p['text'][:60]}")
+    for w in rep["warnings"]:
+        print(f"  ⚠ {w}")
+
+
+def cmd_audiocheck(a) -> None:
+    """Đo độ to: cả bản, riêng nhạc ở các khoảng không có giọng (phải nghe thấy, ~-30…-24 LUFS)."""
+    d = job_dir(a.id)
+    video = d / ("final.mp4" if a.final else "preview.mp4")
+    rep = json.loads((d / "narration.json").read_text(encoding="utf-8"))
+    ff = config.FFMPEG
+
+    def lufs(args: list[str]) -> str:
+        out = media.subprocess.run([ff, "-hide_banner", *args, "-af", "ebur128", "-f", "null", "-"],
+                                   capture_output=True, text=True, encoding="utf-8", errors="replace").stderr
+        tail = out[out.rfind("Summary:"):]
+        m = re.search(r"I:\s+(-?[\d.]+) LUFS", tail)
+        return m.group(1) if m else "?"
+
+    print(f"Cả bản: {lufs(['-i', str(video), '-vn'])} LUFS")
+    gaps, prev = [], 0.0
+    for p in rep["pieces"]:
+        if p["start"] - prev >= 1.0:
+            gaps.append((prev + 0.2, p["start"] - 0.2))
+        prev = p["end"]
+    for s, e in gaps[:6]:
+        print(f"  nhạc không giọng {s:5.1f}–{e:5.1f}s: {lufs(['-ss', f'{s:.2f}', '-to', f'{e:.2f}', '-i', str(video), '-vn'])} LUFS")
+
+
 def cmd_music(a) -> None:
     d = job_dir(a.id)
     out = voice.make_music(d, a.prompt)
     print(f"→ {out}")
+
+
+def cmd_templates(a) -> None:
+    from studio.templates import manifest, preview_sheet
+    man = manifest(a.brand)
+    for slot, spec in man["slots"].items():
+        print(f"  {slot:8} {spec['file']:14} {spec['use']}")
+    print(f"→ {preview_sheet(a.brand)}")
 
 
 def cmd_patch(a) -> None:
@@ -122,6 +170,9 @@ def main() -> None:
     s = sub.add_parser("render"); s.add_argument("id"); s.add_argument("--final", action="store_true"); s.add_argument("--allow-empty", action="store_true"); s.set_defaults(fn=cmd_render)
     s = sub.add_parser("qa"); s.add_argument("id"); s.add_argument("--final", action="store_true"); s.set_defaults(fn=cmd_qa)
     s = sub.add_parser("patch"); s.add_argument("id"); s.set_defaults(fn=cmd_patch)
+    s = sub.add_parser("templates"); s.add_argument("brand"); s.set_defaults(fn=cmd_templates)
+    s = sub.add_parser("narrate"); s.add_argument("id"); s.set_defaults(fn=cmd_narrate)
+    s = sub.add_parser("audiocheck"); s.add_argument("id"); s.add_argument("--final", action="store_true"); s.set_defaults(fn=cmd_audiocheck)
     s = sub.add_parser("voice"); s.add_argument("id"); s.set_defaults(fn=cmd_voice)
     s = sub.add_parser("music"); s.add_argument("id"); s.add_argument("--prompt"); s.set_defaults(fn=cmd_music)
     s = sub.add_parser("cost"); s.add_argument("id"); s.set_defaults(fn=cmd_cost)
