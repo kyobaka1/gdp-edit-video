@@ -42,9 +42,11 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }   # rồi NHỜ NGƯ�
 
 `requirements.txt` ghim: google-genai, Pillow, opencv-python-headless, python-dotenv, playwright, fonttools, psutil.
 
-**Skill** (bắt buộc — quy trình làm video): chép `SKILL.md` từ repo giadungplus (`skills/gdp-video-localize/SKILL.md`,
-lấy bằng `git show origin/main:skills/gdp-video-localize/SKILL.md`) hoặc từ máy cũ vào
-`%USERPROFILE%\.claude\skills\gdp-video-localize\SKILL.md`, rồi khởi động lại Claude Code.
+**Skill** (bắt buộc — quy trình làm video) ĐÃ NẰM SẴN trong thư mục: `.claude\skills\gdp-video-localize\` (skill dự án).
+- Mở Claude Code ngay trong thư mục studio → skill tự có, không cần cài.
+- Muốn dùng skill khi Claude Code mở ở thư mục khác (vd repo giadungplus): `.\.venv\Scripts\python.exe tools\sync_skill.py install`
+  (chép sang `%USERPROFILE%\.claude\skills\`), rồi khởi động lại Claude Code. `tools\sync_skill.py status` để so 2 bản.
+- Bản sao dự phòng: repo giadungplus `skills/gdp-video-localize/` (`git show origin/main:skills/gdp-video-localize/SKILL.md`).
 
 **Nếu thư mục KHÔNG nằm ở `C:\Users\Admin\gdp-video-studio`**: code dùng đường dẫn tương đối (không phải sửa), nhưng
 phải thay đường dẫn tuyệt đối trong `SKILL.md` và `CLAUDE.md`:
