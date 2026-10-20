@@ -2,6 +2,7 @@
 
 import json
 import math
+import re
 from pathlib import Path
 
 from PIL import Image
@@ -62,6 +63,36 @@ def _draw_label(L: dict, renderer, W: int, H: int) -> tuple[Image.Image, int, in
         ox = max(0, min(W - img.width, ox))
         oy = max(0, min(H - img.height, oy))
     return img, ox, oy
+
+
+def measure_lufs(path: Path) -> float | None:
+    out = media.subprocess.run([config.FFMPEG, "-hide_banner", "-i", str(path), "-vn", "-af", "ebur128", "-f", "null", "-"],
+                               capture_output=True, text=True, encoding="utf-8", errors="replace").stderr
+    m = re.search(r"I:\s+(-?[\d.]+) LUFS", out[out.rfind("Summary:"):])
+    return float(m.group(1)) if m else None
+
+
+def _normalize_loudness(path: Path, target: float, tolerance: float = 0.5) -> float | None:
+    """Đưa ĐỘ TO CẢ BẢN về mục tiêu: đo ebur128 → bù dB tuyến tính + chặn đỉnh, chép nguyên hình (-c:v copy).
+    Chỉ chuẩn hoá từng lớp (giọng/nhạc) thì cả bản lệch theo giọng + kịch bản (20/10: LTENG VN −16,4, HCM −15,4,
+    GDP −14,9 cùng thông số); loudnorm 1 lượt cũng hụt (−15,9 / −15,1)."""
+    now = measure_lufs(path)
+    if now is None or abs(now - target) <= tolerance:
+        return now
+    tmp = path.with_name(path.stem + "_norm" + path.suffix)
+    gain = target - now
+    for _ in range(3):  # limiter ăn bớt độ to sau khi bù → đo lại, bù thêm; luôn tính từ bản gốc (không mã hoá chồng)
+        media.run([config.FFMPEG, "-y", "-v", "error", "-i", str(path), "-c:v", "copy",
+                   # chặn đỉnh 0,75 (~−2,5 dBFS), level=0: mặc định alimiter tự kéo âm lượng lại sát 0 dBFS
+                   # (20/10 ra đỉnh +0,9 dBFS) ; AAC còn sinh thêm đỉnh ảo nên phải chừa khoảng
+                   "-af", f"volume={gain:.2f}dB,alimiter=limit=0.75:level=0", "-c:a", "aac", "-b:a", "192k",
+                   "-ar", "48000", "-movflags", "+faststart", str(tmp)])
+        got = measure_lufs(tmp)
+        if got is None or abs(got - target) <= tolerance:
+            break
+        gain += target - got
+    tmp.replace(path)
+    return measure_lufs(path)
 
 
 def validate(edl: dict, meta: dict, allow_empty: bool) -> list[dict]:
@@ -209,9 +240,11 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
             inputs += ["-stream_loop", "-1", "-i", str(music)]
             chain.append(f"[{n_in + 1}:a]atrim=0:{dur:.3f},aresample=48000,loudnorm=I={music_lufs}:TP=-8:LRA=11,"
                          f"afade=t=in:d=0.4,afade=t=out:st={max(0.0, dur - 1.8):.3f}:d=1.8[bg]")
-            chain.append("[vo][bg]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.95[aout]")
+            chain.append("[vo][bg]amix=inputs=2:normalize=0:duration=first[mix]")
         else:
-            chain.append("[vo]alimiter=limit=0.95[aout]")
+            chain.append("[vo]anull[mix]")
+        # độ to CẢ BẢN được bù sau khi render (_normalize_loudness) — đo thật rồi bù dB, chắc hơn loudnorm 1 lượt
+        chain.append("[mix]alimiter=limit=0.95:level=0,aresample=48000[aout]")
         a_args = ["-map", "[aout]", "-c:a", "aac", "-b:a", "192k", "-ar", "48000"]
     elif mode == "voice":
         # giọng Việt (voice.json, đã qua kiểm ngược) + nhạc nền tự hạ khi có giọng, mờ dần cuối video
@@ -241,9 +274,9 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
                          f"afade=t=out:st={max(0.0, dur - 1.5):.3f}:d=1.5[bg]")
             chain.append("[vomix]asplit[vo_a][vo_b]")
             chain.append("[bg][vo_a]sidechaincompress=threshold=0.04:ratio=6:attack=15:release=350[bgd]")
-            chain.append("[bgd][vo_b]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.95[aout]")
+            chain.append("[bgd][vo_b]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.95:level=0[aout]")
         else:
-            chain.append(f"[vomix]atrim=0:{dur:.3f},alimiter=limit=0.95[aout]")
+            chain.append(f"[vomix]atrim=0:{dur:.3f},alimiter=limit=0.95:level=0[aout]")
         a_args = ["-map", "[aout]", "-c:a", "aac", "-b:a", "160k"]
     elif mode == "music":
         music = Path(audio.get("music") or "")
@@ -265,6 +298,9 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
     media.run([config.FFMPEG, "-y", "-v", "error", *inputs, "-/filter_complex", str(filter_file),
                "-map", "[vout]", *v_args, *a_args, "-t", f"{total:.3f}",
                "-movflags", "+faststart", str(out_path)])
+
+    if mode in ("narration", "voice", "music"):  # tiếng do studio trộn → bù độ to cả bản về mục tiêu (mặc định −14)
+        _normalize_loudness(out_path, float(audio.get("target_lufs", -14)))
 
     subs = [s for s in edl.get("subtitles", []) if (s.get("text_vi") or "").strip() and not s.get("skip")]
     if subs:

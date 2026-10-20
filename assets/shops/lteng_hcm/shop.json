@@ -25,9 +25,9 @@
     "enabled": false
   },
   "outro": {
-    "file": "outro/outro.mp4",
-    "enabled": false,
-    "cta": ""
+    "file": "outro/LTENG Outro.mp4",
+    "enabled": true,
+    "note": "Video outro Sếp đưa (logo LTENG + BLUE VINE, 1440x1920, 3,7s, không tiếng)."
   },
   "music": {
     "default": null

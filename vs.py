@@ -191,6 +191,10 @@ def cmd_siblings(a) -> None:
         return e.get("shop", "?"), nar, cap
 
     _, my_nar, my_cap = texts(d)
+
+    def sentences(s: str) -> list[str]:
+        return [x.strip() for x in re.split(r"[.!?|:]\s*", s) if len(x.strip()) > 8]
+
     for j in sorted(p for p in config.JOBS.iterdir() if (p / "meta.json").exists() and p != d):
         m = json.loads((j / "meta.json").read_text(encoding="utf-8"))
         if Path(m.get("origin", "")).name != Path(me.get("origin", "")).name:
@@ -201,6 +205,13 @@ def cmd_siblings(a) -> None:
         print(f"== {j.name} (shop {shop}) · giống thuyết minh {sn if sn is None else round(sn, 2)} · giống chữ đè {sc if sc is None else round(sc, 2)}")
         print(f"   thuyết minh: {nar}")
         print(f"   chữ đè: {cap}")
+        # câu gần như trùng (≥0,75) giữa bản này và bản kia — phải viết lại
+        theirs = sentences(nar) + sentences(cap)
+        for s in sentences(my_nar) + sentences(my_cap):
+            best = max(theirs, key=lambda t: SequenceMatcher(None, s, t).ratio(), default="")
+            r = SequenceMatcher(None, s, best).ratio() if best else 0
+            if r >= 0.75:
+                print(f"   ⚠ câu trùng {r:.2f}: «{s}» ≈ «{best}»")
 
 
 def cmd_patch(a) -> None:
