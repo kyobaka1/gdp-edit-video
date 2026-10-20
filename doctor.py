@@ -78,15 +78,23 @@ if config.FFMPEG and config.FONT_BOLD.exists():
 if not config.GEMINI_API_KEY:
     check("Gemini API key", "CHỜ", "chưa có GEMINI_API_KEY trong .env (Sếp tự dán)")
 else:
-    try:
-        from google import genai
+    import time
 
-        client = genai.Client(api_key=config.GEMINI_API_KEY)
-        resp = client.models.generate_content(model=config.GEMINI_MODEL, contents="Trả lời đúng một chữ: OK")
-        text = (resp.text or "").strip()
-        check(f"Gemini ({config.GEMINI_MODEL})", "OK" if text else "LỖI", f"trả về: {text[:40]!r}")
-    except Exception as exc:  # báo lỗi mạng/quyền/model sai, không lộ key
-        check(f"Gemini ({config.GEMINI_MODEL})", "LỖI", f"{type(exc).__name__}: {str(exc)[:200]}")
+    from google import genai
+
+    client = genai.Client(api_key=config.GEMINI_API_KEY)
+    last = None
+    for attempt in range(3):  # 503 UNAVAILABLE của Google là nhất thời (gặp khi kiểm SETUP 20/10) → thử lại
+        try:
+            resp = client.models.generate_content(model=config.GEMINI_MODEL, contents="Trả lời đúng một chữ: OK")
+            text = (resp.text or "").strip()
+            check(f"Gemini ({config.GEMINI_MODEL})", "OK" if text else "LỖI", f"trả về: {text[:40]!r}")
+            break
+        except Exception as exc:  # báo lỗi mạng/quyền/model sai, không lộ key
+            last = exc
+            time.sleep(3 * (attempt + 1))
+    else:
+        check(f"Gemini ({config.GEMINI_MODEL})", "LỖI", f"{type(last).__name__}: {str(last)[:200]}")
 
 width = max(len(n) for _, n, _ in results)
 for status, name, detail in results:
