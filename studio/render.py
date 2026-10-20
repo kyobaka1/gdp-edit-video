@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from studio import config, media
-from studio.overlay import render_label
+from studio.overlay import grow_to_min_font, render_label
 
 
 class EdlError(ValueError):
@@ -25,18 +25,23 @@ def validate(edl: dict, meta: dict, allow_empty: bool) -> list[dict]:
     style = edl.get("style", {})
     layers, problems = [], []
     for o in edl.get("overlays", []):
-        if o.get("skip"):
+        if o.get("skip") or o.get("mode") == "keep":  # keep = chữ trong cảnh, giữ nguyên
             continue
         x, y, w, h = (int(v) for v in o["box"])
         if w <= 0 or h <= 0 or x < 0 or y < 0 or x + w > W or y + h > H:
             problems.append(f"{o['id']}: ô {o['box']} ra ngoài khung {W}x{H}")
         if not (0 <= o["start"] < o["end"] <= dur + 0.05):
             problems.append(f"{o['id']}: khung giờ {o['start']}–{o['end']} sai (video {dur}s)")
+        mode = o.get("mode", "label")
         text = (o.get("text_vi") or "").strip()
-        if not text and not allow_empty:
-            problems.append(f"{o['id']}: chưa có text_vi (chữ gốc: {o.get('zh')})")
+        if mode == "label" and not text and not allow_empty:
+            problems.append(f"{o['id']}: chưa có text_vi (chữ gốc: {o.get('zh')}) — hoặc đặt mode=blur / skip")
+        if mode not in ("label", "blur"):
+            problems.append(f"{o['id']}: mode '{mode}' không hỗ trợ (label | blur | keep)")
+        if mode == "label":  # chữ Việt tối thiểu 3% chiều cao khung cho dễ đọc trên điện thoại
+            x, y, w, h = grow_to_min_font(text, x, y, w, h, W, H, round(H * 0.03))
         layers.append({"start": o["start"], "end": o["end"], "x": x, "y": y, "w": w, "h": h,
-                       "text": text, "style": {**style, **o.get("style", {})}})
+                       "text": text, "mode": mode, "style": {**style, **o.get("style", {})}})
     sb = edl.get("subtitle_box", {"y_pct": 0.78, "h_pct": 0.075, "w_pct": 0.9})
     sw, sh = round(W * sb["w_pct"]), round(H * sb["h_pct"])
     sx, sy = (W - sw) // 2, round(H * sb["y_pct"])
@@ -47,7 +52,7 @@ def validate(edl: dict, meta: dict, allow_empty: bool) -> list[dict]:
         if not (0 <= s["start"] < s["end"] <= dur + 0.05):
             problems.append(f"phụ đề {i}: khung giờ {s['start']}–{s['end']} sai")
         layers.append({"start": s["start"], "end": s["end"], "x": sx, "y": sy, "w": sw, "h": sh,
-                       "text": text, "style": {**style, **edl.get("subtitle_style", {})}})
+                       "text": text, "mode": "label", "style": {**style, **edl.get("subtitle_style", {})}})
     if problems:
         raise EdlError("edl.json chưa hợp lệ:\n  - " + "\n  - ".join(problems))
     return layers
@@ -66,15 +71,27 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
     for old in labels_dir.glob("*.png"):
         old.unlink()
     inputs = ["-i", str(job_dir / meta["source"])]
-    chain, prev = [], "0:v"
-    for i, L in enumerate(layers, 1):
-        st = L["style"]
-        png = labels_dir / f"l{i:03}.png"
-        render_label(L["text"] or " ", L["w"], L["h"], bg=st.get("bg", "#FFFFFF"),
-                     border=st.get("border", "#D7262E"), text_color=st.get("text", "#1A1A1A")).save(png)
-        inputs += ["-i", str(png)]
+    chain, prev, n_png = [], "0:v", 0
+    # blur vẽ trước (nằm dưới), ô chữ vẽ sau để luôn nổi trên cùng
+    for i, L in enumerate(sorted(layers, key=lambda L: L["mode"] != "blur"), 1):
         out = f"v{i}"
-        chain.append(f"[{prev}][{i}:v]overlay={L['x']}:{L['y']}:enable='between(t,{L['start']:.3f},{L['end']:.3f})'[{out}]")
+        enable = f"enable='between(t,{L['start']:.3f},{L['end']:.3f})'"
+        if L["mode"] == "blur":
+            # bán kính ≤ nửa cạnh ngắn; kênh màu yuv420 chỉ bằng nửa kích thước → bán kính màu chia đôi
+            bw, bh = L["w"] // 2 * 2, L["h"] // 2 * 2
+            r = max(2, min(bw, bh) // 5)
+            chain.append(f"[{prev}]split[s{i}a][s{i}b]")
+            chain.append(f"[s{i}b]crop={bw}:{bh}:{L['x']}:{L['y']},"
+                         f"boxblur=luma_radius={r}:luma_power=3:chroma_radius={max(1, r // 2)}:chroma_power=3[b{i}]")
+            chain.append(f"[s{i}a][b{i}]overlay={L['x']}:{L['y']}:{enable}[{out}]")
+        else:
+            st = L["style"]
+            n_png += 1
+            png = labels_dir / f"l{n_png:03}.png"
+            render_label(L["text"] or " ", L["w"], L["h"], bg=st.get("bg", "#FFFFFF"),
+                         border=st.get("border", "#D7262E"), text_color=st.get("text", "#1A1A1A")).save(png)
+            inputs += ["-i", str(png)]
+            chain.append(f"[{prev}][{n_png}:v]overlay={L['x']}:{L['y']}:{enable}[{out}]")
         prev = out
     scale = ",scale=-2:960" if not final else ""
     chain.append(f"[{prev}]format=yuv420p{scale}[vout]")
@@ -82,7 +99,7 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
     audio = edl.get("audio", {})
     mode = audio.get("mode", "keep")
     a_args: list[str]
-    n_in = len(layers) + 1
+    n_in = n_png + 1
     if mode == "keep" and meta["has_audio"]:
         a_args = ["-map", "0:a:0", "-c:a", "aac", "-b:a", "160k"]
     elif mode == "music":

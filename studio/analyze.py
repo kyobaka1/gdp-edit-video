@@ -3,6 +3,7 @@ chép lời thoại tiếng Trung (Gemini audio). Ghi analysis.json + edl.json n
 """
 
 import json
+import re
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from difflib import SequenceMatcher
@@ -24,16 +25,19 @@ BOX_SCHEMA = {
         "items": {"type": "array", "items": {"type": "object", "properties": {
             "text": {"type": "string"},
             "box_2d": {"type": "array", "items": {"type": "integer"}},
-        }, "required": ["text", "box_2d"]}},
+            "kind": {"type": "string", "enum": ["overlay", "scene"]},
+        }, "required": ["text", "box_2d", "kind"]}},
     }, "required": ["frame_index", "items"]}}},
     "required": ["frames"],
 }
 BOX_PROMPT = (
     "Bạn nhận {n} khung hình đánh số 0..{last} theo thứ tự. Với MỖI khung, liệt kê mọi cụm chữ Trung Quốc "
-    "(Hán tự) nhìn thấy được: phụ đề, tiêu đề, nhãn tính năng, giá, logo chữ, chữ in trên bao bì. Mỗi cụm "
-    "(một dòng hoặc một khối liền) là một mục: text = chữ đọc được, box_2d = [ymin, xmin, ymax, xmax] chuẩn "
-    "hoá 0-1000, bao TRỌN chữ và cả nền/khung trang trí ôm sát chữ nếu có. Không có chữ Hán → items rỗng. "
-    "Bỏ qua chữ Latin/số đứng riêng."
+    "(Hán tự) nhìn thấy được. Mỗi cụm (một dòng hoặc một khối liền) là một mục: text = chữ đọc được, "
+    "box_2d = [ymin, xmin, ymax, xmax] chuẩn hoá 0-1000, bao TRỌN chữ và cả nền/khung trang trí ôm sát chữ "
+    "nếu có. kind = \"overlay\" nếu là chữ ĐỒ HOẠ chèn khi dựng video (phụ đề, tiêu đề, nhãn tính năng, "
+    "chú thích, giá, chữ trên màn hình đen/đồ hoạ); kind = \"scene\" nếu là chữ IN SẴN trên vật thể có thật "
+    "trong cảnh quay (sản phẩm, bao bì, nhãn dán, chai lọ, hộp, phụ kiện, đạo cụ). Không có chữ Hán → items "
+    "rỗng. Bỏ qua chữ Latin/số đứng riêng."
 )
 
 TRANSCRIPT_SCHEMA = {
@@ -53,6 +57,14 @@ TRANSCRIPT_PROMPT = (
 )
 
 
+_CJK = re.compile(r"[㐀-䶿一-鿿豈-﫿]")
+
+
+def has_cjk(text: str) -> bool:
+    """Gemini đôi khi liệt kê cả chữ Việt/Latin dù được dặn chỉ lấy Hán tự → lọc cứng bằng dải Unicode."""
+    return bool(_CJK.search(text or ""))
+
+
 def _detect_batch(paths: list[Path], usage: Path, label: str) -> list[list[dict]]:
     contents: list = []
     for i, p in enumerate(paths):
@@ -63,7 +75,8 @@ def _detect_batch(paths: list[Path], usage: Path, label: str) -> list[list[dict]
     for fr in data.get("frames", []):
         idx = fr.get("frame_index")
         if isinstance(idx, int) and 0 <= idx < len(paths):
-            out[idx] = [it for it in fr.get("items", []) if len(it.get("box_2d", [])) == 4]
+            out[idx] = [it for it in fr.get("items", [])
+                        if len(it.get("box_2d", [])) == 4 and has_cjk(it.get("text", ""))]
     return out
 
 
@@ -98,6 +111,11 @@ def _iou(a: list[int], b: list[int]) -> float:
 
 def _same_text(a: str, b: str) -> bool:
     a, b = a.replace(" ", ""), b.replace(" ", "")
+    if not a or not b:
+        return False
+    # Gemini hay đọc thiếu/thừa vài chữ (上墙 ↔ 上墙辅助贴) → chuỗi này nằm trong chuỗi kia cũng tính là cùng
+    if min(len(a), len(b)) >= 2 and (a in b or b in a):
+        return True
     return a == b or SequenceMatcher(None, a, b).ratio() >= 0.6
 
 
@@ -117,18 +135,19 @@ def group_events(detections: list[dict], w: int, h: int, interval: float) -> lis
                 if id(ev) in matched_ids:
                     continue
                 last = ev["obs"][-1]
-                iou = _iou(last["box"], box)
+                if not _same_text(last["text"], it["text"]):
+                    continue  # phụ đề cứng đổi câu tại CÙNG chỗ → sự kiện mới (mỗi câu một bản dịch)
+                score = _iou(last["box"], box)
                 cx_gap = abs((last["box"][0] + last["box"][2]) - (box[0] + box[2])) / 2 / w
                 cy_gap = abs((last["box"][1] + last["box"][3]) - (box[1] + box[3])) / 2 / h
-                score = iou
-                if _same_text(last["text"], it["text"]) and cy_gap < 0.05 and cx_gap < 0.3:
+                if cy_gap < 0.05 and cx_gap < 0.3:
                     score = max(score, 0.5)  # chữ chạy ngang: IoU thấp nhưng cùng chữ, cùng hàng
                 if score >= 0.3 and score > best_score:
                     best, best_score = ev, score
             if best is None:
                 best = {"obs": [], "missed": 0}
                 open_ev.append(best)
-            best["obs"].append({"t": t, "box": box, "text": it["text"]})
+            best["obs"].append({"t": t, "box": box, "text": it["text"], "kind": it.get("kind", "overlay")})
             best["missed"] = 0
             matched_ids.add(id(best))
         still_open = []
@@ -149,6 +168,7 @@ def group_events(detections: list[dict], w: int, h: int, interval: float) -> lis
         med_w = float(np.median(boxes[:, 2] - boxes[:, 0]))
         out.append({
             "zh": Counter(o["text"] for o in obs).most_common(1)[0][0],
+            "kind": Counter(o.get("kind", "overlay") for o in obs).most_common(1)[0][0],
             "t_first": obs[0]["t"], "t_last": obs[-1]["t"], "n_frames": len(obs),
             "box_union": union,
             # tâm ô dịch > 15% bề rộng ô (và > 2% khung) = chữ chạy; dưới mức đó là nhiễu vị trí của Gemini
@@ -232,19 +252,24 @@ def pad_box(box: list[int], w: int, h: int) -> list[int]:
     return [x0, y0, x1 - x0, y1 - y0]
 
 
-def run(job_dir: Path, interval: float = 0.5) -> dict:
+def run(job_dir: Path, interval: float = 0.5, regroup: bool = False) -> dict:
+    """regroup=True: dùng lại detections/transcript đã lưu trong analysis.json, KHÔNG gọi Gemini."""
     meta = json.loads((job_dir / "meta.json").read_text(encoding="utf-8"))
     video = job_dir / meta["source"]
     w, h, fps, duration = meta["width"], meta["height"], meta["fps"], meta["duration"]
     usage = job_dir / "usage.jsonl"
 
-    n = int(duration / interval)
-    times = [round(min(i * interval + 0.05, duration - 0.05), 3) for i in range(n + 1)]
-    with ThreadPoolExecutor(max_workers=2) as ex:
-        fut_det = ex.submit(detect_text, video, times, job_dir / "frames", usage)
-        fut_tr = ex.submit(transcribe, video, job_dir, usage) if meta["has_audio"] else None
-        detections = fut_det.result()
-        transcript = fut_tr.result() if fut_tr else {"has_speech": False, "segments": []}
+    if regroup:
+        saved = json.loads((job_dir / "analysis.json").read_text(encoding="utf-8"))
+        interval, detections, transcript = saved["interval"], saved["detections"], saved["transcript"]
+    else:
+        n = int(duration / interval)
+        times = [round(min(i * interval + 0.05, duration - 0.05), 3) for i in range(n + 1)]
+        with ThreadPoolExecutor(max_workers=2) as ex:
+            fut_det = ex.submit(detect_text, video, times, job_dir / "frames", usage)
+            fut_tr = ex.submit(transcribe, video, job_dir, usage) if meta["has_audio"] else None
+            detections = fut_det.result()
+            transcript = fut_tr.result() if fut_tr else {"has_speech": False, "segments": []}
 
     events = group_events(detections, w, h, interval)
     cap_w = cv2.VideoCapture(str(video)).get(cv2.CAP_PROP_FRAME_WIDTH) or w
@@ -261,6 +286,8 @@ def run(job_dir: Path, interval: float = 0.5) -> dict:
             box = pad_box(ev["box_union"], w, h)
         overlays.append({
             "id": f"o{i}", "start": start, "end": end, "box": box, "zh": ev["zh"], "text_vi": "",
+            # chữ in trên sản phẩm/bao bì/phụ kiện trong cảnh → giữ nguyên (Sếp chốt 20/10)
+            "kind": ev["kind"], "mode": "keep" if ev["kind"] == "scene" else "label",
             "moving": ev["moving"], "n_frames": ev["n_frames"],
             "needs_review": ev["moving"] and box[2] * box[3] > 0.35 * w * h,
         })

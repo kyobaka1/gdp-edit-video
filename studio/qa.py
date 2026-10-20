@@ -7,7 +7,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 from studio import config, media
-from studio.analyze import detect_text
+from studio.analyze import _iou, _px, _same_text, detect_text, has_cjk, pad_box
 
 
 def contact_sheet(frames: list[tuple[float, Path]], out: Path, cols: int = 6, thumb_w: int = 240) -> Path:
@@ -44,13 +44,66 @@ def run(job_dir: Path, final: bool = False) -> dict:
     for old in qa_dir.glob("*.jpg") if qa_dir.exists() else []:
         old.unlink()
     detections = detect_text(video, times, qa_dir, job_dir / "usage.jsonl")
-    residual = [{"t": d["t"], **it} for d in detections for it in d["items"]]
+    all_found = [{"t": d["t"], **it} for d in detections for it in d["items"]]
+    # chữ in trên sản phẩm/bao bì/phụ kiện trong cảnh được GIỮ NGUYÊN (Sếp chốt 20/10) → không tính là sót
+    scene = [it for it in all_found if it.get("kind") == "scene"]
+    found = [it for it in all_found if it.get("kind") != "scene"]
+    # Ô chữ cao < 2,5% khung (vd nhãn in trên chai đạo cụ, chữ ~10px/960) không đọc được trên điện thoại
+    # → báo trong tiny_ignored, không đánh trượt. Sếp muốn khắt hơn thì hạ ngưỡng này.
+    def _tall(it: dict) -> bool:
+        y0, _, y1, _ = it["box_2d"]
+        return abs(y1 - y0) > 25
+    residual = [it for it in found if _tall(it)]
+    tiny = [it for it in found if not _tall(it)]
 
     frames = sorted(qa_dir.glob("f_*.jpg"))
     picked = frames if len(frames) <= 24 else frames[:: max(1, len(frames) // 24)][:24]
     sheet = contact_sheet([(float(p.stem.split("_")[1]), p) for p in picked], job_dir / "contact.jpg")
 
     report = {"video": video.name, "frames_checked": len(times), "residual_chinese": residual,
-              "pass": not residual, "contact_sheet": sheet.name}
+              "tiny_ignored": tiny, "scene_kept": scene, "pass": not residual, "contact_sheet": sheet.name}
     (job_dir / "qa.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     return report
+
+
+def patch(job_dir: Path, margin: float = 0.5) -> list[str]:
+    """Đưa chỗ sót của qa.json vào edl.json: cùng chữ gốc + trùng ô cũ (IoU ≥ 0,3 hoặc nằm gọn trong ô) → nới
+    khung giờ ô đó ±margin; không trùng → thêm ô mới mode=blur, needs_review (Claude/Sếp quyết lại)."""
+    meta = json.loads((job_dir / "meta.json").read_text(encoding="utf-8"))
+    W, H, dur = meta["width"], meta["height"], meta["duration"]
+    rep = json.loads((job_dir / "qa.json").read_text(encoding="utf-8"))
+    edl_path = job_dir / "edl.json"
+    edl = json.loads(edl_path.read_text(encoding="utf-8"))
+    log: list[str] = []
+    for r in rep["residual_chinese"]:
+        if not has_cjk(r.get("text", "")):
+            continue
+        x0, y0, x1, y1 = _px(r["box_2d"], W, H)
+        t = r["t"]
+        best, best_score = None, 0.0
+        for o in edl["overlays"]:
+            # bắt buộc CÙNG chữ gốc: ô lớn (vd câu mở đầu) có thể trùm vị trí một nhãn nhỏ khác hẳn
+            if o.get("skip") or not _same_text(o.get("zh", ""), r["text"]):
+                continue
+            ox, oy, ow, oh = o["box"]
+            ob = [ox, oy, ox + ow, oy + oh]
+            inside = x0 >= ob[0] - 4 and y0 >= ob[1] - 4 and x1 <= ob[2] + 4 and y1 <= ob[3] + 4
+            score = max(_iou(ob, [x0, y0, x1, y1]), 1.0 if inside else 0.0)
+            if score >= 0.3 and score > best_score:
+                best, best_score = o, score
+        if best is not None:
+            old = (best["start"], best["end"])
+            best["start"] = round(max(0.0, min(best["start"], t - margin)), 3)
+            best["end"] = round(min(dur, max(best["end"], t + margin)), 3)
+            if (best["start"], best["end"]) != old:
+                log.append(f"{best['id']}: nới {old[0]}–{old[1]} → {best['start']}–{best['end']} (sót {r['text']} @ {t}s)")
+        else:
+            nid = f"q{sum(1 for o in edl['overlays'] if o['id'].startswith('q')) + 1}"
+            box = pad_box([x0, y0, x1, y1], W, H)
+            edl["overlays"].append({
+                "id": nid, "start": round(max(0.0, t - margin), 3), "end": round(min(dur, t + margin), 3),
+                "box": box, "zh": r["text"], "text_vi": "", "mode": "blur", "needs_review": True,
+            })
+            log.append(f"{nid}: ô MỚI blur {box} {t - margin:.2f}–{t + margin:.2f}s ({r['text']}) — cần xem")
+    edl_path.write_text(json.dumps(edl, ensure_ascii=False, indent=2), encoding="utf-8")
+    return log

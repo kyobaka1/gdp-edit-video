@@ -22,6 +22,45 @@ def _wrap(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, ma
     return lines
 
 
+def _insets(width: int, height: int) -> tuple[int, int, int]:
+    border_px = max(2, round(min(width, height) * 0.06))
+    return border_px, border_px + round(width * 0.06), border_px + round(height * 0.10)
+
+
+def fit_font(text: str, width: int, height: int, font_path: Path = FONT_BOLD) -> int:
+    """Cỡ chữ lớn nhất (px) để text vừa ô width×height (tự xuống dòng)."""
+    draw = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+    _, pad_x, pad_y = _insets(width, height)
+    inner_w, inner_h = width - 2 * pad_x, height - 2 * pad_y
+    for size in range(round(height * 0.6), 7, -1):
+        font = ImageFont.truetype(str(font_path), size)
+        lines = _wrap(draw, text, font, inner_w)
+        if round(size * 1.22) * len(lines) <= inner_h and max(draw.textlength(l, font=font) for l in lines) <= inner_w:
+            return size
+    return 8
+
+
+def grow_to_min_font(text: str, x: int, y: int, w: int, h: int, frame_w: int, frame_h: int,
+                     min_px: int) -> tuple[int, int, int, int]:
+    """Chữ Việt dài hơn chữ Trung → ô gốc làm chữ nhỏ hơn min_px. Nới NGANG trước (giữ tâm, ≤92% khung),
+    chưa đủ mới nới DỌC. Ô mới luôn phủ trọn ô gốc. Trả (x, y, w, h)."""
+    if not text or fit_font(text, w, h) >= min_px:
+        return x, y, w, h
+    max_w = max(w, round(frame_w * 0.92))
+    new_w = w
+    for new_w in range(w + 8, max_w + 1, 8):
+        if fit_font(text, new_w, h) >= min_px:
+            break
+    new_h = h
+    if fit_font(text, new_w, h) < min_px:
+        for new_h in range(h + 4, min(frame_h, h * 3) + 1, 4):
+            if fit_font(text, new_w, new_h) >= min_px:
+                break
+    new_x = max(0, min(frame_w - new_w, x - (new_w - w) // 2))
+    new_y = max(0, min(frame_h - new_h, y - (new_h - h) // 2))
+    return new_x, new_y, new_w, new_h
+
+
 def render_label(
     text: str,
     width: int,
