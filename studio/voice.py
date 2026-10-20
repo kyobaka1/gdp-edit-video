@@ -25,6 +25,23 @@ MAX_TEMPO = 1.35  # ép nhanh tối đa; vượt nữa giọng méo → phải r
 _TIMESTAMP = re.compile(r"\b\d{1,2}:\d{2}(?::\d{2})?\b")  # bước nghe lại đôi khi chèn "00:00" đầu câu
 
 
+_LEXICON: list[tuple[re.Pattern, str]] | None = None
+
+
+def spoken(text: str) -> str:
+    """Thay tên brand bằng cách đọc Sếp chốt (assets/pronunciation.json) trước khi gửi TTS.
+    TTS tự đọc PHALEDO thành "Fa-li-đô" → sai; Sếp chốt "Pha lê đô" (20/10)."""
+    global _LEXICON
+    if _LEXICON is None:
+        p = config.ROOT / "assets" / "pronunciation.json"
+        data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+        items = sorted(((k, v) for k, v in data.items() if not k.startswith("_")), key=lambda kv: -len(kv[0]))
+        _LEXICON = [(re.compile(rf"(?<!\w){re.escape(k)}(?!\w)", re.IGNORECASE), v) for k, v in items]
+    for pat, rep in _LEXICON:
+        text = pat.sub(rep, text)
+    return text
+
+
 def _norm(s: str) -> str:
     s = _TIMESTAMP.sub(" ", unicodedata.normalize("NFC", s)).lower()
     return " ".join(re.sub(r"[^\w\s]", " ", s).split())

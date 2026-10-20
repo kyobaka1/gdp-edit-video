@@ -14,7 +14,7 @@ import numpy as np
 from google.genai import types
 
 from studio import config, gemini
-from studio.voice import TTS_MODEL, _match, _save_audio
+from studio.voice import TTS_MODEL, _match, _save_audio, spoken
 
 ALIGN_SCHEMA = {
     "type": "object",
@@ -104,7 +104,9 @@ def build(job_dir: Path, retries: int = 3) -> dict:
     if not paras:
         raise ValueError("edl.json chưa có narration.paragraphs")
     voice = nar.get("voice", "Kore")
-    full = "\n\n".join(p["text"].strip() for p in paras)
+    # chữ GỬI TTS (tên brand đã đổi sang cách đọc chuẩn); mọi bước kiểm ngược so với bản này
+    said = [spoken(p["text"].strip()) for p in paras]
+    full = "\n\n".join(said)
     work = job_dir / "narration"
     work.mkdir(exist_ok=True)
     key = hashlib.sha1(f"{TTS_MODEL}|{voice}|{full}".encode()).hexdigest()[:12]
@@ -130,7 +132,7 @@ def build(job_dir: Path, retries: int = 3) -> dict:
     a, rate = _read(raw)
 
     # 2) Định vị từng đoạn trong audio
-    listing = "\n".join(f"{i}: {p['text'].strip()}" for i, p in enumerate(paras))
+    listing = "\n".join(f"{i}: {s}" for i, s in enumerate(said))
     al = gemini.generate_json([
         types.Part.from_bytes(data=raw.read_bytes(), mime_type="audio/wav"),
         "Audio là giọng đọc lần lượt các đoạn dưới đây. Cho mỗi đoạn, trả thời điểm BẮT ĐẦU và KẾT THÚC "
@@ -154,7 +156,7 @@ def build(job_dir: Path, retries: int = 3) -> dict:
             cut = int(mid * rate)
             probe = work / "probe.wav"
             _write(probe, _trim(a[cuts[-1]:cut], rate), rate)
-            score = _match(paras[i - 1]["text"], _hear(probe))
+            score = _match(said[i - 1], _hear(probe))
             if score > best_score:
                 best_cut, best_score = cut, score
             if score >= 0.9:
@@ -177,14 +179,14 @@ def build(job_dir: Path, retries: int = 3) -> dict:
         if end > dur - 0.1:
             warnings.append(f"đoạn {i} tràn quá cuối video {end - dur + 0.1:.1f}s — rút kịch bản")
         placed.append({"index": i, "at": p["at"], "start": round(start, 3), "end": round(end, 3),
-                       "drift": round(drift, 2), "text": p["text"].strip()})
+                       "drift": round(drift, 2), "text": p["text"].strip(), "said": said[i]})
         cursor = end
     # 4) Cổng kiểm từng mảnh: nghe lại → phải khớp đúng đoạn của nó (bắt lỗi định vị/cắt dính sang đoạn bên)
     for i, pl in enumerate(placed):
         piece_path = work / f"piece_{i:02}.wav"
         _write(piece_path, _trim(a[cuts[i]:cuts[i + 1]], rate), rate)
         heard = _hear(piece_path)
-        pl["heard"], pl["match"] = heard.strip(), round(_match(pl["text"], heard), 3)
+        pl["heard"], pl["match"] = heard.strip(), round(_match(pl["said"], heard), 3)
         if pl["match"] < 0.8:
             warnings.append(f"mảnh {i} cắt lệch (khớp {pl['match']}): nghe ra {heard.strip()[:80]!r}")
     out = job_dir / "narration.wav"
