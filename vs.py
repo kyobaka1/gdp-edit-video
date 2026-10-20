@@ -6,6 +6,8 @@
   render <id> [--final] [--allow-empty]   dựng preview.mp4 (960p) hoặc final.mp4 từ edl.json
   qa <id> [--final]            kiểm còn sót chữ Hán → qa.json + contact.jpg
   patch <id>                   đưa chỗ sót của qa.json vào edl.json (nới giờ ô cũ / thêm ô blur cần xem)
+  music <id> [--prompt P]      tạo nhạc nền không lời bằng Lyria → jobs/<id>/music.mp3
+  voice <id>                   giọng Việt Gemini TTS cho edl.voiceover (kiểm ngược từng câu) → voice.json
   cost <id>                    tổng token Gemini của job
 """
 
@@ -18,7 +20,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from studio import analyze, config, media, qa, render
+from studio import analyze, config, media, qa, render, voice
 
 
 def job_dir(job_id: str) -> Path:
@@ -81,6 +83,24 @@ def cmd_qa(a) -> None:
     print(f"→ {d / 'qa.json'} · {d / rep['contact_sheet']}")
 
 
+def cmd_voice(a) -> None:
+    d = job_dir(a.id)
+    t0 = time.time()
+    rep = voice.build(d)
+    print(f"Xong {time.time() - t0:.1f}s · {len(rep['lines'])} câu · giọng {rep['voice']}")
+    for ln in rep["lines"]:
+        flag = f" ×{ln['tempo']}" if ln["tempo"] > 1.0 else ""
+        print(f"  {ln['start']:6.2f}s  {ln['duration']:.2f}s/{ln['slot']:.2f}s{flag}  khớp {ln['match']}  {ln['text']}")
+    for msg in rep["too_long"]:
+        print(f"  ⚠ {msg}")
+
+
+def cmd_music(a) -> None:
+    d = job_dir(a.id)
+    out = voice.make_music(d, a.prompt)
+    print(f"→ {out}")
+
+
 def cmd_patch(a) -> None:
     d = job_dir(a.id)
     log = qa.patch(d)
@@ -102,6 +122,8 @@ def main() -> None:
     s = sub.add_parser("render"); s.add_argument("id"); s.add_argument("--final", action="store_true"); s.add_argument("--allow-empty", action="store_true"); s.set_defaults(fn=cmd_render)
     s = sub.add_parser("qa"); s.add_argument("id"); s.add_argument("--final", action="store_true"); s.set_defaults(fn=cmd_qa)
     s = sub.add_parser("patch"); s.add_argument("id"); s.set_defaults(fn=cmd_patch)
+    s = sub.add_parser("voice"); s.add_argument("id"); s.set_defaults(fn=cmd_voice)
+    s = sub.add_parser("music"); s.add_argument("id"); s.add_argument("--prompt"); s.set_defaults(fn=cmd_music)
     s = sub.add_parser("cost"); s.add_argument("id"); s.set_defaults(fn=cmd_cost)
     a = p.parse_args()
     a.fn(a)

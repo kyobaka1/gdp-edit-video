@@ -102,6 +102,38 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
     n_in = n_png + 1
     if mode == "keep" and meta["has_audio"]:
         a_args = ["-map", "0:a:0", "-c:a", "aac", "-b:a", "160k"]
+    elif mode == "voice":
+        # giọng Việt (voice.json, đã qua kiểm ngược) + nhạc nền tự hạ khi có giọng, mờ dần cuối video
+        vpath = job_dir / "voice.json"
+        if not vpath.exists():
+            raise EdlError("audio.mode=voice nhưng chưa có voice.json — chạy `vs.py voice <id>` trước")
+        vrep = json.loads(vpath.read_text(encoding="utf-8"))
+        if vrep.get("too_long"):
+            raise EdlError("Có câu đọc quá dài so với khung:\n  - " + "\n  - ".join(vrep["too_long"]))
+        dur = meta["duration"]
+        k = n_in
+        vo_labels = []
+        for j, ln in enumerate(vrep["lines"]):
+            inputs += ["-i", str(job_dir / "voice" / ln["file"])]
+            ms = round(ln["start"] * 1000)
+            tempo = f"atempo={ln['tempo']}," if ln["tempo"] > 1.0 else ""
+            chain.append(f"[{k}:a]{tempo}adelay={ms}|{ms}[vo{j}]")
+            vo_labels.append(f"[vo{j}]")
+            k += 1
+        chain.append(f"{''.join(vo_labels)}amix=inputs={len(vo_labels)}:normalize=0,apad[vomix]")
+        music = Path(audio.get("music") or job_dir / "music.mp3")
+        if not music.is_absolute():
+            music = job_dir / music
+        if music.exists():
+            inputs += ["-stream_loop", "-1", "-i", str(music)]
+            chain.append(f"[{k}:a]atrim=0:{dur:.3f},volume={audio.get('music_volume', 0.25)},"
+                         f"afade=t=out:st={max(0.0, dur - 1.5):.3f}:d=1.5[bg]")
+            chain.append("[vomix]asplit[vo_a][vo_b]")
+            chain.append("[bg][vo_a]sidechaincompress=threshold=0.04:ratio=6:attack=15:release=350[bgd]")
+            chain.append("[bgd][vo_b]amix=inputs=2:normalize=0:duration=first,alimiter=limit=0.95[aout]")
+        else:
+            chain.append(f"[vomix]atrim=0:{dur:.3f},alimiter=limit=0.95[aout]")
+        a_args = ["-map", "[aout]", "-c:a", "aac", "-b:a", "160k"]
     elif mode == "music":
         music = Path(audio.get("music") or "")
         if not music.is_absolute():

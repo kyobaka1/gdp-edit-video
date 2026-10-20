@@ -32,7 +32,14 @@ Mọi lệnh chạy bằng `.venv\Scripts\python.exe vs.py …` trong thư mục
 - KHÔNG thêm tuyên bố sản phẩm không có trong dữ liệu SKU thật (tải trọng, bảo hành, chứng nhận…). Không chắc → hỏi Sếp.
 - Tên thương hiệu TQ / logo chữ TQ → che, thay bằng tên brand GDP nếu Sếp chỉ định, không thì để trống trung tính.
 - Phụ đề thoại: ~14–16 ký tự/giây, mỗi câu ≤ 2 dòng; nếu video đã có hardsub trùng lời thoại thì chỉ dịch ô hardsub, bỏ `subtitles`.
-- `audio.mode`: `keep` (không có lời Trung) · `mute` (mặc định khi có lời Trung) · `music` (cần file trong `assets/music/`).
+- `audio.mode`: `voice` (**mặc định khi có lời Trung** — Sếp cần giọng Việt) · `keep` (không có lời Trung) ·
+  `music` (chỉ nhạc) · `mute` (tránh: Sếp chê "thiếu âm thanh").
+- Lồng tiếng: điền `edl.voiceover = {voice, lines:[{start, text}]}` (mỗi câu thoại Trung một câu Việt, cùng mốc,
+  ≈ chữ trên ô) → `vs.py music <slug>` (Lyria, không lời) → `vs.py voice <slug>` → render. Số viết bằng chữ số
+  ("48 giờ"). Câu nào báo quá dài → rút câu hoặc lùi mốc câu sau.
+- ⛔ TTS gửi ĐÚNG câu, KHÔNG kèm chỉ dẫn giọng điệu: có chỉ dẫn là model đọc tiếp, từng bịa "khoan bê tông" /
+  "miễn phí vận chuyển". Cổng kiểm ngược (Gemini nghe lại, khớp ≥0,85) là bắt buộc, đừng nới.
+- Sau render final có giọng: nghe lại cả track bằng Gemini (đủ câu, không tiếng Trung, không đè/cụt) + đo `ebur128` (~−14 LUFS).
 
 ## Không làm
 
