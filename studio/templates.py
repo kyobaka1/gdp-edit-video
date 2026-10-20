@@ -8,6 +8,7 @@ Renderer đặt --w/--h/--fs, dò cỡ chữ lớn nhất vừa khung, chụp #l
 import html
 import io
 import json
+import os
 from pathlib import Path
 
 from PIL import Image
@@ -50,6 +51,15 @@ def shop_profile(shop: str) -> dict:
     return json.loads(p.read_text(encoding="utf-8"))
 
 
+def shop_voice(shop: str, _seen: tuple = ()) -> dict | None:
+    """Giọng đọc của shop (shop.json voice); không khai thì theo shop mượn mẫu (templates_from)."""
+    prof = shop_profile(shop)
+    if prof.get("voice", {}).get("name"):
+        return prof["voice"]
+    nxt = prof.get("templates_from")
+    return shop_voice(nxt, _seen + (shop,)) if nxt and nxt not in _seen else None
+
+
 def template_dir(shop: str, _seen: tuple = ()) -> Path:
     """Thư mục mẫu của shop; không có mẫu riêng thì theo `templates_from` (chặn vòng lặp)."""
     d = SHOPS / shop / "templates"
@@ -80,6 +90,8 @@ class TemplateRenderer:
         return self
 
     def __exit__(self, *exc):
+        if getattr(self, "_tmp", None):
+            self._tmp.unlink(missing_ok=True)
         if self._browser:
             self._browser.close()
         if self._pw:
@@ -96,7 +108,9 @@ class TemplateRenderer:
             lines, sub = [ln.replace(a, b) for ln in lines], sub.replace(a, b)
         text_html = "<br>".join(html.escape(ln) for ln in lines)
         filled = src.replace("{{text}}", text_html).replace("{{sub}}", html.escape(sub))
-        tmp = self.dir / "_render_tmp.html"  # cùng thư mục để font tương đối tải được
+        # cùng thư mục để font tương đối tải được; tên riêng theo tiến trình → 2 job song song không ghi đè nhau
+        tmp = self.dir / f"_render_tmp_{os.getpid()}_{id(self)}.html"
+        self._tmp = tmp
         tmp.write_text(filled, encoding="utf-8")
         self._page.goto(tmp.as_uri())
         # Font thiếu thì Chrome LẶNG LẼ dùng font khác (20/10 thư mục font bị sắp lại → mọi url gãy) → ép tải

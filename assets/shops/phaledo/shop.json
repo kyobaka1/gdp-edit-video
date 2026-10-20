@@ -42,5 +42,11 @@
     "body": "Averta/Averta-Regular.otf",
     "rule": "Averta (theo phaledo_official)"
   },
-  "style": "theo phaledo_official: tone tối, chữ trắng có bóng nhẹ"
+  "style": "theo phaledo_official: tone tối, chữ trắng có bóng nhẹ",
+  "voice": {
+    "name": "Sulafat",
+    "gender": "nữ",
+    "style": "theo phaledo_official",
+    "model_note": "Gemini TTS prebuilt voice; Sếp chốt nhóm giọng 20/10 (GDP hiện tại, LTENG VN nam, LTENG HCM nam khác, PHALEDO nữ ấm)"
+  }
 }

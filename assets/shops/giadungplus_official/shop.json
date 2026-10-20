@@ -57,5 +57,11 @@
       "sub": "Regular, tối đa 2 dòng, factual"
     },
     "text_radius_pct": 15
+  },
+  "voice": {
+    "name": "Kore",
+    "gender": "nữ",
+    "style": "chắc, rõ ràng (giọng đang dùng, Sếp duyệt 20/10)",
+    "model_note": "Gemini TTS prebuilt voice; Sếp chốt nhóm giọng 20/10 (GDP hiện tại, LTENG VN nam, LTENG HCM nam khác, PHALEDO nữ ấm)"
   }
 }

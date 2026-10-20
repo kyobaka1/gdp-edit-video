@@ -14,6 +14,7 @@ import numpy as np
 from google.genai import types
 
 from studio import config, gemini, outro
+from studio.templates import shop_voice
 from studio.voice import TTS_MODEL, _match, _save_audio, spoken
 
 ALIGN_SCHEMA = {
@@ -103,7 +104,9 @@ def build(job_dir: Path, retries: int = 3) -> dict:
     paras = [p for p in nar.get("paragraphs", []) if (p.get("text") or "").strip()]
     if not paras:
         raise ValueError("edl.json chưa có narration.paragraphs")
-    voice = nar.get("voice", "Kore")
+    # giọng: edl.narration.voice (ép tay) → giọng của shop (shop.json voice) → Kore
+    sv = shop_voice(edl["shop"]) if edl.get("shop") else None
+    voice = nar.get("voice") or (sv or {}).get("name") or "Kore"
     # chữ GỬI TTS (tên brand đã đổi sang cách đọc chuẩn); mọi bước kiểm ngược so với bản này
     said = [spoken(p["text"].strip()) for p in paras]
     full = "\n\n".join(said)

@@ -12,6 +12,7 @@
   audiocheck <id> [--final]    đo LUFS cả bản + nhạc ở khoảng không giọng
   templates <shop>             liệt kê mẫu chữ của shop + ảnh xem trước
   shops                        tình trạng tài nguyên từng shop (màu, mẫu, logo, intro/outro, nhạc)
+  siblings <id>                các bản khác cùng video nguồn (shop, thuyết minh, chữ đè, độ giống) — chống lặp nội dung
   cost <id>                    tổng token Gemini của job
 """
 
@@ -173,6 +174,35 @@ def cmd_shops(a) -> None:
               f" · logo {','.join(logos) or 'THIẾU'} · intro {intro} · outro {outro} · nhạc {music}")
 
 
+def cmd_siblings(a) -> None:
+    """Các bản khác CÙNG video nguồn (meta.origin): shop, thuyết minh, chữ đè + độ giống với bản này.
+    Dùng khi làm 1 video cho nhiều shop: câu chữ phải khác nhau (luật đa dạng nội dung, Sếp 20/10)."""
+    from difflib import SequenceMatcher
+    d = job_dir(a.id)
+    me = json.loads((d / "meta.json").read_text(encoding="utf-8"))
+
+    def texts(j: Path) -> tuple[str, str, str]:
+        p = j / "edl.json"
+        if not p.exists():
+            return "", "", ""
+        e = json.loads(p.read_text(encoding="utf-8"))
+        nar = " ".join(x["text"] for x in (e.get("narration") or {}).get("paragraphs", []))
+        cap = " | ".join(o.get("text_vi", "") for o in e.get("overlays", []) if o.get("text_vi") and not o.get("skip"))
+        return e.get("shop", "?"), nar, cap
+
+    _, my_nar, my_cap = texts(d)
+    for j in sorted(p for p in config.JOBS.iterdir() if (p / "meta.json").exists() and p != d):
+        m = json.loads((j / "meta.json").read_text(encoding="utf-8"))
+        if Path(m.get("origin", "")).name != Path(me.get("origin", "")).name:
+            continue
+        shop, nar, cap = texts(j)
+        sn = SequenceMatcher(None, my_nar, nar).ratio() if my_nar and nar else None
+        sc = SequenceMatcher(None, my_cap, cap).ratio() if my_cap and cap else None
+        print(f"== {j.name} (shop {shop}) · giống thuyết minh {sn if sn is None else round(sn, 2)} · giống chữ đè {sc if sc is None else round(sc, 2)}")
+        print(f"   thuyết minh: {nar}")
+        print(f"   chữ đè: {cap}")
+
+
 def cmd_patch(a) -> None:
     d = job_dir(a.id)
     log = qa.patch(d)
@@ -196,6 +226,7 @@ def main() -> None:
     s = sub.add_parser("patch"); s.add_argument("id"); s.set_defaults(fn=cmd_patch)
     s = sub.add_parser("templates"); s.add_argument("shop"); s.set_defaults(fn=cmd_templates)
     s = sub.add_parser("shops"); s.set_defaults(fn=cmd_shops)
+    s = sub.add_parser("siblings"); s.add_argument("id"); s.set_defaults(fn=cmd_siblings)
     s = sub.add_parser("narrate"); s.add_argument("id"); s.set_defaults(fn=cmd_narrate)
     s = sub.add_parser("audiocheck"); s.add_argument("id"); s.add_argument("--final", action="store_true"); s.set_defaults(fn=cmd_audiocheck)
     s = sub.add_parser("voice"); s.add_argument("id"); s.set_defaults(fn=cmd_voice)

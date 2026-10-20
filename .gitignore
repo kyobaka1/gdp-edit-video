@@ -7,6 +7,6 @@ inbox/*
 jobs/*
 !jobs/.gitkeep
 
-assets/shops/*/templates/_render_tmp.html
+assets/shops/*/templates/_render_tmp*.html
 
 ._*

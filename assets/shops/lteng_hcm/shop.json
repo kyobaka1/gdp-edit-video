@@ -67,5 +67,11 @@
       "sub": "Regular, 1 dòng ngắn, factual"
     },
     "text_radius_pct": 15
+  },
+  "voice": {
+    "name": "Charon",
+    "gender": "nam",
+    "style": "chắc, kiểu thuyết minh — khác giọng nam của LTENG VN",
+    "model_note": "Gemini TTS prebuilt voice; Sếp chốt nhóm giọng 20/10 (GDP hiện tại, LTENG VN nam, LTENG HCM nam khác, PHALEDO nữ ấm)"
   }
 }
