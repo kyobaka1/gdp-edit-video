@@ -1,0 +1,43 @@
+{
+  "shop": "phaledo",
+  "title": "Phaledo Glassware",
+  "platform": "shopee",
+  "brand": "PHALEDO",
+  "configured": false,
+  "palette": {
+    "dark": "",
+    "accent": "",
+    "primary": "",
+    "text_on_dark": "",
+    "text_on_light": ""
+  },
+  "tone": "",
+  "templates_from": "phaledo_official",
+  "logo": {
+    "placement": "top-center",
+    "files": {
+      "primary": "logo/logo.png",
+      "on_dark": "logo/logo-white.png",
+      "on_light": "logo/logo-dark.png",
+      "icon": "logo/icon.png",
+      "vector": "logo/logo.svg"
+    }
+  },
+  "intro": {
+    "file": "intro/intro.mp4",
+    "enabled": false
+  },
+  "outro": {
+    "file": "outro/outro.mp4",
+    "enabled": false,
+    "cta": ""
+  },
+  "music": {
+    "default": null
+  },
+  "prod": {
+    "marketing_shop_id": 2,
+    "shopee_logo_url": "https://cf.shopee.vn/file/vn-11134216-820l4-mgnua2w5rrbi5c"
+  },
+  "notes": "Prod chưa cấu hình nhận diện riêng (bảng màu mặc định trung tính). Tạm mượn mẫu của phaledo_official."
+}

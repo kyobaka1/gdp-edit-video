@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<style>
+  @font-face { font-family: "BVP"; src: url("../../../fonts/BeVietnamPro-Bold.ttf"); font-weight: 700; }
+  html, body { margin: 0; background: transparent; }
+  #label {
+    width: var(--w); height: var(--h); box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 calc(var(--h) * 0.34);
+    background: linear-gradient(135deg, #cdb488 0%, #b89a6a 60%, #a3854f 100%);
+    border: max(2px, calc(var(--h) * 0.03)) solid #161616;
+    border-radius: calc(var(--h) * 0.14);
+  }
+  #text {
+    font-family: "BVP", sans-serif; font-weight: 700; font-size: var(--fs);
+    line-height: 1.12; letter-spacing: 0.02em; color: #161616; text-align: center; text-transform: uppercase;
+  }
+</style></head>
+<body><div id="label"><div id="text">{{text}}</div></div></body></html>

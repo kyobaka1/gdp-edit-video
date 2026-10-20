@@ -1,0 +1,46 @@
+{
+  "shop": "lteng_vn",
+  "title": "LTENG VN",
+  "platform": "shopee",
+  "brand": "LTENG",
+  "configured": true,
+  "palette": {
+    "dark": "#001026",
+    "accent": "#0b649c",
+    "primary": "#062955",
+    "text_on_dark": "#ffffff",
+    "text_on_light": "#002b5c"
+  },
+  "tone": "thân thiện, bán hàng, dứt khoát — nhấn lợi ích (chịu lực, lắp nhanh, bền)",
+  "templates_from": null,
+  "logo": {
+    "placement": "top-center",
+    "files": {
+      "primary": "logo/logo.png",
+      "on_dark": "logo/logo-white.png",
+      "on_light": "logo/logo-dark.png",
+      "icon": "logo/icon.png",
+      "vector": "logo/logo.svg"
+    }
+  },
+  "intro": {
+    "file": "intro/intro.mp4",
+    "enabled": false
+  },
+  "outro": {
+    "file": "outro/outro.mp4",
+    "enabled": false,
+    "cta": ""
+  },
+  "music": {
+    "default": null
+  },
+  "prod": {
+    "marketing_shop_id": 3,
+    "shopee_logo_url": "https://cf.shopee.vn/file/vn-11134004-7ras8-mdk5uvpn75ipe8",
+    "brand_logo": "shop/brand-kit/lteng_vn/6a7a5bfc41f34581a90351d007ffbc0b.png",
+    "watermark_image": "shop/brand-kit/lteng_vn/52b07ec349664f4b83573c0148d5a1e9.png",
+    "font_reference": "shop/brand-kit/lteng_vn/b97889a6b9e6488da77ecc22c3836863.jpg"
+  },
+  "notes": "Đã có bảng màu trên prod nhưng CHƯA có mẫu chữ HTML — cần thiết kế (Claude Design → templates/)."
+}

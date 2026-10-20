@@ -16,12 +16,14 @@ Set-Location C:\Users\Admin\gdp-video-studio; $env:PYTHONIOENCODING='utf-8'
 .\.venv\Scripts\python.exe vs.py render <id> [--final]
 .\.venv\Scripts\python.exe vs.py qa <id> [--final]        # phải ĐẠT (sót 0); chưa → vs.py patch <id>
 .\.venv\Scripts\python.exe vs.py audiocheck <id> [--final]
-.\.venv\Scripts\python.exe vs.py templates <brand>       # xem thư viện mẫu chữ của brand
+.\.venv\Scripts\python.exe vs.py templates <shop>        # xem mẫu chữ của shop
+.\.venv\Scripts\python.exe vs.py shops                   # tình trạng tài nguyên từng shop (assets/shops/)
 ```
 
 ## 5 luật không được quên
 
-1. Chữ trong cảnh (sản phẩm/nhãn/phụ kiện) giữ nguyên; chỉ đè chữ đồ hoạ, bằng MẪU brand có sẵn (`templates/<brand>/`).
+1. Chữ trong cảnh (sản phẩm/nhãn/phụ kiện) giữ nguyên; chỉ đè chữ đồ hoạ, bằng MẪU có sẵn của SHOP
+   (`assets/shops/<shop>/templates/`, `edl.shop`). Tài nguyên shop theo chuẩn `assets/shops/README.md`.
 2. Dòng chữ xoay chéo → một ô xoay cùng góc.
 3. Thuyết minh = một bài liền mạch bám cảnh, có chuyển ý — không đọc lại phụ đề; một lượt TTS (một giọng).
 4. TTS gửi đúng văn bản, không chỉ dẫn giọng điệu; cổng kiểm ngược bắt buộc.

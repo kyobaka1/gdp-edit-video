@@ -1,0 +1,42 @@
+{
+  "shop": "lteng_tiktok",
+  "title": "TikTok LTENG",
+  "platform": "tiktok",
+  "brand": "LTENG",
+  "configured": false,
+  "palette": {
+    "dark": "",
+    "accent": "",
+    "primary": "",
+    "text_on_dark": "",
+    "text_on_light": ""
+  },
+  "tone": "",
+  "templates_from": null,
+  "logo": {
+    "placement": "top-center",
+    "files": {
+      "primary": "logo/logo.png",
+      "on_dark": "logo/logo-white.png",
+      "on_light": "logo/logo-dark.png",
+      "icon": "logo/icon.png",
+      "vector": "logo/logo.svg"
+    }
+  },
+  "intro": {
+    "file": "intro/intro.mp4",
+    "enabled": false
+  },
+  "outro": {
+    "file": "outro/outro.mp4",
+    "enabled": false,
+    "cta": ""
+  },
+  "music": {
+    "default": null
+  },
+  "prod": {
+    "marketing_shop_id": 7
+  },
+  "notes": "Prod chưa cấu hình nhận diện riêng (bảng màu mặc định trung tính). Chưa có mẫu chữ — cần thiết kế."
+}

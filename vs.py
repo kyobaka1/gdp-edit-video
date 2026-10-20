@@ -10,7 +10,8 @@
   voice <id>                   (cũ) đọc rời từng câu — KHÔNG dùng nữa, thay bằng narrate
   narrate <id>                 thuyết minh liền mạch edl.narration: 1 lượt TTS, kiểm ngược, đặt đoạn theo cảnh
   audiocheck <id> [--final]    đo LUFS cả bản + nhạc ở khoảng không giọng
-  templates <brand>            liệt kê mẫu chữ của brand + ảnh xem trước
+  templates <shop>             liệt kê mẫu chữ của shop + ảnh xem trước
+  shops                        tình trạng tài nguyên từng shop (màu, mẫu, logo, intro/outro, nhạc)
   cost <id>                    tổng token Gemini của job
 """
 
@@ -142,11 +143,30 @@ def cmd_music(a) -> None:
 
 
 def cmd_templates(a) -> None:
-    from studio.templates import manifest, preview_sheet
-    man = manifest(a.brand)
+    from studio.templates import manifest, preview_sheet, template_dir
+    man = manifest(a.shop)
+    print(f"Mẫu của {a.shop} lấy từ: {template_dir(a.shop)}")
     for slot, spec in man["slots"].items():
         print(f"  {slot:8} {spec['file']:14} {spec['use']}")
-    print(f"→ {preview_sheet(a.brand)}")
+    print(f"→ {preview_sheet(a.shop)}")
+
+
+def cmd_shops(a) -> None:
+    """Bảng tình trạng tài nguyên từng shop: màu, mẫu chữ, logo, intro/outro, nhạc."""
+    from studio.templates import SHOPS, shop_profile, template_dir
+    for d in sorted(p for p in SHOPS.iterdir() if (p / "shop.json").exists()):
+        s = shop_profile(d.name)
+        try:
+            t = template_dir(d.name)
+            tpl = "riêng" if t.parent == d else f"mượn {t.parent.name}"
+        except FileNotFoundError:
+            tpl = "THIẾU"
+        logos = [k for k, f in s["logo"]["files"].items() if (d / f).exists()]
+        intro = "có" if (d / s["intro"]["file"]).exists() else "-"
+        outro = "có" if (d / s["outro"]["file"]).exists() else "-"
+        music = len(list((d / "music").glob("*.mp3"))) + len(list((d / "music").glob("*.wav")))
+        print(f"  {d.name:22} {s.get('brand', ''):12} màu {'✓' if s.get('configured') else 'mặc định'} · mẫu {tpl:22}"
+              f" · logo {','.join(logos) or 'THIẾU'} · intro {intro} · outro {outro} · nhạc {music}")
 
 
 def cmd_patch(a) -> None:
@@ -170,7 +190,8 @@ def main() -> None:
     s = sub.add_parser("render"); s.add_argument("id"); s.add_argument("--final", action="store_true"); s.add_argument("--allow-empty", action="store_true"); s.set_defaults(fn=cmd_render)
     s = sub.add_parser("qa"); s.add_argument("id"); s.add_argument("--final", action="store_true"); s.set_defaults(fn=cmd_qa)
     s = sub.add_parser("patch"); s.add_argument("id"); s.set_defaults(fn=cmd_patch)
-    s = sub.add_parser("templates"); s.add_argument("brand"); s.set_defaults(fn=cmd_templates)
+    s = sub.add_parser("templates"); s.add_argument("shop"); s.set_defaults(fn=cmd_templates)
+    s = sub.add_parser("shops"); s.set_defaults(fn=cmd_shops)
     s = sub.add_parser("narrate"); s.add_argument("id"); s.set_defaults(fn=cmd_narrate)
     s = sub.add_parser("audiocheck"); s.add_argument("id"); s.add_argument("--final", action="store_true"); s.set_defaults(fn=cmd_audiocheck)
     s = sub.add_parser("voice"); s.add_argument("id"); s.set_defaults(fn=cmd_voice)

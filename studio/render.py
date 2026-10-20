@@ -8,7 +8,7 @@ from PIL import Image
 
 from studio import config, media
 from studio.overlay import grow_to_min_font, render_label
-from studio.templates import TEMPLATES, TemplateRenderer
+from studio.templates import TemplateRenderer
 
 
 class EdlError(ValueError):
@@ -114,9 +114,11 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
     for old in labels_dir.glob("*.png"):
         old.unlink()
     W, H = meta["width"], meta["height"]
-    brand = (edl.get("brand") or "").lower()
-    use_templates = bool(brand) and (TEMPLATES / brand / "manifest.json").exists() and any(L.get("template") for L in layers)
-    renderer = TemplateRenderer(brand).__enter__() if use_templates else None
+    shop = edl.get("shop") or ""
+    needs = any(L.get("template") for L in layers if L["mode"] == "label")
+    if needs and not shop:
+        raise EdlError("edl.json có ô dùng `template` nhưng chưa khai `shop` (mã shop trong assets/shops/)")
+    renderer = TemplateRenderer(shop).__enter__() if needs else None
     try:
         drawn = {id(L): _draw_label(L, renderer, W, H) for L in layers if L["mode"] == "label"}
     finally:

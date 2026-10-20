@@ -1,0 +1,46 @@
+{
+  "shop": "phaledo_official",
+  "title": "Phaledo Official",
+  "platform": "shopee",
+  "brand": "PHALEDO",
+  "configured": true,
+  "palette": {
+    "dark": "#161616",
+    "accent": "#b89a6a",
+    "primary": "#c0b7a6",
+    "text_on_dark": "#ececec",
+    "text_on_light": "#161616"
+  },
+  "tone": "cao cấp, tinh tế, tối giản — nhấn chất liệu, độ bền, sang trọng",
+  "templates_from": null,
+  "logo": {
+    "placement": "top-center",
+    "files": {
+      "primary": "logo/logo.png",
+      "on_dark": "logo/logo-white.png",
+      "on_light": "logo/logo-dark.png",
+      "icon": "logo/icon.png",
+      "vector": "logo/logo.svg"
+    }
+  },
+  "intro": {
+    "file": "intro/intro.mp4",
+    "enabled": false
+  },
+  "outro": {
+    "file": "outro/outro.mp4",
+    "enabled": false,
+    "cta": ""
+  },
+  "music": {
+    "default": null
+  },
+  "prod": {
+    "marketing_shop_id": 5,
+    "shopee_logo_url": "https://cf.shopee.vn/file/vn-11134216-820l4-mentszzpt2px7e",
+    "brand_logo": "shop/brand-kit/phaledo_official/fc8a85ddb4074f92aae847616c19fc6f.png",
+    "watermark_image": "shop/brand-kit/phaledo_official/5c843d4ebbcd4f09a00da04ecb0325d7.png",
+    "font_reference": "shop/brand-kit/phaledo_official/9d507936d4bd403bbe44c4ddb8b05fe8.jpg"
+  },
+  "notes": ""
+}

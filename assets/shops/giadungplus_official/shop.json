@@ -1,0 +1,46 @@
+{
+  "shop": "giadungplus_official",
+  "title": "Gia Dụng Plus +",
+  "platform": "shopee",
+  "brand": "GIADUNGPLUS",
+  "configured": true,
+  "palette": {
+    "dark": "#7a1010",
+    "accent": "#f1c40f",
+    "primary": "#c01818",
+    "text_on_dark": "#ffffff",
+    "text_on_light": "#c01818"
+  },
+  "tone": "",
+  "templates_from": null,
+  "logo": {
+    "placement": "top-center",
+    "files": {
+      "primary": "logo/logo.png",
+      "on_dark": "logo/logo-white.png",
+      "on_light": "logo/logo-dark.png",
+      "icon": "logo/icon.png",
+      "vector": "logo/logo.svg"
+    }
+  },
+  "intro": {
+    "file": "intro/intro.mp4",
+    "enabled": false
+  },
+  "outro": {
+    "file": "outro/outro.mp4",
+    "enabled": false,
+    "cta": ""
+  },
+  "music": {
+    "default": null
+  },
+  "prod": {
+    "marketing_shop_id": 1,
+    "shopee_logo_url": "https://cf.shopee.vn/file/vn-11134216-7r98o-lscja178b4pl14",
+    "brand_logo": "shop/brand-kit/giadungplus_official/7f9f1e9264ef463b8c9bd3f952dc0abe.png",
+    "watermark_image": "shop/brand-kit/giadungplus_official/ac96a7139c0f449db1ea331fc72c29a6.png",
+    "font_reference": "shop/brand-kit/giadungplus_official/ddcbcb60482c435d99858fb5d6bbad3f.jpg"
+  },
+  "notes": "Đã có bảng màu trên prod nhưng CHƯA có mẫu chữ HTML — cần thiết kế (Claude Design → templates/)."
+}

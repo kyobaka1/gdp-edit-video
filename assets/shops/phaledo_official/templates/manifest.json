@@ -1,0 +1,9 @@
+{
+  "_note": "Mẫu chữ đè của shop phaledo_official. Màu/giọng văn ở ../shop.json (nguồn duy nhất). Hợp đồng: assets/shops/README.md",
+  "slots": {
+    "caption": {"file": "caption.html", "use": "phụ đề / câu mô tả ngắn, thường ở đáy khung", "fs_min": 34, "fs_max": 60},
+    "hook": {"file": "hook.html", "use": "câu mở đầu / câu hỏi gây chú ý, MỘT dòng, có thể xoay theo chữ gốc", "fs_min": 30, "fs_max": 64, "nowrap": true},
+    "badge": {"file": "badge.html", "use": "nhãn tính năng ngắn (2–5 chữ) nằm giữa khung", "fs_min": 36, "fs_max": 64},
+    "info": {"file": "info.html", "use": "thông tin kỹ thuật / hướng dẫn có dòng phụ (vd thời gian chờ keo)", "fs_min": 30, "fs_max": 56}
+  }
+}

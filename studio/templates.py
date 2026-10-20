@@ -1,7 +1,8 @@
-"""Render ô chữ từ mẫu HTML của brand (templates/<brand>/) bằng Chrome ẩn (Playwright, dùng Chrome đã cài).
+"""Render ô chữ từ mẫu HTML của SHOP (assets/shops/<shop>/templates/) bằng Chrome ẩn (Playwright, Chrome đã cài).
 
-Hợp đồng mẫu: xem templates/README.md. Renderer đặt --w/--h/--fs, dò cỡ chữ lớn nhất vừa khung, chụp #label
-nền trong suốt. Chữ < cỡ tối thiểu → nới ô (ngang trước, rồi dọc) — ô mới luôn phủ trọn ô gốc.
+Hợp đồng mẫu: assets/shops/README.md. Shop không có mẫu riêng → `templates_from` trong shop.json trỏ sang shop khác.
+Renderer đặt --w/--h/--fs, dò cỡ chữ lớn nhất vừa khung, chụp #label nền trong suốt. Chữ < cỡ tối thiểu → nới ô
+(ngang trước, rồi dọc) — ô mới luôn phủ trọn ô gốc.
 """
 
 import html
@@ -14,7 +15,7 @@ from playwright.sync_api import sync_playwright
 
 from studio import config
 
-TEMPLATES = config.ROOT / "templates"
+SHOPS = config.ROOT / "assets" / "shops"
 
 _FIT_JS = """
 ([fsMin, fsMax]) => {
@@ -33,17 +34,34 @@ _FIT_JS = """
 """
 
 
-def manifest(brand: str) -> dict:
-    p = TEMPLATES / brand.lower() / "manifest.json"
+def shop_profile(shop: str) -> dict:
+    p = SHOPS / shop / "shop.json"
     if not p.exists():
-        raise FileNotFoundError(f"Chưa có thư viện mẫu cho brand {brand}: {p}")
+        raise FileNotFoundError(f"Chưa có hồ sơ shop '{shop}' ({p}) — tạo bằng tools/init_shop.py {shop}")
     return json.loads(p.read_text(encoding="utf-8"))
 
 
+def template_dir(shop: str, _seen: tuple = ()) -> Path:
+    """Thư mục mẫu của shop; không có mẫu riêng thì theo `templates_from` (chặn vòng lặp)."""
+    d = SHOPS / shop / "templates"
+    if (d / "manifest.json").exists():
+        return d
+    nxt = shop_profile(shop).get("templates_from")
+    if not nxt or nxt in _seen:
+        raise FileNotFoundError(f"Shop '{shop}' chưa có mẫu chữ (templates/manifest.json) và không mượn shop nào "
+                                f"— thiết kế mẫu (assets/shops/README.md) hoặc khai templates_from trong shop.json")
+    return template_dir(nxt, _seen + (shop,))
+
+
+def manifest(shop: str) -> dict:
+    return json.loads((template_dir(shop) / "manifest.json").read_text(encoding="utf-8"))
+
+
 class TemplateRenderer:
-    def __init__(self, brand: str):
-        self.brand = brand.lower()
-        self.man = manifest(brand)
+    def __init__(self, shop: str):
+        self.shop = shop
+        self.dir = template_dir(shop)
+        self.man = json.loads((self.dir / "manifest.json").read_text(encoding="utf-8"))
         self._pw = self._browser = self._page = None
 
     def __enter__(self):
@@ -61,10 +79,10 @@ class TemplateRenderer:
     def _load(self, slot: str, text: str, sub: str) -> None:
         spec = self.man["slots"].get(slot)
         if not spec:
-            raise KeyError(f"Brand {self.brand} không có mẫu '{slot}' (có: {', '.join(self.man['slots'])})")
-        src = (TEMPLATES / self.brand / spec["file"]).read_text(encoding="utf-8")
+            raise KeyError(f"Shop {self.shop} không có mẫu '{slot}' (có: {', '.join(self.man['slots'])})")
+        src = (self.dir / spec["file"]).read_text(encoding="utf-8")
         filled = src.replace("{{text}}", html.escape(text)).replace("{{sub}}", html.escape(sub))
-        tmp = TEMPLATES / self.brand / "_render_tmp.html"  # cùng thư mục để font tương đối tải được
+        tmp = self.dir / "_render_tmp.html"  # cùng thư mục để font tương đối tải được
         tmp.write_text(filled, encoding="utf-8")
         self._page.goto(tmp.as_uri())
         self._page.evaluate("document.fonts.ready")
@@ -96,8 +114,8 @@ class TemplateRenderer:
         return Image.open(io.BytesIO(png)).convert("RGBA"), w, h
 
 
-def preview_sheet(brand: str) -> Path:
-    """Bảng xem trước mọi mẫu của brand với chữ mẫu → templates/<brand>/_preview.png"""
+def preview_sheet(shop: str) -> Path:
+    """Bảng xem trước mọi mẫu của shop với chữ mẫu → <thư mục mẫu>/_preview.png"""
     samples = {
         "caption": ("Kệ treo tường không cần khoan", "", 640, 80),
         "hook": ("Bồn rửa bừa bộn, đồ dùng không chỗ để?", "", 700, 110),
@@ -105,7 +123,7 @@ def preview_sheet(brand: str) -> Path:
         "info": ("Chờ keo khô 48 giờ", "Trời lạnh: chờ 72 giờ", 520, 130),
     }
     tiles = []
-    with TemplateRenderer(brand) as r:
+    with TemplateRenderer(shop) as r:
         for slot in r.man["slots"]:
             text, sub, w, h = samples.get(slot, ("Chữ mẫu tiếng Việt", "", 560, 90))
             img, _, _ = r.render(slot, text, w, h, sub=sub)
@@ -116,6 +134,6 @@ def preview_sheet(brand: str) -> Path:
     for t in tiles:
         sheet.paste(t, (pad, y), t)
         y += t.height + pad
-    out = TEMPLATES / brand.lower() / "_preview.png"
+    out = template_dir(shop) / "_preview.png"
     sheet.save(out)
     return out
