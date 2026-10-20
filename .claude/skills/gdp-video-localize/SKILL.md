@@ -111,6 +111,9 @@ Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong t
   · `lteng_hcm`: đen/đỏ sậm, tiêu đề **UTM HelvetIns**, chữ thường **UTM Avo**; thêm `outline-black` / `outline-red`.
 - Mẫu `covers: false` (chữ viền, KHÔNG nền) chỉ để CHÈN CHỮ MỚI (CTA, nhấn ý) — renderer chặn nếu dùng che chữ Trung.
 - `manifest.replace`: UTM Avo/HelvetIns thiếu `· – — •` → renderer thay ` · ` → ` - ` (thay `, ` từng ra "tường, Chịu").
+- ✅ **MẶC ĐỊNH CHO MỌI VIDEO (Sếp duyệt 20/10):** hiệu ứng ô chữ (tự bật) + watermark trôi (theo `shop.json`) + logo chính
+  + outro có sẵn của shop. KHÔNG tắt những thứ này trừ khi Sếp yêu cầu. Lower third / callout là TUỲ CHỌN: thêm khi có cảnh
+  hợp (lower third 1 lần ở cảnh giới thiệu; callout 1–2 cái ở cảnh máy đứng yên, chỉ vào công dụng có trong video).
 - **Hiệu ứng ô chữ** (`studio/motion.py`, tự động): mặc định caption/info = trượt lên, hook/badge/callout = bật phóng,
   lower third = trượt ngang; ép bằng `anim` ("fade" | "slide-up" | "slide-right" | "pop" | "none") trên overlay/extra.
   ⛔ Luật che phủ: ô che chữ Trung VÀO SỚM 0,25s để đục 100% đúng lúc chữ Trung hiện; ô bắt đầu ~0s không có hiệu ứng vào
