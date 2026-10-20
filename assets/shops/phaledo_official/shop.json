@@ -72,7 +72,7 @@
     "opacity": 0.12,
     "text": "PHALEDO",
     "period": 6.0,
-    "width_pct": 0.4,
+    "width_pct": 0.3,
     "note": "Watermark trôi chống lấy cắp (studio/watermark.py). Sếp bật cho Phaledo 20/10 (brand kit prod tắt cho ảnh); edl.watermark ghi đè."
   }
 }

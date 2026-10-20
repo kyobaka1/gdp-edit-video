@@ -125,7 +125,7 @@ Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong t
   (pixel khung gốc; cắt khung kèm lưới toạ độ để chọn). Render đo ORB xem CAMERA có làm điểm dời không (> ~2% khung → ⚠);
   đồ được thêm/tay cử động trong cảnh không tính. Callout chỉ đặt ở cảnh máy đứng yên; 1–2 callout/video là đủ.
 - **Watermark chống lấy cắp** (`studio/watermark.py`, theo `shop.json.watermark`: BẬT cho cả 5 shop — GDP, LTENG
-  VN/HCM, Phaledo (Sếp bật Phaledo 20/10 dù brand kit prod tắt cho ảnh); `edl.watermark` ghi đè): chữ thương hiệu mờ 12–15%, rộng 40% khung, đổi chỗ êm mỗi ~6s trong vùng giữa, né ô chữ +
+  VN/HCM, Phaledo (Sếp bật Phaledo 20/10 dù brand kit prod tắt cho ảnh); `edl.watermark` ghi đè): chữ thương hiệu mờ 12–15%, rộng 40% khung (Phaledo 30% — Sếp chê to; chỉnh `width_pct`), đổi chỗ êm mỗi ~6s trong vùng giữa, né ô chữ +
   góc logo, nằm DƯỚI ô chữ, không có trên outro. Nói thật với Sếp: không watermark nhìn thấy nào chống tuyệt đối (công cụ
   xoá AI vẫn xoá được) — chỉ làm khó: logo dán tĩnh/cắt góc không che hết; muốn xoá phải bám từng khung.
   `watermark/watermark.png` của shop (nếu có) dùng thay chữ.
