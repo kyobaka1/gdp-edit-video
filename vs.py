@@ -70,6 +70,10 @@ def cmd_render(a) -> None:
     except render.EdlError as exc:
         sys.exit(str(exc))
     print(f"Xong {time.time() - t0:.1f}s → {out}")
+    lj = d / "logo.json"
+    if lj.exists() and lj.stat().st_mtime >= t0:
+        info = json.loads(lj.read_text(encoding="utf-8"))
+        print(f"  logo {info['corner']} {info['w']}x{info['h']} tại ({info['x']},{info['y']}) — {info['reason']}")
 
 
 def cmd_qa(a) -> None:

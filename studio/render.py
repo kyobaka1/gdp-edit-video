@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from studio import config, media, outro
+from studio import config, logo, media, outro
 from studio.overlay import grow_to_min_font, render_label
 from studio.templates import TemplateRenderer
 
@@ -152,6 +152,19 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
             inputs += ["-i", str(png)]
             chain.append(f"[{prev}][{n_png}:v]overlay={ox}:{oy}:{enable}[{out}]")
         prev = out
+    # Logo chính của shop: suốt phần video chính, vẽ trên cùng; góc do logo.plan tự chọn (né ô chữ + chỗ nhiều chi tiết).
+    # Gắn TRƯỚC khi nối outro → outro không có logo đè.
+    boxes = [{"x": ox, "y": oy, "w": img.width, "h": img.height, "start": L["start"], "end": L["end"]}
+             for L in layers if L["mode"] == "label" for img, ox, oy in [drawn[id(L)]]]
+    boxes += [{"x": o["box"][0], "y": o["box"][1], "w": o["box"][2], "h": o["box"][3], "start": o["start"], "end": o["end"]}
+              for o in edl.get("overlays", []) if o.get("mode") == "keep"]
+    lp = logo.plan(job_dir, edl, meta, boxes)
+    if lp:
+        n_png += 1
+        inputs += ["-i", str(lp["png"])]
+        chain.append(f"[{prev}][{n_png}:v]overlay={lp['x']}:{lp['y']}[vlogo]")
+        prev = "vlogo"
+
     scale = ",scale=-2:960" if not final else ""
     n_in = n_png + 1
     if op:
