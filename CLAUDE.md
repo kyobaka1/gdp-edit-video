@@ -10,7 +10,7 @@ Plan/trạng thái: repo giadungplus `docs/plans/2026-10-20-gdp-video-studio-vie
 Set-Location C:\Users\Admin\gdp-video-studio; $env:PYTHONIOENCODING='utf-8'
 .\.venv\Scripts\python.exe vs.py new inbox\<file>.mp4 --id <brand>-<slug>
 .\.venv\Scripts\python.exe vs.py analyze <id>            # --regroup: không tốn token
-#   → viết jobs\<id>\direct.py (mẫu: jobs\phaledo-ke-nha-tam-01\direct.py) → chạy nó ra edl.json
+#   → viết jobs\<id>\direct.py (mẫu: jobs\gdp-ke-nha-tam-01\direct.py) → chạy nó ra edl.json
 .\.venv\Scripts\python.exe vs.py music <id>              # nhạc Lyria không lời
 .\.venv\Scripts\python.exe vs.py narrate <id>            # thuyết minh liền mạch, 1 lượt TTS
 .\.venv\Scripts\python.exe vs.py render <id> [--final]

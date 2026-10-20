@@ -23,7 +23,7 @@ Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong t
 2. `vs.py analyze <id>` — Gemini quét khung mỗi 0,5s: chữ Hán + ô + `kind` (overlay = đồ hoạ hậu kỳ /
    scene = in trên vật thể) + góc nghiêng (tính từ 2 đầu dòng) + chép lời Trung → `edl.draft.json`.
    Gom lại không tốn token: `--regroup`.
-3. **Đạo diễn = viết `jobs/<id>/direct.py`** (mẫu: `jobs/phaledo-ke-nha-tam-01/direct.py`) sinh `edl.json`:
+3. **Đạo diễn = viết `jobs/<id>/direct.py`** (mẫu đủ bộ: `jobs/gdp-ke-nha-tam-01/direct.py`) sinh `edl.json`:
    - `edl.shop` = mã shop (`marketing_shop.name`, vd `phaledo_official`) → tài nguyên `assets/shops/<shop>/`
      (mẫu chữ, màu, logo…). Hỏi Sếp video làm cho shop nào nếu chưa rõ. `vs.py templates <shop>` xem mẫu + `_preview.png`.
    - Mỗi ô đồ hoạ: `template` (chọn từ manifest: caption / hook / badge / info…), `text_vi`, `sub_vi`.
@@ -124,8 +124,8 @@ Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong t
   `{"template": "callout-left"|"callout-right", "text", "target": [x, y], "start", "end"}` — `target` = điểm trên sản phẩm
   (pixel khung gốc; cắt khung kèm lưới toạ độ để chọn). Render đo ORB xem CAMERA có làm điểm dời không (> ~2% khung → ⚠);
   đồ được thêm/tay cử động trong cảnh không tính. Callout chỉ đặt ở cảnh máy đứng yên; 1–2 callout/video là đủ.
-- **Watermark chống lấy cắp** (`studio/watermark.py`, theo `shop.json.watermark`: GDP/LTENG bật, Phaledo tắt như brand kit
-  prod; `edl.watermark` ghi đè): chữ thương hiệu mờ 12–15%, rộng 40% khung, đổi chỗ êm mỗi ~6s trong vùng giữa, né ô chữ +
+- **Watermark chống lấy cắp** (`studio/watermark.py`, theo `shop.json.watermark`: BẬT cho cả 5 shop — GDP, LTENG
+  VN/HCM, Phaledo (Sếp bật Phaledo 20/10 dù brand kit prod tắt cho ảnh); `edl.watermark` ghi đè): chữ thương hiệu mờ 12–15%, rộng 40% khung, đổi chỗ êm mỗi ~6s trong vùng giữa, né ô chữ +
   góc logo, nằm DƯỚI ô chữ, không có trên outro. Nói thật với Sếp: không watermark nhìn thấy nào chống tuyệt đối (công cụ
   xoá AI vẫn xoá được) — chỉ làm khó: logo dán tĩnh/cắt góc không che hết; muốn xoá phải bám từng khung.
   `watermark/watermark.png` của shop (nếu có) dùng thay chữ.
@@ -142,7 +142,7 @@ Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong t
   (20/10): GDP `GDP Outro v2.mp4` (1080×1440, 3,8s) · LTENG VN + LTENG HCM `LTENG Outro.mp4` (1440×1920, 3,7s) — đều
   3:4, KHÔNG tiếng. Phaledo chưa có outro. Thuyết minh/nhạc tự kéo qua outro → câu chốt brand đặt `at` ≥
   thời lượng video để đọc TRÊN outro. Outro có tiếng riêng: hiện CHƯA trộn — làm khi gặp. Đổi cùng video sang shop khác: chép job (source, analysis, edl.draft, music, direct.py) + sửa
-  `shop` / tên brand trong thuyết minh — không cần phân tích lại (vd `gdp-ke-nha-tam-01` chép từ `phaledo-ke-nha-tam-01`).
+  `shop` / tên brand trong thuyết minh — không cần phân tích lại (vd `lteng-vn-ke-nha-tam-01`, `lteng-hcm-ke-nha-tam-01` chép từ `gdp-ke-nha-tam-01`).
 - Logo: tên file theo Sếp đặt, khai trong `shop.json.logo.files` (`primary` dùng mọi nền; `on_dark` cho nền tối; `on_light`; `icon`).
 - Kiểm font tiếng Việt: `tools/check_font_vi.py` (Averta, BeVietnamPro, UTM Avo, UTM HelvetIns đều đủ dấu).
 - Hợp đồng HTML (`#label` `--w/--h`, `#text/#sub` `{{text}}/{{sub}}`, `--fs`, nền đục, font local `../../../fonts/`,
