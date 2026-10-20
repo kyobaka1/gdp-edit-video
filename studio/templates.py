@@ -85,7 +85,22 @@ class TemplateRenderer:
         if self._pw:
             self._pw.stop()
 
-    def _load(self, slot: str, lines: list[str], sub: str) -> None:
+    def render_card(self, slot: str, width: int, height: int, *, text: str = "", sub: str = "",
+                    logo: Path | None = None) -> Image.Image:
+        """Thẻ TOÀN KHUNG (vd outro): mẫu tự định cỡ chữ theo --w/--h; {{logo}} = file logo của shop."""
+        spec = self.man["slots"].get(slot)
+        if not spec or not spec.get("card"):
+            raise KeyError(f"Shop {self.shop}: '{slot}' không phải mẫu thẻ toàn khung (card)")
+        self._load(slot, [text], sub, extra={"{{logo}}": logo.as_uri() if logo else ""})
+        self._page.set_viewport_size({"width": width, "height": height})
+        self._page.evaluate(f"() => {{ const r = document.documentElement.style;"
+                            f" r.setProperty('--w', '{width}px'); r.setProperty('--h', '{height}px'); }}")
+        self._page.evaluate("async () => { const i = document.getElementById('logo'); if (i && !i.complete)"
+                            " await new Promise(r => { i.onload = i.onerror = r; }); }")
+        png = self._page.locator("#label").screenshot(omit_background=True)
+        return Image.open(io.BytesIO(png)).convert("RGBA")
+
+    def _load(self, slot: str, lines: list[str], sub: str, extra: dict | None = None) -> None:
         """Nạp mẫu với chữ đã chia dòng sẵn (renderer tự quyết chỗ xuống dòng, trình duyệt không tự bẻ)."""
         spec = self.man["slots"].get(slot)
         if not spec:
@@ -96,6 +111,8 @@ class TemplateRenderer:
             lines, sub = [ln.replace(a, b) for ln in lines], sub.replace(a, b)
         text_html = "<br>".join(html.escape(ln) for ln in lines)
         filled = src.replace("{{text}}", text_html).replace("{{sub}}", html.escape(sub))
+        for k, v in (extra or {}).items():
+            filled = filled.replace(k, html.escape(v, quote=True))
         tmp = self.dir / "_render_tmp.html"  # cùng thư mục để font tương đối tải được
         tmp.write_text(filled, encoding="utf-8")
         self._page.goto(tmp.as_uri())
@@ -228,7 +245,9 @@ def preview_sheet(shop: str) -> Path:
     }
     tiles = []
     with TemplateRenderer(shop) as r:
-        for slot in r.man["slots"]:
+        for slot, spec in r.man["slots"].items():
+            if spec.get("card"):  # thẻ toàn khung (outro) xem riêng bằng video, không đưa vào bảng mẫu chữ
+                continue
             text, sub, w, h = samples.get(slot, ("Chữ mẫu tiếng Việt", "", 560, 90))
             img, _, _ = r.render(slot, text, w, h, sub=sub, min_px=29, max_w=round(w * 1.15))  # 29px ≈ 3% khung 960
             tiles.append(img)

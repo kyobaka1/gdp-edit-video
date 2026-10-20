@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from studio import config, media
+from studio import config, media, outro
 from studio.overlay import grow_to_min_font, render_label
 from studio.templates import TemplateRenderer
 
@@ -121,9 +121,12 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
     needs = any(L.get("template") for L in layers if L["mode"] == "label")
     if needs and not shop:
         raise EdlError("edl.json có ô dùng `template` nhưng chưa khai `shop` (mã shop trong assets/shops/)")
-    renderer = TemplateRenderer(shop).__enter__() if needs else None
+    op = outro.plan(edl)  # outro theo shop (video Sếp đưa hoặc thẻ HTML) — None nếu job không bật
+    total = round(meta["duration"] + (op["duration"] if op else 0.0), 3)
+    renderer = TemplateRenderer(shop).__enter__() if (needs or (op and op["kind"] == "card")) else None
     try:
         drawn = {id(L): _draw_label(L, renderer, W, H) for L in layers if L["mode"] == "label"}
+        outro_png = outro.card_png(edl, meta, renderer, job_dir / "outro.png") if op and op["kind"] == "card" else None
     finally:
         if renderer is not None:
             renderer.__exit__(None, None, None)
@@ -151,14 +154,32 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
             chain.append(f"[{prev}][{n_png}:v]overlay={ox}:{oy}:{enable}[{out}]")
         prev = out
     scale = ",scale=-2:960" if not final else ""
-    chain.append(f"[{prev}]format=yuv420p{scale}[vout]")
+    n_in = n_png + 1
+    if op:
+        # nối outro sau video chính: cùng kích thước/fps/định dạng điểm ảnh rồi concat
+        fps = meta["fps"]
+        if op["kind"] == "card":
+            inputs += ["-loop", "1", "-framerate", f"{fps}", "-t", f"{op['duration']:.3f}", "-i", str(outro_png)]
+            chain.append(f"[{n_in}:v]format=yuv420p,setsar=1,fade=t=in:st=0:d=0.35[ov]")
+        else:
+            inputs += ["-i", str(op["path"])]
+            chain.append(f"[{n_in}:v]scale={W}:{H}:force_original_aspect_ratio=decrease,"
+                         f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color=black,fps={fps},format=yuv420p,setsar=1[ov]")
+        chain.append(f"[{prev}]format=yuv420p,setsar=1[vm]")
+        chain.append(f"[vm][ov]concat=n=2:v=1:a=0,format=yuv420p{scale}[vout]")
+        n_in += 1
+    else:
+        chain.append(f"[{prev}]format=yuv420p{scale}[vout]")
 
     audio = edl.get("audio", {})
     mode = audio.get("mode", "keep")
     a_args: list[str]
-    n_in = n_png + 1
     if mode == "keep" and meta["has_audio"]:
-        a_args = ["-map", "0:a:0", "-c:a", "aac", "-b:a", "160k"]
+        if op:  # tiếng gốc ngắn hơn bản có outro → đệm im lặng
+            chain.append(f"[0:a]apad,atrim=0:{total:.3f}[aout]")
+            a_args = ["-map", "[aout]", "-c:a", "aac", "-b:a", "160k"]
+        else:
+            a_args = ["-map", "0:a:0", "-c:a", "aac", "-b:a", "160k"]
     elif mode == "narration":
         # Thuyết minh liền mạch (narration.wav, 1 lượt đọc) + nhạc nền chuẩn hoá theo độ to cảm nhận (LUFS).
         # Bản 20/10 trước dùng sidechain ducking → nhạc bị nén gần như mất, Sếp nghe "chưa có nhạc".
@@ -168,7 +189,7 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
         nrep = json.loads(npath.read_text(encoding="utf-8"))
         if any("tràn" in w for w in nrep.get("warnings", [])):
             raise EdlError("Thuyết minh tràn quá cuối video:\n  - " + "\n  - ".join(nrep["warnings"]))
-        dur = meta["duration"]
+        dur = total  # gồm cả outro
         voice_lufs = audio.get("voice_lufs", -16)
         music_lufs = audio.get("music_lufs", -27)
         inputs += ["-i", str(job_dir / "narration.wav")]
@@ -192,7 +213,7 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
         vrep = json.loads(vpath.read_text(encoding="utf-8"))
         if vrep.get("too_long"):
             raise EdlError("Có câu đọc quá dài so với khung:\n  - " + "\n  - ".join(vrep["too_long"]))
-        dur = meta["duration"]
+        dur = total  # gồm cả outro
         k = n_in
         vo_labels = []
         for j, ln in enumerate(vrep["lines"]):
@@ -234,7 +255,7 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
     filter_file.write_text(";\n".join(chain), encoding="utf-8")
     v_args = ["-c:v", "libx264", "-preset", "medium" if final else "veryfast", "-crf", "18" if final else "26"]
     media.run([config.FFMPEG, "-y", "-v", "error", *inputs, "-/filter_complex", str(filter_file),
-               "-map", "[vout]", *v_args, *a_args, "-t", f"{meta['duration']:.3f}",
+               "-map", "[vout]", *v_args, *a_args, "-t", f"{total:.3f}",
                "-movflags", "+faststart", str(out_path)])
 
     subs = [s for s in edl.get("subtitles", []) if (s.get("text_vi") or "").strip() and not s.get("skip")]

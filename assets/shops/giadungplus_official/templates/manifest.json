@@ -1,12 +1,13 @@
 {
   "_note": "Gia Dụng Plus + — tone đỏ/trắng, font UTM Avo (Bold + Regular) mọi trường hợp (Sếp chốt 20/10). Màu ở ../shop.json. Hợp đồng: assets/shops/README.md",
-  "replace": {" · ": ", ", "·": ",", " – ": " - ", "–": "-", " — ": " - ", "—": "-", "•": "-"},
+  "replace": {" · ": " - ", "·": "-", " – ": " - ", "–": "-", " — ": " - ", "—": "-", "•": "-"},
   "slots": {
     "caption": {"file": "caption.html", "use": "phụ đề / câu mô tả: chữ trắng nền đỏ", "fs_min": 34, "fs_max": 60},
     "hook": {"file": "hook.html", "use": "câu mở đầu, MỘT dòng IN HOA, chữ trắng nền đỏ viền trắng, có thể xoay", "fs_min": 30, "fs_max": 64, "nowrap": true},
     "badge": {"file": "badge.html", "use": "nhãn tính năng ngắn: chữ đỏ nền trắng viền đỏ, IN HOA", "fs_min": 36, "fs_max": 64},
     "info": {"file": "info.html", "use": "thông tin có dòng phụ: nền đỏ, chữ trắng đậm + dòng phụ thường", "fs_min": 30, "fs_max": 56},
     "outline-black": {"file": "outline-black.html", "use": "chữ ĐEN viền TRẮNG, không nền — CHỈ chèn chữ mới", "fs_min": 40, "fs_max": 72, "covers": false},
-    "outline-red": {"file": "outline-red.html", "use": "chữ ĐỎ viền TRẮNG, không nền — CHỈ chèn chữ mới", "fs_min": 40, "fs_max": 72, "covers": false}
+    "outline-red": {"file": "outline-red.html", "use": "chữ ĐỎ viền TRẮNG, không nền — CHỈ chèn chữ mới", "fs_min": 40, "fs_max": 72, "covers": false},
+    "outro": {"file": "outro.html", "use": "màn kết toàn khung: logo + câu kêu gọi + dòng phụ", "card": true, "logo": "on_dark", "duration": 3.0}
   }
 }

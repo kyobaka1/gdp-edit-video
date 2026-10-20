@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 from google.genai import types
 
-from studio import config, gemini
+from studio import config, gemini, outro
 from studio.voice import TTS_MODEL, _match, _save_audio, spoken
 
 ALIGN_SCHEMA = {
@@ -163,7 +163,7 @@ def build(job_dir: Path, retries: int = 3) -> dict:
                 break
         cuts.append(best_cut)
     cuts.append(len(a))
-    dur = meta["duration"]
+    dur = outro.total_duration(edl, meta)  # thuyết minh được phép chạy sang outro (câu chốt brand trên màn kết)
     timeline = np.zeros(int(dur * rate), dtype=np.float32)
     placed, warnings, cursor = [], [], 0.0
     for i, p in enumerate(paras):

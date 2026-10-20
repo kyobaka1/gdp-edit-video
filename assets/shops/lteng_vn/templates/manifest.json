@@ -1,6 +1,6 @@
 {
   "_note": "LTENG VN — xanh dương gradient, font UTM Avo (Sếp chốt 20/10). Màu/gradient theo brand kit prod (../shop.json). Hợp đồng: assets/shops/README.md",
-  "replace": {" · ": ", ", "·": ",", " – ": " - ", "–": "-", " — ": " - ", "—": "-", "•": "-"},
+  "replace": {" · ": " - ", "·": "-", " – ": " - ", "–": "-", " — ": " - ", "—": "-", "•": "-"},
   "slots": {
     "caption": {"file": "caption.html", "use": "phụ đề / câu mô tả, nền xanh gradient chữ trắng", "fs_min": 34, "fs_max": 60},
     "hook": {"file": "hook.html", "use": "câu mở đầu, MỘT dòng IN HOA, viền trắng, có thể xoay", "fs_min": 30, "fs_max": 64, "nowrap": true},
