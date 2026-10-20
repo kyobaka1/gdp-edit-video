@@ -3,6 +3,7 @@
 > Đọc file này từ đầu đến cuối rồi TỰ CHẠY các lệnh (PowerShell). Chỉ hỏi người dùng khi cần: API key,
 > quyền cài phần mềm, hoặc đường dẫn khác `C:\Users\Admin\gdp-video-studio`. Giao tiếp bằng tiếng Việt.
 > Sau khi cài xong, quy trình làm video nằm ở skill `gdp-video-localize` + `CLAUDE.md` trong thư mục này.
+> Bản sao file này + skill nằm trong repo giadungplus: `skills/gdp-video-localize/{SETUP.md,SKILL.md}`.
 
 ## 0. Cần chép những gì sang máy mới
 
