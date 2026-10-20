@@ -8,3 +8,5 @@ jobs/*
 !jobs/.gitkeep
 
 assets/shops/*/templates/_render_tmp.html
+
+._*

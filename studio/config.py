@@ -14,9 +14,9 @@ JOBS = ROOT / "jobs"
 FONTS = ROOT / "assets" / "fonts"
 BRANDS = ROOT / "assets" / "brands"
 
-FONT_BOLD = FONTS / "BeVietnamPro-Bold.ttf"
-FONT_EXTRABOLD = FONTS / "BeVietnamPro-ExtraBold.ttf"
-FONT_REGULAR = FONTS / "BeVietnamPro-Regular.ttf"
+FONT_BOLD = FONTS / "BeVietnamPro" / "BeVietnamPro-Bold.ttf"  # mỗi họ font một thư mục con (Sếp sắp 20/10)
+FONT_EXTRABOLD = FONTS / "BeVietnamPro" / "BeVietnamPro-ExtraBold.ttf"
+FONT_REGULAR = FONTS / "BeVietnamPro" / "BeVietnamPro-Regular.ttf"
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "").strip() or "gemini-3-flash-preview"

@@ -85,7 +85,16 @@ class TemplateRenderer:
         tmp = self.dir / "_render_tmp.html"  # cùng thư mục để font tương đối tải được
         tmp.write_text(filled, encoding="utf-8")
         self._page.goto(tmp.as_uri())
-        self._page.evaluate("document.fonts.ready")
+        # Font thiếu thì Chrome LẶNG LẼ dùng font khác (20/10 thư mục font bị sắp lại → mọi url gãy) → ép tải
+        # mọi @font-face, cái nào lỗi là dừng.
+        bad = self._page.evaluate("""async () => {
+            const faces = [...document.fonts];
+            await Promise.allSettled(faces.map(f => f.load()));
+            return faces.filter(f => f.status === 'error').map(f => f.family + ' ' + f.weight);
+        }""")
+        if bad:
+            raise FileNotFoundError(f"Mẫu {self.dir / spec['file']} không tải được font: {', '.join(bad)} "
+                                    f"— kiểm đường dẫn url(...) tới assets/fonts/")
         if not sub:
             self._page.evaluate("() => { const s = document.getElementById('sub'); if (s) s.remove(); }")
         if spec.get("nowrap"):  # mẫu một dòng (vd hook xoay chéo): không xuống dòng, cỡ chữ tự co

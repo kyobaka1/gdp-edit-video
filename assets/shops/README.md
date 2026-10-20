@@ -34,8 +34,9 @@ hợp đồng (Claude Code sửa giúp được) → đặt vào `templates/` + 
   box-sizing: border-box;`. Nền **đục 100%** (che kín chữ Trung bên dưới).
 - Chữ chính `id="text"` chứa `{{text}}`; dòng phụ `id="sub"` chứa `{{sub}}` (renderer gỡ `#sub` khi không có).
 - Cỡ chữ `font-size: var(--fs)`; renderer dò cỡ lớn nhất vừa khung trong `fs_min`…`fs_max` (% chiều cao `--h`, khai ở manifest).
-- `body` nền trong suốt, không JS, không tài nguyên Internet. Font: `url("../../../fonts/<file>")` (font chung)
-  hoặc `url("../fonts/<file>")` (font riêng của shop).
+- `body` nền trong suốt, không JS, không tài nguyên Internet. Font: `url("../../../fonts/<Họ font>/<file>")`
+  (font chung, mỗi họ một thư mục con, vd `BeVietnamPro/BeVietnamPro-Bold.ttf`) hoặc `url("../fonts/<file>")`
+  (font riêng của shop). Font tải lỗi → renderer dừng và báo (không lặng lẽ thay font khác). Font phải có đủ dấu tiếng Việt.
 - Không tự xoay — renderer xoay theo góc chữ gốc. `"nowrap": true` trong manifest = luôn một dòng (mẫu xoay chéo).
 
 ```json
