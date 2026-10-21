@@ -22,5 +22,5 @@ for shop, text in LINES.items():
     v = shop_voice(shop)
     said = spoken(text)
     f = out / f"{shop}_{v['name']}.wav"
-    heard = _tts(said, v["name"], f)
-    print(f"{shop:22} {v['name']:8} {v['gender']:3} khớp {_match(said, heard):.2f} → {f.name} | nghe: {heard.strip()[:70]}")
+    heard, used = _tts(said, v, f)
+    print(f"{shop:22} {used:30} {v['name']:8} {v['gender']:3} khớp {_match(said, heard):.2f} → {f.name} | nghe: {heard.strip()[:70]}")

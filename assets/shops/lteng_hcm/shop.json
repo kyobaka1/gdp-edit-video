@@ -71,6 +71,7 @@
   "voice": {
     "name": "Charon",
     "gender": "nam",
+    "openai": "cedar",
     "style": "chắc, kiểu thuyết minh — khác giọng nam của LTENG VN",
     "model_note": "Gemini TTS prebuilt voice; Sếp chốt nhóm giọng 20/10 (GDP hiện tại, LTENG VN nam, LTENG HCM nam khác, PHALEDO nữ ấm)"
   },

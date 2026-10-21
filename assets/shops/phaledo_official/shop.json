@@ -64,6 +64,7 @@
   "voice": {
     "name": "Sulafat",
     "gender": "nữ",
+    "openai": "marin",
     "style": "ấm, nhẹ nhàng — hợp tone cao cấp tinh tế",
     "model_note": "Gemini TTS prebuilt voice; Sếp chốt nhóm giọng 20/10 (GDP hiện tại, LTENG VN nam, LTENG HCM nam khác, PHALEDO nữ ấm)"
   },

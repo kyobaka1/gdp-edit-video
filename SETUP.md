@@ -37,7 +37,7 @@ python --version                                      # ≥ 3.11
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }   # rồi NHỜ NGƯỜI DÙNG dán GEMINI_API_KEY vào .env
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }   # rồi NHỜ NGƯỜI DÙNG dán GEMINI_API_KEY (+ TOKENROUTER_API_KEY nếu có) vào .env
 ```
 
 `requirements.txt` ghim: google-genai, Pillow, opencv-python-headless, python-dotenv, playwright, fonttools, psutil.
@@ -75,6 +75,9 @@ for need in ("gemini-3-flash-preview", "gemini-3.1-flash-tts-preview", "lyria-3.
 ```
 
 - `GEMINI_MODEL` (phân tích/QA/nghe lại) trong `.env` · TTS `studio/voice.py: TTS_MODEL` · nhạc `MUSIC_MODEL`.
+- TTS dự phòng `studio/voice.py: TTS_CHAIN`: 3.1-flash-tts-preview (100 req/24h) → gemini-3.8-flash-tts → tokenrouter
+  openai/gpt-audio-mini → openai/gpt-audio. Kiểm: `.\.venv\Scripts\python.exe tools\probe_tts_chain.py sim` (0 token)
+  rồi `... live` (gọi thật). tokenrouter giới hạn 5 req/phút, tính cả lượt lỗi — 3 video song song vẫn đủ (1 req/lượt đọc).
 
 Chạy thử đầu-cuối không tốn video thật (video mẫu có sự thật biết trước):
 

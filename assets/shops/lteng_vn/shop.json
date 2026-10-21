@@ -77,6 +77,7 @@
   "voice": {
     "name": "Puck",
     "gender": "nam",
+    "openai": "verse",
     "style": "tươi, năng động — hợp giọng văn bán hàng dứt khoát",
     "model_note": "Gemini TTS prebuilt voice; Sếp chốt nhóm giọng 20/10 (GDP hiện tại, LTENG VN nam, LTENG HCM nam khác, PHALEDO nữ ấm)"
   },

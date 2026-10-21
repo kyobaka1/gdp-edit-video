@@ -96,6 +96,14 @@ Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong t
   LTENG → "Lờ teng"**. Brand/tên riêng mới → hỏi Sếp cách đọc rồi thêm vào file đó.
 - TTS mỗi lượt đọc hơi khác (tốc độ, cách nhấn tên riêng). Lượt đọc được cache theo nội dung (`narration/take_<hash>.wav`):
   lượt nào đạt thì giữ, chỉnh mốc `at` không làm đọc lại; đổi chữ kịch bản = đọc lượt mới → kiểm lại từ đầu.
+- **TTS dự phòng (21/10)** — `voice.TTS_CHAIN`, tự nhảy, không cần lệnh riêng: 3.1-flash-tts-preview (chỉ 100 req/24h)
+  → gemini-3.8-flash-tts → tokenrouter `openai/gpt-audio-mini` → `openai/gpt-audio` (đang bị nhà cung cấp chặn 403).
+  Hết quota ngày/402/403 → bỏ model cả lượt chạy; 429 theo phút → đợi 61s thử lại. Giọng gpt-audio = `voice.openai`
+  trong shop.json (GDP coral · LTENG VN verse · LTENG HCM cedar · PHALEDO marin). `narration.json.model` ghi model đã
+  đọc; khác model chính → `narrate` cảnh báo **"model DỰ PHÒNG"** → phải nghe lại trước khi giao. Đo 21/10:
+  gpt-audio-mini đọc tiếng Việt kém Gemini (cả bài khớp 0,90 vs 0,998; câu ngắn có brand chỉ 0,73, từng nuốt
+  "Lên đơn ngay!") → mảnh <0,8 thì viết câu chốt dài hơn / tách brand khỏi câu cụt, hoặc chờ quota Gemini hồi
+  (đầu ngày theo giờ Mỹ ≈ 14–15h VN) rồi xoá `narration/take_*` để đọc lại.
 
 ## Tài nguyên theo SHOP (`assets/shops/<shop>/`, chuẩn: `assets/shops/README.md`)
 

@@ -15,7 +15,7 @@ from google.genai import types
 
 from studio import config, gemini, outro
 from studio.templates import shop_voice
-from studio.voice import TTS_MODEL, _match, _save_audio, spoken
+from studio.voice import TTS_MODEL, _match, spoken, synthesize
 
 ALIGN_SCHEMA = {
     "type": "object",
@@ -85,16 +85,10 @@ def _trim(a: np.ndarray, rate: int, thr: float = 0.008) -> np.ndarray:
     return a[max(0, idx[0] - pad): idx[-1] + pad]
 
 
-def _tts(text: str, voice: str, out: Path) -> str:
-    resp = gemini.client().models.generate_content(
-        model=TTS_MODEL, contents=text,  # KHÔNG kèm chỉ dẫn giọng điệu (model sẽ đọc tiếp/bịa)
-        config=types.GenerateContentConfig(response_modalities=["AUDIO"], speech_config=types.SpeechConfig(
-            voice_config=types.VoiceConfig(prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)))))
-    part = resp.candidates[0].content.parts[0]
-    _save_audio(part.inline_data.data, part.inline_data.mime_type, out)
-    return gemini.client().models.generate_content(model=config.GEMINI_MODEL, contents=[
-        types.Part.from_bytes(data=out.read_bytes(), mime_type="audio/wav"),
-        "Chép lại nguyên văn lời nói tiếng Việt trong audio, không thêm gì khác."]).text or ""
+def _tts(text: str, voice: dict, out: Path, usage: Path | None = None) -> tuple[str, str]:
+    """TTS theo chuỗi dự phòng (voice.TTS_CHAIN) rồi nghe lại. Trả (chữ nghe ra, model đã dùng)."""
+    used = synthesize(text, voice, out, usage)
+    return _hear(out), used
 
 
 def build(job_dir: Path, retries: int = 3) -> dict:
@@ -107,11 +101,15 @@ def build(job_dir: Path, retries: int = 3) -> dict:
     # giọng: edl.narration.voice (ép tay) → giọng của shop (shop.json voice) → Kore
     sv = shop_voice(edl["shop"]) if edl.get("shop") else None
     voice = nar.get("voice") or (sv or {}).get("name") or "Kore"
+    # giọng cho model dự phòng gpt-audio: edl.narration.voice_openai → shop.json voice.openai → theo giới tính
+    vspec = {"name": voice, "gender": (sv or {}).get("gender", "nữ"),
+             "openai": nar.get("voice_openai") or (sv or {}).get("openai")}
     # chữ GỬI TTS (tên brand đã đổi sang cách đọc chuẩn); mọi bước kiểm ngược so với bản này
     said = [spoken(p["text"].strip()) for p in paras]
     full = "\n\n".join(said)
     work = job_dir / "narration"
     work.mkdir(exist_ok=True)
+    # khoá cache giữ TTS_MODEL (model chính) dù lượt đọc do model dự phòng làm → take cũ vẫn dùng lại được
     key = hashlib.sha1(f"{TTS_MODEL}|{voice}|{full}".encode()).hexdigest()[:12]
     raw = work / f"take_{key}.wav"
     usage = job_dir / "usage.jsonl"
@@ -121,12 +119,13 @@ def build(job_dir: Path, retries: int = 3) -> dict:
     if not (raw.exists() and take_meta.exists()):
         last = ""
         for attempt in range(1, retries + 1):
-            heard = _tts(full, voice, raw)
+            heard, used = _tts(full, vspec, raw, usage)
             score = _match(full, heard)
             with usage.open("a", encoding="utf-8") as fh:
-                fh.write(json.dumps({"label": f"narration[{key}]#{attempt}", "model": TTS_MODEL, "match": round(score, 3)}) + "\n")
+                fh.write(json.dumps({"label": f"narration[{key}]#{attempt}", "model": used, "match": round(score, 3)}) + "\n")
             if score >= 0.9:
-                take_meta.write_text(json.dumps({"heard": heard.strip(), "match": round(score, 3)}, ensure_ascii=False, indent=2), encoding="utf-8")
+                take_meta.write_text(json.dumps({"heard": heard.strip(), "match": round(score, 3), "model": used},
+                                                ensure_ascii=False, indent=2), encoding="utf-8")
                 break
             last = heard.strip()
             raw.unlink(missing_ok=True)
@@ -194,8 +193,12 @@ def build(job_dir: Path, retries: int = 3) -> dict:
             warnings.append(f"mảnh {i} cắt lệch (khớp {pl['match']}): nghe ra {heard.strip()[:80]!r}")
     out = job_dir / "narration.wav"
     _write(out, timeline, rate)
-    report = {"voice": voice, "model": TTS_MODEL, "take": raw.name, "take_seconds": round(len(a) / rate, 2),
-              "match": json.loads(take_meta.read_text(encoding="utf-8"))["match"], "pieces": placed,
+    tm = json.loads(take_meta.read_text(encoding="utf-8"))
+    used = tm.get("model", TTS_MODEL)  # take cũ (trước 21/10) không ghi model = model chính
+    if used != TTS_MODEL:
+        warnings.append(f"lượt đọc do model DỰ PHÒNG {used} làm (model chính hết quota/lỗi) — nghe lại giọng trước khi giao")
+    report = {"voice": voice, "model": used,
+              "take": raw.name, "take_seconds": round(len(a) / rate, 2), "match": tm["match"], "pieces": placed,
               "warnings": warnings}
     (job_dir / "narration.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     return report
