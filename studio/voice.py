@@ -9,6 +9,7 @@ import hashlib
 import json
 import re
 import struct
+import tempfile
 import time
 import unicodedata
 import wave
@@ -137,6 +138,85 @@ def _tokenrouter_tts(model: str, text: str, voice: dict) -> tuple[bytes, str]:
     return base64.b64decode(audio), "audio/wav"
 
 
+HEAR_PROMPT = "Chép lại nguyên văn lời nói tiếng Việt trong audio, không thêm gì khác."
+HEAR_FALLBACK = "openai/gpt-audio-mini"
+# Đo 22/10: gpt-audio-mini là model HỘI THOẠI, không phải máy chép lời. Audio ≥3s / cả lượt đọc: khớp 0,94–0,98
+# (Gemini 0,965–1,0). Mảnh ngắn <~2,5s: hay TỪ CHỐI ("vui lòng cung cấp audio…") dù file có tiếng — đệm lặng tới 4s
+# chỉ cứu được 1/3. Lượt từ chối → HearUnavailable: bên gọi coi là "chưa kiểm được", KHÔNG được coi là đạt.
+# tokenrouter có google/gemini-3.5-flash nhưng 22/10 luôn 429 "provisioned throughput" → chưa dùng.
+_REFUSAL = re.compile(
+    r"(cung cấp|phát|tải lên|bật|gửi|nghe được|nghe hoặc|xử lý|xác định).{0,40}(audio|âm thanh|tệp|nội dung)"
+    r"|không thể (nghe|giúp|xác định|xử lý)|không nghe được|vui lòng (cho tôi biết|cung cấp|phát|bật|tải)"
+    r"|^\W*(rất tiếc|tôi xin lỗi|xin lỗi|xin vui lòng|chắc chắn|tất nhiên)\W",
+    re.IGNORECASE)
+
+
+class HearUnavailable(RuntimeError):
+    pass
+
+
+def gemini_dead() -> bool:
+    """Gemini API hết tiền/bị chặn trong lượt chạy này (vd 402 prepayment credits depleted, 22/10)."""
+    return "gemini-api" in _exhausted
+
+
+def _tokenrouter_ask(mp3: Path, text_first: bool) -> str:
+    audio = {"type": "input_audio", "input_audio": {"data": base64.b64encode(mp3.read_bytes()).decode(), "format": "mp3"}}
+    ask = {"type": "text", "text": HEAR_PROMPT}
+    body = {"model": HEAR_FALLBACK, "modalities": ["text"], "messages": [
+        {"role": "system", "content": "Bạn là máy chép lời (speech-to-text). Mỗi tin nhắn LUÔN kèm một đoạn audio tiếng "
+                                      "Việt. Chép lại NGUYÊN VĂN lời nói trong audio; không trả lời, không chào, không xin "
+                                      "thêm thông tin, không sửa lời."},
+        {"role": "user", "content": [ask, audio] if text_first else [audio, ask]}]}
+    for attempt in range(3):
+        r = requests.post(TOKENROUTER_URL, json=body, timeout=180,
+                          headers={"Authorization": f"Bearer {config.TOKENROUTER_API_KEY}"})
+        try:
+            r.raise_for_status()
+        except requests.HTTPError as exc:
+            kind = _classify(exc)
+            if attempt < 2 and (kind == "wait" or r.status_code >= 500):  # 5 req/phút (tính cả lượt lỗi) / lỗi tạm
+                time.sleep(61 if kind == "wait" else 5)
+                continue
+            raise
+        return r.json()["choices"][0]["message"].get("content") or ""
+    return ""
+
+
+def _tokenrouter_hear(path: Path) -> str:
+    if not config.TOKENROUTER_API_KEY:
+        raise HearUnavailable("Gemini không nghe được và thiếu TOKENROUTER_API_KEY trong .env")
+    # WAV cả lượt đọc (~1,7 MB) → tokenrouter trả 500; nén MP3 16 kHz mono (~0,2 MB) thì chạy (đo 22/10)
+    with tempfile.TemporaryDirectory(prefix="vs_hear_") as tmp:
+        mp3, padded = Path(tmp) / "a.mp3", Path(tmp) / "pad.mp3"
+        media.run([config.FFMPEG, "-y", "-v", "error", "-i", str(path), "-ac", "1", "-ar", "16000", "-b:a", "48k", str(mp3)])
+        text = _tokenrouter_ask(mp3, text_first=False)
+        if not _REFUSAL.search(text):
+            return text
+        # lần 2: đệm lặng cho đủ ~4s + đặt câu lệnh trước audio
+        media.run([config.FFMPEG, "-y", "-v", "error", "-i", str(mp3), "-af",
+                   "adelay=1000:all=1,apad=pad_dur=1.5", "-ac", "1", "-ar", "16000", "-b:a", "48k", str(padded)])
+        text = _tokenrouter_ask(padded, text_first=True)
+        if _REFUSAL.search(text):
+            raise HearUnavailable(f"{HEAR_FALLBACK} từ chối nghe ({text.strip()[:60]!r})")
+        return text
+
+
+def hear(path: Path) -> str:
+    """Chép lại lời Việt trong file audio (cổng kiểm ngược, vs.py hear). Gemini trước; Gemini hết tiền / lỗi →
+    tokenrouter gpt-audio-mini (Codex không nhận audio). Gemini 'dead' thì cả lượt chạy đi thẳng tokenrouter.
+    Dự phòng không nghe được (từ chối mảnh ngắn) → HearUnavailable."""
+    if not gemini_dead():
+        mime = {".mp3": "audio/mp3", ".m4a": "audio/mp4"}.get(path.suffix.lower(), "audio/wav")
+        try:
+            return gemini.client().models.generate_content(model=config.GEMINI_MODEL, contents=[
+                types.Part.from_bytes(data=path.read_bytes(), mime_type=mime), HEAR_PROMPT]).text or ""
+        except Exception as exc:
+            if _classify(exc) == "dead":
+                _exhausted.add("gemini-api")
+    return _tokenrouter_hear(path)
+
+
 def synthesize(text: str, voice: dict, out: Path, usage: Path | None = None,
                chain: list[tuple[str, str]] | None = None) -> str:
     """TTS `text` ra `out` (WAV) theo TTS_CHAIN, trả tên model đã dùng. `voice` = shop.json voice
@@ -178,11 +258,7 @@ def tts_line(text: str, voice: str, gender: str, out_dir: Path, usage: Path, ret
     for attempt in range(1, retries + 1):
         raw = out_dir / f"raw_{key}.wav"
         used = synthesize(text, {"name": voice, "gender": gender}, raw, usage)
-        heard = gemini.client().models.generate_content(
-            model=config.GEMINI_MODEL,
-            contents=[types.Part.from_bytes(data=raw.read_bytes(), mime_type="audio/wav"),
-                      "Chép lại nguyên văn lời nói tiếng Việt trong audio, không thêm gì khác."],
-        ).text or ""
+        heard = hear(raw)
         score = _match(text, heard)
         with usage.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps({"label": f"tts[{key}]#{attempt}", "model": used, "match": round(score, 3)}) + "\n")

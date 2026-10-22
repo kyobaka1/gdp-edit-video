@@ -15,7 +15,7 @@ from google.genai import types
 
 from studio import config, gemini, outro
 from studio.templates import shop_voice
-from studio.voice import TTS_MODEL, _match, spoken, synthesize
+from studio.voice import TTS_MODEL, HearUnavailable, _match, gemini_dead, hear, spoken, synthesize
 
 ALIGN_SCHEMA = {
     "type": "object",
@@ -72,9 +72,16 @@ def _pauses(a: np.ndarray, rate: int, min_len: float = 0.12) -> list[tuple[float
 
 
 def _hear(path: Path) -> str:
-    return gemini.client().models.generate_content(model=config.GEMINI_MODEL, contents=[
-        types.Part.from_bytes(data=path.read_bytes(), mime_type="audio/wav"),
-        "Chép lại nguyên văn lời nói tiếng Việt trong audio, không thêm gì khác."]).text or ""
+    return hear(path)  # Gemini → tokenrouter gpt-audio-mini khi Gemini hết tiền (voice.hear)
+
+
+def _spans_by_length(a: np.ndarray, rate: int, said: list[str]) -> dict[int, tuple[float, float]]:
+    """Mốc từng đoạn khi không có Gemini định vị: chia khoảng có tiếng theo số ký tự (bỏ dấu cách) mỗi đoạn."""
+    voiced = np.where(np.abs(a) > 0.008)[0]
+    t0, t1 = (voiced[0] / rate, voiced[-1] / rate) if len(voiced) else (0.0, len(a) / rate)
+    w = [max(1, len(s.replace(" ", ""))) for s in said]
+    edges = np.concatenate([[0], np.cumsum(w)]) / sum(w) * (t1 - t0) + t0
+    return {i: (float(edges[i]), float(edges[i + 1])) for i in range(len(said))}
 
 
 def _trim(a: np.ndarray, rate: int, thr: float = 0.008) -> np.ndarray:
@@ -135,13 +142,22 @@ def build(job_dir: Path, retries: int = 3) -> dict:
 
     # 2) Định vị từng đoạn trong audio
     listing = "\n".join(f"{i}: {s}" for i, s in enumerate(said))
-    al = gemini.generate_json([
-        types.Part.from_bytes(data=raw.read_bytes(), mime_type="audio/wav"),
-        "Audio là giọng đọc lần lượt các đoạn dưới đây. Cho mỗi đoạn, trả thời điểm BẮT ĐẦU và KẾT THÚC "
-        "(giây, số thập phân, tính từ đầu audio).\n" + listing], ALIGN_SCHEMA, usage_log=usage, label="narration_align")
-    spans = {s["index"]: (s["start"], s["end"]) for s in al["paragraphs"]}
-    if sorted(spans) != list(range(len(paras))):
-        raise RuntimeError(f"Định vị đoạn thiếu/thừa: {sorted(spans)}")
+    align, radius = "gemini", 1.6
+    try:
+        if gemini_dead():
+            raise RuntimeError("Gemini hết tiền/bị chặn trong lượt này")
+        al = gemini.generate_json([
+            types.Part.from_bytes(data=raw.read_bytes(), mime_type="audio/wav"),
+            "Audio là giọng đọc lần lượt các đoạn dưới đây. Cho mỗi đoạn, trả thời điểm BẮT ĐẦU và KẾT THÚC "
+            "(giây, số thập phân, tính từ đầu audio).\n" + listing], ALIGN_SCHEMA, usage_log=usage, label="narration_align")
+        spans = {s["index"]: (s["start"], s["end"]) for s in al["paragraphs"]}
+        if sorted(spans) != list(range(len(paras))):
+            raise RuntimeError(f"Định vị đoạn thiếu/thừa: {sorted(spans)}")
+    except Exception as exc:
+        # Dự phòng (22/10, Gemini 402): chia thời lượng phần có tiếng theo số chữ từng đoạn → mốc ước lượng thô hơn,
+        # nên nới vùng tìm khoảng lặng; bước 3 vẫn nghe lại từng mảnh để chọn điểm cắt, bước 4 vẫn là cổng.
+        align, radius = f"ước theo độ dài chữ ({str(exc)[:80]})", 2.5
+        spans = _spans_by_length(a, rate, said)
 
     # 3) Chọn điểm cắt: ranh giới Gemini báo chỉ là ước lượng (đo 20/10: lệch tới 1 cụm từ). Quanh ước lượng
     #    lấy các khoảng lặng thật, ưu tiên khoảng DÀI nhất (ngắt đoạn dài hơn ngắt dấu phẩy), nghe lại mảnh
@@ -151,14 +167,17 @@ def build(job_dir: Path, retries: int = 3) -> dict:
     for i in range(1, len(paras)):
         est = (spans[i - 1][1] + spans[i][0]) / 2
         prev_t = cuts[-1] / rate
-        cands = sorted([p for p in pauses if prev_t + 0.5 < p[0] and abs(p[0] - est) <= 1.6],
+        cands = sorted([p for p in pauses if prev_t + 0.5 < p[0] and abs(p[0] - est) <= radius],
                        key=lambda p: (-p[1], abs(p[0] - est)))[:4]
         best_cut, best_score = _quietest(a, rate, est), -1.0
         for mid, _ in cands:
             cut = int(mid * rate)
             probe = work / "probe.wav"
             _write(probe, _trim(a[cuts[-1]:cut], rate), rate)
-            score = _match(said[i - 1], _hear(probe))
+            try:
+                score = _match(said[i - 1], _hear(probe))
+            except HearUnavailable:  # dự phòng không nghe được → chưa biết, giữ thứ tự khoảng lặng dài nhất
+                score = -0.5
             if score > best_score:
                 best_cut, best_score = cut, score
             if score >= 0.9:
@@ -187,7 +206,12 @@ def build(job_dir: Path, retries: int = 3) -> dict:
     for i, pl in enumerate(placed):
         piece_path = work / f"piece_{i:02}.wav"
         _write(piece_path, _trim(a[cuts[i]:cuts[i + 1]], rate), rate)
-        heard = _hear(piece_path)
+        try:
+            heard = _hear(piece_path)
+        except HearUnavailable as exc:
+            pl["heard"], pl["match"] = "", None
+            warnings.append(f"mảnh {i} CHƯA KIỂM được ({str(exc)[:70]}) — nghe tay trước khi giao")
+            continue
         pl["heard"], pl["match"] = heard.strip(), round(_match(pl["said"], heard), 3)
         if pl["match"] < 0.8:
             warnings.append(f"mảnh {i} cắt lệch (khớp {pl['match']}): nghe ra {heard.strip()[:80]!r}")
@@ -197,7 +221,7 @@ def build(job_dir: Path, retries: int = 3) -> dict:
     used = tm.get("model", TTS_MODEL)  # take cũ (trước 21/10) không ghi model = model chính
     if used != TTS_MODEL:
         warnings.append(f"lượt đọc do model DỰ PHÒNG {used} làm (model chính hết quota/lỗi) — nghe lại giọng trước khi giao")
-    report = {"voice": voice, "model": used,
+    report = {"voice": voice, "model": used, "align": align,
               "take": raw.name, "take_seconds": round(len(a) / rate, 2), "match": tm["match"], "pieces": placed,
               "warnings": warnings}
     (job_dir / "narration.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -16,9 +16,10 @@ shutil.rmtree(dst, ignore_errors=True)
 dst.mkdir(parents=True)
 for f in ("meta.json", "edl.json"):
     shutil.copy2(src / f, dst / f)
-voice._exhausted.update({"gemini-3.1-flash-tts-preview", "gemini-3.8-flash-tts"})
+if "--no-gemini" in sys.argv:  # giả lập Gemini 402 hết tiền: TTS, nghe lại, định vị đều phải tự dự phòng
+    voice._exhausted.update({"gemini-3.1-flash-tts-preview", "gemini-3.8-flash-tts", "gemini-api"})
 rep = narration.build(dst)
-print("model:", rep["model"], "| khớp cả bài:", rep["match"], "| dài:", rep["take_seconds"], "s")
+print("model:", rep["model"], "| định vị:", rep["align"], "| khớp cả bài:", rep["match"], "| dài:", rep["take_seconds"], "s")
 for p in rep["pieces"]:
     print(f"  đoạn {p['index']}: at {p['at']} → {p['start']}–{p['end']}s khớp {p['match']} | {p['heard'][:70]}")
 print("cảnh báo:", json.dumps(rep["warnings"], ensure_ascii=False, indent=1))

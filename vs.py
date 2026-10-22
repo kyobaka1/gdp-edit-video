@@ -16,7 +16,7 @@
   cost <id>                    tổng token Gemini của job
   look <ảnh…> -q "câu hỏi"     soát mắt ảnh bằng model RẺ qua Codex/ChatGPT (không tốn Gemini) — agent dùng thay
                                vì tự mở ảnh bằng model đắt; Codex hỏng/hết usage → Gemini
-  hear <file audio>            chép lại lời Việt trong audio (Gemini — Codex không nhận audio)
+  hear <file audio>            chép lại lời Việt trong audio (Gemini; hết tiền → tokenrouter gpt-audio-mini)
 """
 
 import argparse
@@ -116,13 +116,9 @@ def cmd_look(a) -> None:
 
 
 def cmd_hear(a) -> None:
-    from studio import gemini
-    from google.genai import types
-    p = Path(a.audio)
-    mime = {".wav": "audio/wav", ".mp3": "audio/mp3", ".m4a": "audio/mp4"}.get(p.suffix.lower(), "audio/wav")
-    print(gemini.client().models.generate_content(model=gemini.config.GEMINI_MODEL, contents=[
-        types.Part.from_bytes(data=p.read_bytes(), mime_type=mime),
-        "Chép lại nguyên văn lời nói tiếng Việt trong audio, không thêm gì khác."]).text)
+    from studio import voice as v
+    print(v.hear(Path(a.audio)))
+    print("[tokenrouter gpt-audio-mini — Gemini hết tiền/lỗi]" if v.gemini_dead() else "[Gemini]")
 
 
 def cmd_voice(a) -> None:
@@ -143,6 +139,7 @@ def cmd_narrate(a) -> None:
     t0 = time.time()
     rep = narration.build(d)
     print(f"Xong {time.time() - t0:.1f}s · 1 lượt đọc {rep['take_seconds']}s · khớp {rep['match']} · giọng {rep['voice']}")
+    print(f"  đọc: {rep['model']} · định vị đoạn: {rep.get('align', 'gemini')}")
     for p in rep["pieces"]:
         flag = f"  (trễ {p['drift']}s)" if p["drift"] > 0.3 else ""
         print(f"  {p['start']:6.2f}–{p['end']:6.2f}s  [cảnh {p['at']}] khớp {p.get('match')}{flag}  {p['text'][:60]}")

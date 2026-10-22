@@ -29,7 +29,7 @@ Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong t
   · `vs.py analyze` VẪN Gemini: ô Codex chỉ phủ 63–100% ô thật, lệch giữa các lần chạy → che lộ chữ. Chạy 1 lần / video
     nguồn, `--regroup` không tốn token, không analyze lại từng shop.
   · Soát mắt ảnh (khung ±0,4s quanh mốc, góc logo, `contact.jpg`, ảnh so sánh): `vs.py look <ảnh…> -q "câu hỏi"` (Codex rẻ).
-  · Âm thanh: Codex KHÔNG nhận audio → `vs.py hear <file>` (Gemini, ~32 token/giây). Cổng kiểm ngược trong `narrate` đã
+  · Âm thanh: Codex KHÔNG nhận audio → `vs.py hear <file>` (Gemini ~32 token/giây; Gemini hết tiền → tokenrouter). Cổng kiểm ngược trong `narrate` đã
     nghe từng mảnh → chỉ nghe lại bản final 1 lần. ⛔ KHÔNG tự viết script gọi Gemini để "review" thêm (đã thấy
     `audit_audio.py`, `check_music.py`, `recheck_pieces.py`, `final_mix_audio_review`… trong `jobs/_delivery*`).
 - **Ai đang lái phiên:**
@@ -40,7 +40,13 @@ Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong t
     người điều phối chấm lại bằng số đo + `look`.
 - Gemini báo `402 … prepayment credits are depleted` = hết tiền nạp → báo Sếp nạp ở AI Studio. Khi đó `qa` vẫn chạy bằng
   Codex (`gemini_confirm_error` khác rỗng → ô sót là ô Codex thô, patch xong soát mắt); TTS tự sang gpt-audio-mini;
-  `analyze`, `narrate` (bước nghe lại), `hear`, nhạc Lyria đứng tới khi nạp.
+  `narrate` / `hear` tự sang **tokenrouter gpt-audio-mini để nghe** + định vị đoạn **ước theo độ dài chữ**
+  (`narration.json.align`). `analyze` + nhạc Lyria vẫn đứng tới khi nạp.
+  ⚠️ Dự phòng nghe CHỈ để không đứng việc, chất lượng kém Gemini (đo 22/10, LTENG HCM, TTS + nghe đều dự phòng):
+  cả bài khớp 0,93; 7/8 mảnh 0,81–0,89 (Gemini ~1,0); đặt đúng cảnh. gpt-audio-mini là model HỘI THOẠI: mảnh ngắn
+  <~2,5s hay bị TỪ CHỐI ("vui lòng cung cấp audio…") → tự gửi lại bản đệm lặng; vẫn từ chối thì mảnh ghi
+  **"CHƯA KIỂM được"** = phải nghe tay, KHÔNG coi là đạt. Bản đọc bằng dự phòng: báo Sếp rõ, ưu tiên chờ Gemini rồi
+  xoá `narration/take_*` đọc lại. Mẫu nhận diện từ chối: `tools/test_hear_refusal.py` (16/16, nhầm 0/525).
 
 ## Quy trình một video
 

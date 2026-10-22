@@ -19,7 +19,7 @@ Set-Location C:\Users\Admin\gdp-video-studio; $env:PYTHONIOENCODING='utf-8'
 .\.venv\Scripts\python.exe vs.py templates <shop>        # xem mẫu chữ của shop
 .\.venv\Scripts\python.exe vs.py shops                   # tình trạng tài nguyên từng shop (assets/shops/)
 .\.venv\Scripts\python.exe vs.py look <ảnh…> -q "…"      # soát mắt ảnh bằng Codex model rẻ (không tốn Gemini)
-.\.venv\Scripts\python.exe vs.py hear <audio>            # nghe lại lời Việt (Gemini — Codex không nhận audio)
+.\.venv\Scripts\python.exe vs.py hear <audio>            # nghe lại lời Việt (Gemini; hết tiền → gpt-audio-mini)
 ```
 
 ## 5 luật không được quên
