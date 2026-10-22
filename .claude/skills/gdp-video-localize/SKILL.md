@@ -17,6 +17,31 @@ Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong t
 **Nguồn skill này = `studio\.claude\skills\gdp-video-localize\`** (đi theo thư mục). Sửa skill → sửa bản đó → chạy
 `tools\sync_skill.py install` (bản cài máy) → đẩy bản sao lên repo giadungplus `skills/gdp-video-localize/`.
 
+## Chi phí: ai xem / nghe bằng gì (Sếp 22/10 — Gemini từng tốn 344k/ngày)
+
+- Gói ChatGPT Pro của Sếp = Codex CLI local, không tốn tiền API → **việc SOÁT ẢNH đi Codex model rẻ; Gemini API chỉ dự
+  phòng** (Codex hỏng / hết usage / chưa cài). Model `gpt-5.6-luna` (đổi bằng `CODEX_MODEL` trong `.env`; tài khoản
+  ChatGPT KHÔNG gọi được gpt-6-luna/gpt-6-sol). Đo 22/10 trên 82 job: `detect` = 13,4M token prompt (qa ~61%, analyze
+  ~39%); nghe lại audio <2%.
+  · `vs.py qa` tự soát bằng Codex; chỉ khung Codex báo còn chữ đồ hoạ mới gửi Gemini xác nhận (ô chính xác cho `patch`).
+    Bản final sạch → 0 token Gemini (đo: 95 khung, 36s). Độ nhạy: video gốc chưa che → bắt 18/18 sự kiện chữ đồ hoạ.
+    `qa.json.screen` ghi số lô Codex / lô rơi về Gemini (+ lý do).
+  · `vs.py analyze` VẪN Gemini: ô Codex chỉ phủ 63–100% ô thật, lệch giữa các lần chạy → che lộ chữ. Chạy 1 lần / video
+    nguồn, `--regroup` không tốn token, không analyze lại từng shop.
+  · Soát mắt ảnh (khung ±0,4s quanh mốc, góc logo, `contact.jpg`, ảnh so sánh): `vs.py look <ảnh…> -q "câu hỏi"` (Codex rẻ).
+  · Âm thanh: Codex KHÔNG nhận audio → `vs.py hear <file>` (Gemini, ~32 token/giây). Cổng kiểm ngược trong `narrate` đã
+    nghe từng mảnh → chỉ nghe lại bản final 1 lần. ⛔ KHÔNG tự viết script gọi Gemini để "review" thêm (đã thấy
+    `audit_audio.py`, `check_music.py`, `recheck_pieces.py`, `final_mix_audio_review`… trong `jobs/_delivery*`).
+- **Ai đang lái phiên:**
+  · Claude lái → xem ảnh bằng Read được (tính vào gói Claude); muốn tiết kiệm thì dùng `vs.py look`.
+  · **ChatGPT/Codex model xịn lái (vd GPT-6.1-Sol, GPT-6-Astra) → KHÔNG tự mở ảnh / nghe audio bằng model đó.** Xem ảnh
+    giao `vs.py look` hoặc subagent Codex model rẻ (`codex exec -m gpt-5.6-luna -i <ảnh> "<câu hỏi>"`), nghe giao
+    `vs.py hear`; model xịn chỉ đọc kết luận dạng chữ rồi quyết định. Giao cả job cho subagent thì cũng chọn model rẻ;
+    người điều phối chấm lại bằng số đo + `look`.
+- Gemini báo `402 … prepayment credits are depleted` = hết tiền nạp → báo Sếp nạp ở AI Studio. Khi đó `qa` vẫn chạy bằng
+  Codex (`gemini_confirm_error` khác rỗng → ô sót là ô Codex thô, patch xong soát mắt); TTS tự sang gpt-audio-mini;
+  `analyze`, `narrate` (bước nghe lại), `hear`, nhạc Lyria đứng tới khi nạp.
+
 ## Quy trình một video
 
 1. `vs.py new inbox\<file>.mp4 --id <brand>-<slug>` → `jobs/<id>/`.
@@ -32,12 +57,13 @@ Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong t
    - `narration.paragraphs = [{at, text}]` — kịch bản thuyết minh (luật bên dưới).
    - `audio = {mode: "narration", music: "music.mp3", voice_lufs: -14, music_lufs: -27}` · `edl.logo = {"enabled": true}`
      · `edl.outro = {"enabled": true}` nếu shop có video outro.
-4. `vs.py music <id>` (Lyria 3.5, không lời; nhờ Gemini xác nhận "không có lời hát") → `vs.py narrate <id>`.
-5. `vs.py render <id>` (preview) → `vs.py qa <id>` phải **ĐẠT (sót 0)**; chưa đạt → `vs.py patch <id>` → render/qa lại.
+4. `vs.py music <id>` (Lyria 3.5, không lời; nghi có lời hát thì `vs.py hear music.mp3` 1 lần) → `vs.py narrate <id>`.
+5. `vs.py render <id>` (preview) → `vs.py qa <id>` (Codex soát) phải **ĐẠT (sót 0)**; chưa đạt → `vs.py patch <id>` → render/qa lại.
 6. `vs.py audiocheck <id>`: cả bản −14 ±0,5 LUFS (render TỰ bù sau khi trộn: đo ebur128 → bù dB → chặn đỉnh 0,75
    `level=0`, tối đa 3 vòng), đỉnh ≤ −1 dBFS, nhạc ở khoảng không giọng ≈ −21…−25 LUFS (mặc định `music_lufs: -27`).
 7. Gửi Sếp (SendUserFile) ảnh so sánh + preview. Sếp duyệt → `render --final` + `qa --final` + `audiocheck --final`
-   + cho Gemini nghe lại `final` (đủ lời, 1 giọng, có nhạc, không tiếng Trung, không đè/cụt).
+   + nghe lại `final` MỘT lần bằng `vs.py hear` (đủ lời, 1 giọng, không tiếng Trung, không đè/cụt) + soát khung bằng
+   `vs.py look` — không viết thêm script review gọi Gemini.
 
 ## Luật chữ (Sếp chốt 20/10)
 
@@ -71,7 +97,7 @@ Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong t
   báo số đo (narrate khớp/trễ/tràn, qa sót, audiocheck LUFS, logo góc, siblings) + toàn văn thuyết minh/chữ đè + chỗ skill
   mơ hồ. Đã thử 20/10 (2 bản LTENG VN + HCM song song): mỗi bản ~150k token, 5–9 phút, đạt mọi cổng, không phạm luật,
   văn phong khác nhau rõ. Người điều phối PHẢI tự chấm lại: `siblings` sau khi cả hai xong (agent song song không thấy
-  bản kia hoàn chỉnh → còn câu trùng), soát ảnh khung, Gemini nghe lại, rồi mới gửi Sếp.
+  bản kia hoàn chỉnh → còn câu trùng), soát ảnh khung (`vs.py look`), nghe lại 1 lần (`vs.py hear`), rồi mới gửi Sếp.
 - Job chép nguồn không cần Sếp duyệt bản nháp → render thẳng `--final` được; vẫn qa/audiocheck/soát khung đầy đủ.
 - TTS mỗi lượt dài ngắn lệch ~±1s → mỗi đoạn chừa ~10% thời lượng cảnh; báo trễ/tràn thì rút chữ đoạn trước.
 

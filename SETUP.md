@@ -74,6 +74,9 @@ for need in ("gemini-3-flash-preview", "gemini-3.1-flash-tts-preview", "lyria-3.
 '@ | .\.venv\Scripts\python.exe -
 ```
 
+- **Codex CLI** (soát ảnh `qa` / `vs.py look` bằng gói ChatGPT, không tốn tiền API): `npm i -g @openai/codex` → NHỜ NGƯỜI
+  DÙNG chạy `codex login` (chọn ChatGPT). Kiểm: `.\.venv\Scripts\python.exe vs.py look jobs\<id>\contact.jpg -q "Có chữ Hán không?"`
+  → dòng cuối `[codex gpt-5.6-luna]`. Không có Codex thì qa tự dùng Gemini (tốn tiền hơn).
 - `GEMINI_MODEL` (phân tích/QA/nghe lại) trong `.env` · TTS `studio/voice.py: TTS_MODEL` · nhạc `MUSIC_MODEL`.
 - TTS dự phòng `studio/voice.py: TTS_CHAIN`: 3.1-flash-tts-preview (100 req/24h) → gemini-3.8-flash-tts → tokenrouter
   openai/gpt-audio-mini → openai/gpt-audio. Kiểm: `.\.venv\Scripts\python.exe tools\probe_tts_chain.py sim` (0 token)

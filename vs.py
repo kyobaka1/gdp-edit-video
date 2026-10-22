@@ -14,6 +14,9 @@
   shops                        tình trạng tài nguyên từng shop (màu, mẫu, logo, intro/outro, nhạc)
   siblings <id>                các bản khác cùng video nguồn (shop, thuyết minh, chữ đè, độ giống) — chống lặp nội dung
   cost <id>                    tổng token Gemini của job
+  look <ảnh…> -q "câu hỏi"     soát mắt ảnh bằng model RẺ qua Codex/ChatGPT (không tốn Gemini) — agent dùng thay
+                               vì tự mở ảnh bằng model đắt; Codex hỏng/hết usage → Gemini
+  hear <file audio>            chép lại lời Việt trong audio (Gemini — Codex không nhận audio)
 """
 
 import argparse
@@ -89,7 +92,37 @@ def cmd_qa(a) -> None:
     if rep.get("tiny_ignored"):
         texts = sorted({r["text"] for r in rep["tiny_ignored"]})
         print(f"  (bỏ qua {len(rep['tiny_ignored'])} chữ rất nhỏ ≤2,5% khung: {', '.join(texts)})")
+    sc = rep.get("screen") or {}
+    print(f"  soát: Codex {sc.get('codex_batches', 0)} lô · Gemini dự phòng {sc.get('gemini_fallback_batches', 0)} lô"
+          f" · Gemini xác nhận {len(rep.get('gemini_confirmed_frames', []))} khung"
+          + (f" (lý do dự phòng: {sc['fallback_reason'][:120]})" if sc.get("fallback_reason") else ""))
+    if rep.get("gemini_confirm_error"):
+        print(f"  ⚠ Gemini KHÔNG xác nhận được ({rep['gemini_confirm_error'][:100]}) → ô sót là ô Codex (thô): patch xong soát mắt")
     print(f"→ {d / 'qa.json'} · {d / rep['contact_sheet']}")
+
+
+def cmd_look(a) -> None:
+    from studio import codex, gemini
+    imgs = [Path(x) for x in a.images]
+    try:
+        print(codex.ask_text(imgs, a.q))
+        print(f"[codex {codex.MODEL}]")
+    except codex.CodexUnavailable as exc:
+        from google.genai import types
+        parts = [types.Part.from_bytes(data=p.read_bytes(), mime_type="image/png" if p.suffix.lower() == ".png"
+                                       else "image/jpeg") for p in imgs]
+        print(gemini.client().models.generate_content(model=gemini.config.GEMINI_MODEL, contents=[*parts, a.q]).text)
+        print(f"[Gemini dự phòng — codex: {str(exc)[:120]}]")
+
+
+def cmd_hear(a) -> None:
+    from studio import gemini
+    from google.genai import types
+    p = Path(a.audio)
+    mime = {".wav": "audio/wav", ".mp3": "audio/mp3", ".m4a": "audio/mp4"}.get(p.suffix.lower(), "audio/wav")
+    print(gemini.client().models.generate_content(model=gemini.config.GEMINI_MODEL, contents=[
+        types.Part.from_bytes(data=p.read_bytes(), mime_type=mime),
+        "Chép lại nguyên văn lời nói tiếng Việt trong audio, không thêm gì khác."]).text)
 
 
 def cmd_voice(a) -> None:
@@ -243,6 +276,8 @@ def main() -> None:
     s = sub.add_parser("voice"); s.add_argument("id"); s.set_defaults(fn=cmd_voice)
     s = sub.add_parser("music"); s.add_argument("id"); s.add_argument("--prompt"); s.set_defaults(fn=cmd_music)
     s = sub.add_parser("cost"); s.add_argument("id"); s.set_defaults(fn=cmd_cost)
+    s = sub.add_parser("look"); s.add_argument("images", nargs="+"); s.add_argument("-q", required=True); s.set_defaults(fn=cmd_look)
+    s = sub.add_parser("hear"); s.add_argument("audio"); s.set_defaults(fn=cmd_hear)
     a = p.parse_args()
     a.fn(a)
 

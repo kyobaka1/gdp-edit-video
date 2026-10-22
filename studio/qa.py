@@ -28,6 +28,17 @@ def contact_sheet(frames: list[tuple[float, Path]], out: Path, cols: int = 6, th
     return out
 
 
+def _screen_stats(usage: Path, mark: int) -> dict:
+    """Lượt qa này: bao nhiêu lô khung Codex soát được, bao nhiêu lô phải rơi về Gemini (+ lý do đầu tiên)."""
+    with usage.open("rb") as fh:
+        fh.seek(mark)
+        rows = [json.loads(ln) for ln in fh.read().decode("utf-8").splitlines() if ln.strip()]
+    cx = [r for r in rows if r.get("engine") == "codex"]
+    fb = [r for r in cx if r.get("fallback")]
+    return {"codex_batches": len(cx) - len(fb), "gemini_fallback_batches": len(fb),
+            "fallback_reason": fb[0]["error"] if fb else ""}
+
+
 def run(job_dir: Path, final: bool = False) -> dict:
     meta = json.loads((job_dir / "meta.json").read_text(encoding="utf-8"))
     video = job_dir / ("final.mp4" if final else "preview.mp4")
@@ -45,7 +56,21 @@ def run(job_dir: Path, final: bool = False) -> dict:
     qa_dir = job_dir / "qa"
     for old in qa_dir.glob("*.jpg") if qa_dir.exists() else []:
         old.unlink()
-    detections = detect_text(video, times, qa_dir, job_dir / "usage.jsonl")
+    usage = job_dir / "usage.jsonl"
+    mark = usage.stat().st_size if usage.exists() else 0
+    # Soát bằng Codex/ChatGPT trước (Sếp 22/10: Gemini tốn ~344k/ngày, qa chiếm ~61% số token detect). Codex đọc
+    # chữ tốt nhưng ô thô → khung nào Codex báo còn chữ đồ hoạ thì Gemini XÁC NHẬN lại đúng khung đó (lọc báo
+    # nhầm + ô chính xác cho `patch`). Codex hỏng/hết usage → detect_text tự rơi về Gemini cho cả lượt.
+    detections = detect_text(video, times, qa_dir, usage, engine="codex")
+    flagged = sorted({d["t"] for d in detections for it in d["items"]
+                      if it.get("src") == "codex" and it.get("kind") != "scene" and abs(it["box_2d"][2] - it["box_2d"][0]) > 25})
+    confirm_error = ""
+    if flagged:
+        try:
+            confirmed = {d["t"]: d["items"] for d in detect_text(video, flagged, qa_dir / "confirm", usage)}
+            detections = [{**d, "items": confirmed[d["t"]]} if d["t"] in confirmed else d for d in detections]
+        except Exception as exc:  # Gemini hết tiền/lỗi → giữ kết quả Codex (ô thô), vẫn đánh CHƯA ĐẠT nếu có sót
+            confirm_error = str(exc)[:200]
     all_found = [{"t": d["t"], **it} for d in detections for it in d["items"]]
     # chữ in trên sản phẩm/bao bì/phụ kiện trong cảnh được GIỮ NGUYÊN (Sếp chốt 20/10) → không tính là sót
     scene = [it for it in all_found if it.get("kind") == "scene"]
@@ -63,6 +88,8 @@ def run(job_dir: Path, final: bool = False) -> dict:
     sheet = contact_sheet([(float(p.stem.split("_")[1]), p) for p in picked], job_dir / "contact.jpg")
 
     report = {"video": video.name, "frames_checked": len(times), "checked_until": dur, "outro_skipped": True,
+              "screen": _screen_stats(usage, mark), "gemini_confirmed_frames": flagged,
+              "gemini_confirm_error": confirm_error,  # khác rỗng = chỗ sót là ô Codex (thô), patch xong phải soát mắt
               "residual_chinese": residual,
               "tiny_ignored": tiny, "scene_kept": scene, "pass": not residual, "contact_sheet": sheet.name}
     (job_dir / "qa.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")

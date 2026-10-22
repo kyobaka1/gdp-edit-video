@@ -15,7 +15,7 @@ import numpy as np
 from google.genai import types
 from PIL import Image
 
-from studio import gemini, media
+from studio import codex, gemini, media
 
 FRAME_WIDTH = 720  # khung gửi Gemini (toạ độ chuẩn hoá nên không mất độ chính xác đáng kể)
 BATCH = 10
@@ -84,30 +84,43 @@ def has_cjk(text: str) -> bool:
     return bool(_CJK.search(text or ""))
 
 
-def _detect_batch(paths: list[Path], usage: Path, label: str) -> list[list[dict]]:
-    contents: list = []
-    for i, p in enumerate(paths):
-        contents += [f"Khung {i}:", gemini.image_part(p)]
-    contents.append(BOX_PROMPT.format(n=len(paths), last=len(paths) - 1))
-    data = gemini.generate_json(contents, BOX_SCHEMA, usage_log=usage, label=label)
+def _detect_batch(paths: list[Path], usage: Path, label: str, engine: str = "gemini") -> list[list[dict]]:
+    data = None
+    if engine == "codex":  # soát bằng Codex/ChatGPT (không tốn tiền API); hỏng/hết usage → Gemini như cũ
+        prompt = "".join(f"Khung {i} là ảnh đính kèm thứ {i + 1}. " for i in range(len(paths)))
+        try:
+            data = codex.ask_json(paths, prompt + BOX_PROMPT.format(n=len(paths), last=len(paths) - 1), BOX_SCHEMA)
+            entry = {"label": label, "engine": "codex", "model": codex.MODEL}
+        except codex.CodexUnavailable as exc:
+            entry = {"label": label, "engine": "codex", "fallback": "gemini", "error": str(exc)[:200]}
+        with usage.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    if data is None:
+        contents: list = []
+        for i, p in enumerate(paths):
+            contents += [f"Khung {i}:", gemini.image_part(p)]
+        contents.append(BOX_PROMPT.format(n=len(paths), last=len(paths) - 1))
+        data = gemini.generate_json(contents, BOX_SCHEMA, usage_log=usage, label=label)
     with Image.open(paths[0]) as im:
         aspect = im.height / im.width
     out: list[list[dict]] = [[] for _ in paths]
     for fr in data.get("frames", []):
         idx = fr.get("frame_index")
         if isinstance(idx, int) and 0 <= idx < len(paths):
-            out[idx] = [{**it, "angle": round(_angle(it, aspect), 1)} for it in fr.get("items", [])
+            out[idx] = [{**it, "angle": round(_angle(it, aspect), 1), **({"src": "codex"} if engine == "codex" and
+                         "fallback" not in entry else {})} for it in fr.get("items", [])
                         if len(it.get("box_2d", [])) == 4 and has_cjk(it.get("text", ""))]
     return out
 
 
-def detect_text(video: Path, times: list[float], frames_dir: Path, usage: Path) -> list[dict]:
-    """Trả [{t, items:[{text, box_2d}]}] theo thứ tự thời gian."""
+def detect_text(video: Path, times: list[float], frames_dir: Path, usage: Path, engine: str = "gemini") -> list[dict]:
+    """Trả [{t, items:[{text, box_2d}]}] theo thứ tự thời gian. engine="codex" chỉ dùng để SOÁT (qa): ô Codex
+    thô (phủ 63–100% ô thật, đo 22/10) → analyze đặt ô che phải giữ Gemini."""
     paths = media.extract_frames(video, times, frames_dir, width=FRAME_WIDTH)
     batches = [list(range(i, min(i + BATCH, len(paths)))) for i in range(0, len(paths), BATCH)]
     with ThreadPoolExecutor(max_workers=4) as ex:
         results = list(ex.map(
-            lambda b: _detect_batch([paths[i] for i in b], usage, f"detect[{b[0]}..{b[-1]}]"), batches))
+            lambda b: _detect_batch([paths[i] for i in b], usage, f"detect[{b[0]}..{b[-1]}]", engine), batches))
     detections = []
     for b, res in zip(batches, results):
         for i, items in zip(b, res):
