@@ -1,0 +1,79 @@
+{
+  "id": "gdp-ghost-smile",
+  "source": {
+    "kind": "html",
+    "entry": "src/gdp-motion-02.html",
+    "origin": "Claude Design project 554580b5-089f-4f21-941f-26ffd3c26f26 / gdp-motion-02.html"
+  },
+  "version": 1,
+  "name": "GDP Motion 02 — Ghost Smile Watermark",
+  "brands": [
+    "GIADUNGPLUS"
+  ],
+  "roles": [
+    "watermark"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "watermark",
+    "logo cười"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 3.8,
+  "scenes": [
+    {
+      "name": "Xuất hiện",
+      "start": 0,
+      "end": 0.6
+    },
+    {
+      "name": "Nghiêng & cười",
+      "start": 0.6,
+      "end": 1.2
+    },
+    {
+      "name": "Nhịp cười",
+      "start": 1.2,
+      "end": 2
+    },
+    {
+      "name": "Mờ xuống",
+      "start": 2,
+      "end": 3
+    },
+    {
+      "name": "Giữ",
+      "start": 3,
+      "end": null
+    }
+  ],
+  "fps": 30,
+  "params": {
+    "anchor": "upper-right",
+    "width": 0.16,
+    "hold": 0.14,
+    "dur": 3.8
+  },
+  "placement": {
+    "width_pct": 0.13
+  },
+  "replaces": [
+    "watermark"
+  ],
+  "ends_transparent": false,
+  "hold": "last",
+  "variants": {
+    "on_light": {
+      "variant": "red"
+    },
+    "on_dark": {
+      "variant": "white"
+    }
+  },
+  "default_variant": "on_light",
+  "notes": "Logo hiện, nghiêng cười rồi mờ xuống ~14% và GIỮ (watermark sống). Khung cuối = watermark giữ."
+}

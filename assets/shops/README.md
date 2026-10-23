@@ -17,9 +17,14 @@ assets/shops/<mã shop>/
 ├── templates/       ← MẪU CHỮ ĐÈ (HTML) — hợp đồng bên dưới; shop dùng chung mẫu thì khai `templates_from`
 ├── music/           ← nhạc nền đã duyệt bản quyền cho shop (mp3/wav)
 ├── watermark/       ← watermark.png (nếu shop dùng)
+├── motion/          ← (tuỳ chọn) animation RIÊNG shop này — animation chung theo brand ở assets/motion/
 ├── fonts/           ← font riêng của shop (nếu có; font chung ở assets/fonts/)
 └── reference/       ← ảnh tham chiếu phong cách (mẫu font, ảnh bìa, bài đăng mẫu)
 ```
+
+Animation thương hiệu (logo động, watermark động — Claude Design): thư viện `assets/motion/` dùng chung theo `brand`;
+cách dùng RIÊNG từng shop khai trong `shop.json` → `motion` (luật AUTO, tag ưu tiên, override) + `watermark.motion`.
+Chi tiết: `assets/motion/README.md`. `vs.py motion list --shop <mã>` = animation shop dùng được.
 
 Thêm shop mới: `.\.venv\Scripts\python.exe tools\init_shop.py <mã shop>` → sửa `shop.json` → thả logo/mẫu.
 Xem shop đã đủ đồ chưa: `vs.py shops`. Xem mẫu chữ của shop: `vs.py templates <mã shop>`.

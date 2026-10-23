@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>GDP Motion 02 — Ghost Smile Watermark (render)</title>
+<meta name="viewport" content="width=1080">
+<!-- Transparent 1080×1920 living watermark. No CDN. Icon parts are the pixel cut-outs of the original GDP logo used in GDP Outro v2. -->
+<script src="gdp-assets.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #c { display: block; width: 1080px; height: 1920px; background: transparent; }
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#2A2826"/><path d="M50 30 L70 48 V68 H30 V48 Z" fill="#C22026" opacity="0.5"/></svg></template>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+(function () {
+  const W = 1080, H = 1920;
+  const M = window.GDP_META, IMG = window.GDP_IMG;
+  const HB = M.house, SM = M.smile;
+  const HC = { x: HB.w / 2, y: HB.h / 2 };
+  const SMILE_HALF = 62, CAP_LIMIT = 43, PAD = 40;
+  const FADE_OUT = 0.8;
+
+  const clamp01 = (v) => Math.max(0, Math.min(1, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const tw = (T, a, b) => clamp01((T - a) / (b - a));
+  const E = {
+    enter: (t) => { const c = 0.7, u = t - 1; return 1 + (c + 1) * u * u * u + c * u * u; },   // Outro v2 curve
+    move: (t, k = 3) => (t < 0.5 ? Math.pow(2 * t, k) / 2 : 1 - Math.pow(2 - 2 * t, k) / 2),
+    out: (t, k = 3) => 1 - Math.pow(1 - t, k),
+    bump: (t) => (t <= 0 || t >= 1 ? 0 : Math.sin(Math.PI * E.move(t, 2))),                      // symmetric 0 → 1 → 0
+    nod: (t) => (t <= 0 || t >= 1 ? 0 : Math.sin(Math.PI * (1 - (1 - t) * (1 - t)))),           // quick out, slow return
+  };
+
+  // Anchors (normalized icon centre) — kept clear of TikTok UI, subtitle band and the main product zone.
+  const ANCHORS = {
+    'upper-left': { nx: 0.12, ny: 0.17 },
+    'upper-right': { nx: 0.88, ny: 0.17 },
+    'lower-left': { nx: 0.11, ny: 0.585 },
+    'lower-right': { nx: 0.79, ny: 0.585 },
+  };
+  const PARTNER = { 'upper-left': 'upper-right', 'upper-right': 'upper-left', 'lower-left': 'lower-right', 'lower-right': 'lower-left' };
+  const SAFE_ZONES = [
+    { name: 'TikTok top bar', x0: 0, y0: 0, x1: 1, y1: 0.12 },
+    { name: 'TikTok right rail', x0: 0.88, y0: 0.38, x1: 1, y1: 0.80 },
+    { name: 'Caption / music', x0: 0, y0: 0.78, x1: 1, y1: 1 },
+    { name: 'Subtitles', x0: 0.15, y0: 0.64, x1: 0.85, y1: 0.75 },
+    { name: 'Main product', x0: 0.20, y0: 0.24, x1: 0.80, y1: 0.54 },
+  ];
+
+  const q = new URLSearchParams(location.search);
+  const num = (k, d) => (q.has(k) && q.get(k) !== '' && !isNaN(+q.get(k)) ? +q.get(k) : d);
+  const opts = {
+    anchor: q.get('anchor') || 'upper-right',
+    nx: q.has('nx') ? num('nx', null) : null,          // custom position overrides anchor
+    ny: q.has('ny') ? num('ny', null) : null,
+    width: num('width', 0.16),                         // icon width as fraction of frame width
+    variant: q.get('variant') === 'white' ? 'white' : 'red',
+    hold: num('hold', 0.14),                           // resting opacity
+    drift: q.get('drift') || 'none',                   // 'none' | 'next' | anchor name | 'nx,ny'
+    fadeout: q.get('fadeout') === '1',
+    dur: num('dur', 5),                                // clip length in seconds (min 3.8)
+  };
+
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const ic = document.createElement('canvas');
+  ic.width = HB.w + PAD * 2; ic.height = HB.h + PAD * 2;
+  const g = ic.getContext('2d');
+
+  const imgs = {};
+  const load = (k) => new Promise((res) => { const i = new Image(); i.onload = i.onerror = () => res(); i.src = IMG[k]; imgs[k] = i; });
+  const ready = Promise.all(['houseRed', 'houseWhite', 'plusWhite', 'smileWhite'].map(load)).then(() => { document.documentElement.dataset.ready = '1'; render(T); });
+
+  const duration = () => Math.max(3.8, opts.dur);
+  const resolvePos = (spec) => {
+    if (spec && ANCHORS[spec]) return ANCHORS[spec];
+    if (typeof spec === 'string' && spec.includes(',')) { const [a, b] = spec.split(',').map(Number); if (!isNaN(a) && !isNaN(b)) return { nx: a, ny: b }; }
+    return null;
+  };
+  const startPos = () => (opts.nx != null && opts.ny != null ? { nx: opts.nx, ny: opts.ny } : ANCHORS[opts.anchor] || ANCHORS['upper-right']);
+  const targetPos = () => {
+    if (!opts.drift || opts.drift === 'none') return null;
+    if (opts.drift === 'next') return ANCHORS[PARTNER[opts.anchor] || 'upper-left'];
+    return resolvePos(opts.drift);
+  };
+
+  // Draw the icon at native resolution, then composite it once — so group opacity never shows the parts overlapping.
+  function drawIcon(smileP, lift, sx) {
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalCompositeOperation = 'source-over';
+    g.globalAlpha = 1;
+    g.clearRect(0, 0, ic.width, ic.height);
+    g.imageSmoothingQuality = 'high';
+    const red = opts.variant === 'red';
+    g.drawImage(red ? imgs.houseRed : imgs.houseWhite, PAD, PAD);
+    // Red: white plus + smile on top. White: plus + smile are knocked out of the house (footage shows through).
+    g.globalCompositeOperation = red ? 'source-over' : 'destination-out';
+    g.drawImage(imgs.plusWhite, PAD, PAD);
+    if (smileP <= 0) return;
+    const px = SM.cx, py = (SM.miny + SM.maxy) / 2;
+    g.translate(PAD + px, PAD + py - lift);
+    g.scale(sx, 1);
+    g.translate(-px, -py);
+    const half = SMILE_HALF * smileP;
+    g.save();
+    if (smileP < 1) {
+      g.beginPath();
+      g.moveTo(SM.cx, SM.cy);
+      for (let a = 90 + half; a > 90 - half; a -= 4) { const r = a * Math.PI / 180; g.lineTo(SM.cx + 700 * Math.cos(r), SM.cy + 700 * Math.sin(r)); }
+      const r2 = (90 - half) * Math.PI / 180; g.lineTo(SM.cx + 700 * Math.cos(r2), SM.cy + 700 * Math.sin(r2));
+      g.closePath();
+      g.clip();
+    }
+    g.drawImage(imgs.smileWhite, 0, 0);
+    g.restore();
+    const capOp = smileP < 1 ? clamp01((CAP_LIMIT - half) / 5) : 0;
+    if (capOp > 0) {
+      const capR = (SM.thick / 2) * (0.35 + 0.65 * clamp01(half / 6));
+      g.globalAlpha = capOp;
+      g.fillStyle = '#FFFFFF';
+      [90 + half, 90 - half].forEach((a) => {
+        const r = a * Math.PI / 180;
+        g.beginPath(); g.arc(SM.cx + SM.r * Math.cos(r), SM.cy + SM.r * Math.sin(r), capR, 0, Math.PI * 2); g.fill();
+      });
+    }
+  }
+
+  let T = 0;
+  function render(t) {
+    const D = duration();
+    T = Math.max(0, Math.min(D, +t || 0));
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    if (!imgs.houseRed || !imgs.houseRed.complete) return;
+
+    // 0.0–0.6 · fade in + scale 0.88 → 1.0
+    const a = tw(T, 0.0, 0.6);
+    let alpha = E.out(a, 2);
+    let scale = lerp(0.88, 1, E.out(a, 3));
+    // 0.6–1.2 · tilt 5° and back · smile draws in
+    const tilt = -5 * E.nod(tw(T, 0.6, 1.2));
+    const smileP = E.enter(tw(T, 0.70, 1.05));
+    // 1.2–2.0 · smile beat: arc lifts, icon swells 1.0 → 1.035 → 1.0
+    const beat = E.bump(tw(T, 1.22, 1.92));
+    const lift = 9 * E.bump(tw(T, 1.20, 1.88));
+    const sx = 1 + 0.05 * E.bump(tw(T, 1.20, 1.88));
+    scale *= 1 + 0.035 * beat;
+    // 2.0–3.0 · settle to watermark opacity
+    alpha = lerp(alpha, opts.hold, E.move(tw(T, 2.0, 3.0), 2));
+    // after 3.0 · optional slow drift to the next position
+    const fadeStart = opts.fadeout ? D - FADE_OUT : D;
+    const p0 = startPos(), p1 = targetPos();
+    let nx = p0.nx, ny = p0.ny;
+    if (p1) {
+      const d = E.move(tw(T, 3.4, Math.max(3.6, fadeStart - 0.2)), 2);
+      nx = lerp(p0.nx, p1.nx, d); ny = lerp(p0.ny, p1.ny, d);
+    }
+    // optional fade-out to end the clip
+    if (opts.fadeout) { const f = E.move(tw(T, fadeStart, D), 2); alpha *= 1 - f; scale *= 1 - 0.04 * f; }
+    if (alpha <= 0.001) return;
+
+    drawIcon(smileP, lift, sx);
+    const s = (opts.width * W) / HB.w;
+    ctx.globalAlpha = alpha;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.translate(nx * W, ny * H);
+    ctx.scale(scale, scale);
+    ctx.translate(0, HC.y * s);                        // tilt pivots on the bottom centre
+    ctx.rotate(tilt * Math.PI / 180);
+    ctx.scale(s, s);
+    ctx.drawImage(ic, -(PAD + HC.x), -(PAD + HB.h));
+    ctx.globalAlpha = 1;
+  }
+
+  // Playback: autoplay loop unless ?render=1 or an external setTime() takes control.
+  let auto = !q.has('render'), t0 = null;
+  function tick(now) {
+    if (!auto) return;
+    if (t0 === null) t0 = now;
+    render(((now - t0) / 1000) % (duration() + 0.8));
+    requestAnimationFrame(tick);
+  }
+
+  window.setTime = function (seconds) { auto = false; render(seconds); return T; };
+  window.GDP_MOTION = {
+    name: 'GDP Motion 02 — Ghost Smile Watermark', width: W, height: H,
+    get duration() { return duration(); }, ready, anchors: ANCHORS, safeZones: SAFE_ZONES,
+    scenes: [
+      { name: 'Xuất hiện', start: 0, end: 0.6 }, { name: 'Nghiêng & cười', start: 0.6, end: 1.2 },
+      { name: 'Nhịp cười', start: 1.2, end: 2.0 }, { name: 'Mờ xuống', start: 2.0, end: 3.0 }, { name: 'Giữ', start: 3.0, end: null },
+    ],
+    setTime: window.setTime,
+    configure(o) { Object.assign(opts, o || {}); render(T); return { ...opts }; },
+    get time() { return T; }, get options() { return { ...opts }; },
+  };
+
+  render(q.has('t') ? num('t', 0) : 0);
+  if (auto) ready.then(() => requestAnimationFrame(tick));
+})();
+</script>
+</body>
+</html>

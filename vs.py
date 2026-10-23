@@ -17,6 +17,18 @@
   look <ảnh…> -q "câu hỏi"     soát mắt ảnh bằng model RẺ qua Codex/ChatGPT (không tốn Gemini) — agent dùng thay
                                vì tự mở ảnh bằng model đắt; Codex hỏng/hết usage → Gemini
   hear <file audio>            chép lại lời Việt trong audio (Gemini; hết tiền → tokenrouter gpt-audio-mini)
+  motion <việc> …              thư viện animation thương hiệu (Claude Design → overlay alpha), chi tiết: assets/motion/README.md
+      list [--shop S] [--role R] [--all]      danh sách (theo shop: chỉ animation đúng brand)
+      scan <thư mục>                          phân loại file tải từ Claude Design (nguồn/preview/thiếu asset…), không nhập
+      import <file|thư mục|zip> [--id ID] [--brand B] [--shop S] [--role R] [--name N] [--entry F] [--no-render]
+      info <id> · versions <id> · use <id> <phiên bản> · enable <id> · disable <id>
+      render <id> [--variant V] [--param k=v] [--force] [--footage ảnh]   render alpha (cache) + ảnh soát 3 nền
+      check <id|all>                          render (nếu chưa) + kiểm alpha
+      export <id> --out file.mov|.webm [--variant V]   xuất clip alpha cho CapCut/Premiere
+      plan <job> [--update]                   kế hoạch: animation chọn/bỏ + lý do, budget, logo thường trực hiện khi nào,
+                                              vòng đời watermark (intro/mờ/giữ/đổi chỗ) → motion_plan.json
+      storyboard <job> [--final] [--before video_cũ.mp4]   ảnh soát các mốc (trước/giữa/sau reveal, logo tiếp quản,
+                                              watermark mờ/giữ/đổi chỗ, trước/trong outro) → motion_storyboard.jpg
 """
 
 import argparse
@@ -78,6 +90,39 @@ def cmd_render(a) -> None:
     if lj.exists() and lj.stat().st_mtime >= t0:
         info = json.loads(lj.read_text(encoding="utf-8"))
         print(f"  logo {info['corner']} {info['w']}x{info['h']} tại ({info['x']},{info['y']}) — {info['reason']}")
+    mj = d / "motion_plan.json"
+    if mj.exists() and mj.stat().st_mtime >= t0:
+        _print_motion_plan(json.loads(mj.read_text(encoding="utf-8")))
+
+
+def _print_motion_plan(mp: dict, full: bool = False) -> None:
+    lib = mp.get("library") or {}
+    print(f"  animation ({mp['mode']}) · thư viện {lib.get('total', '?')} · dùng được cho shop {mp.get('shop')}: "
+          f"{lib.get('usable', '?')} · budget {mp.get('budget') or '-'} · chọn {len(mp['items'])}")
+    for it in mp["items"]:
+        print(f"    {it['start']:6.2f}–{it['end']:6.2f}s  {it['id']} v{it['version']} [{it['role']}] {it['w']}x{it['h']} "
+              f"tại ({it['x']},{it['y']}) · scale {it.get('scale', '-')} · mờ {it['opacity']:.0%} — {it['reason']}")
+    lg = mp.get("logo") or {}
+    if lg.get("enabled"):
+        vis = ", ".join(f"{a:.2f}–{b:.2f}s" for a, b in lg["visible"])
+        print(f"    logo thường trực {lg['rect']} hiện {vis} ({lg.get('visible_ratio', 1):.0%} video chính) — {lg['reason']}")
+    elif lg:
+        print(f"    logo thường trực: không — {lg.get('reason')}")
+    w = mp.get("watermark")
+    if w:
+        ph = w["phases"]
+        segs = " → ".join(f"({s['x']},{s['y']}) {s['start']:.1f}–{s['end']:.1f}s" for s in w["segments"])
+        print(f"    watermark động {w['id']} v{w['version']} {w['w']}x{w['h']}: intro {ph['intro'][0]:.1f}–{ph['intro'][1]:.1f}s"
+              + (f" · mờ {ph['dim'][0]:.1f}–{ph['dim'][1]:.1f}s về {w['opacity']:.0%}" if ph.get("dim") else "")
+              + f" · giữ {ph['hold'][0]:.1f}–{ph['hold'][1]:.1f}s · chỗ: {segs} · mờ hẳn {ph['exit'][0]:.1f}s")
+        print(f"      {w['reason']}")
+    if full or mp["mode"] == "auto":
+        for s in mp.get("skipped", []):
+            print(f"    – bỏ {s['id']}: {s['reason']}")
+    for n in mp.get("notes", []):
+        print(f"    · {n}")
+    for wn in mp.get("warnings", []):
+        print(f"    ⚠ {wn}")
 
 
 def cmd_qa(a) -> None:
@@ -98,6 +143,24 @@ def cmd_qa(a) -> None:
           + (f" (lý do dự phòng: {sc['fallback_reason'][:120]})" if sc.get("fallback_reason") else ""))
     if rep.get("gemini_confirm_error"):
         print(f"  ⚠ Gemini KHÔNG xác nhận được ({rep['gemini_confirm_error'][:100]}) → ô sót là ô Codex (thô): patch xong soát mắt")
+    from studio import motiondirector, outro
+    meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
+    edl = json.loads((d / "edl.json").read_text(encoding="utf-8"))
+    mq = motiondirector.qa(d, d / ("final.mp4" if a.final else "preview.mp4"), outro.total_duration(edl, meta))
+    if mq is not None:  # kiểm phần animation bằng số đo (không AI); lỗi → QA chưa đạt
+        rep["motion"] = mq
+        rep["pass"] = rep["pass"] and mq["ok"]
+        (d / "qa.json").write_text(json.dumps(rep, ensure_ascii=False, indent=2), encoding="utf-8")
+        lg = mq["logo"] or {}
+        print(f"  animation: {'đạt' if mq['ok'] else 'CHƯA ĐẠT'} · {', '.join(mq['items']) or 'không chèn'}"
+              f" · watermark động {mq['watermark'] or '-'} · logo thường trực "
+              + (f"hiện {lg.get('visible_ratio', 1):.0%} video chính" if lg.get("enabled") else "không"))
+        for p in mq["problems"]:
+            print(f"    ⚠ {p}")
+        for i in mq["info"]:
+            print(f"    · {i}")
+        if not mq["ok"]:
+            print("  → TỔNG: CHƯA ĐẠT (lỗi animation)")
     print(f"→ {d / 'qa.json'} · {d / rep['contact_sheet']}")
 
 
@@ -188,6 +251,7 @@ def cmd_templates(a) -> None:
 
 def cmd_shops(a) -> None:
     """Bảng tình trạng tài nguyên từng shop: màu, mẫu chữ, logo, intro/outro, nhạc."""
+    from studio import motionlib
     from studio.templates import SHOPS, shop_profile, template_dir
     for d in sorted(p for p in SHOPS.iterdir() if (p / "shop.json").exists()):
         s = shop_profile(d.name)
@@ -200,8 +264,11 @@ def cmd_shops(a) -> None:
         intro = "có" if (d / s["intro"]["file"]).exists() else "-"
         outro = "có" if (d / s["outro"]["file"]).exists() else "-"
         music = len(list((d / "music").glob("*.mp3"))) + len(list((d / "music").glob("*.wav")))
+        anims = motionlib.catalog(d.name)
+        wm = (s.get("watermark") or {}).get("motion") or "chữ"
         print(f"  {d.name:22} {s.get('brand', ''):12} màu {'✓' if s.get('configured') else 'mặc định'} · mẫu {tpl:22}"
-              f" · logo {','.join(logos) or 'THIẾU'} · intro {intro} · outro {outro} · nhạc {music}")
+              f" · logo {','.join(logos) or 'THIẾU'} · intro {intro} · outro {outro} · nhạc {music}"
+              f" · animation {len(anims)} · watermark {wm}")
 
 
 def cmd_siblings(a) -> None:
@@ -250,6 +317,160 @@ def cmd_patch(a) -> None:
     print("\n".join(log) if log else "Không có gì để vá (qa.json sạch).")
 
 
+def _kv(pairs: list[str] | None) -> dict:
+    out = {}
+    for p in pairs or []:
+        k, _, v = p.partition("=")
+        try:
+            out[k] = json.loads(v)
+        except json.JSONDecodeError:
+            out[k] = v
+    return out
+
+
+def cmd_motion(a) -> None:
+    """Thư viện animation thương hiệu: nhập từ Claude Design, render alpha, kiểm, chọn cho job."""
+    from studio import motionlib as ml
+    act, args = a.action, a.args
+
+    def need(n: int, what: str) -> None:
+        if len(args) < n:
+            sys.exit(f"Thiếu {what}: vs.py motion {act} {what}")
+
+    def row(x: dict) -> str:
+        st = "TẮT" if not x["enabled"] else ("LỖI" if x["problems"] else "bật")
+        scope = f"shop {x['shop_scope']}" if x.get("shop_scope") else ",".join(x["brands"])
+        dur = f"{x.get('duration') or '?'}s"
+        return (f"  {x['id']:26} v{x['version']:<2} {st:4} {scope:12} {','.join(x['roles']):16} {dur:6} "
+                f"ưu tiên {x['priority']:<3} {x.get('name', '')}")
+
+    try:
+        if act == "list":
+            role = a.role[0] if a.role else None
+            rows = ml.catalog(a.shop, role, include_disabled=a.all) if a.shop or role or not a.all else ml.discover()
+            if a.all and not (a.shop or role):
+                rows = sorted(rows, key=lambda x: (",".join(x["brands"]), x["id"]))
+            print(f"Thư viện: {ml.LIB} · {len(rows)} animation" + (f" dùng được cho shop {a.shop}" if a.shop else ""))
+            for x in rows:
+                print(row(x))
+                for p in x["problems"]:
+                    print(f"      ⚠ {p}")
+        elif act == "scan":
+            need(1, "<thư mục>")
+            for r in ml.scan(Path(args[0])):
+                print(f"  {'✓' if r['ok'] else '·'} {r['path'].name:40} {r['kind']:9} {r['note']}")
+        elif act == "import":
+            need(1, "<file|thư mục|zip>")
+            res = ml.import_source(Path(args[0]), anim_id=a.id, brands=a.brand, roles=a.role, name=a.name,
+                                   shop=a.shop, entry=a.entry, test_render=not a.no_render)
+            x = res["anim"]
+            print(f"Đã nhập {x['id']} v{x['version']} → {x['dir']}" + (f" (bản cũ cất ở {res['archived']})" if res["archived"] else ""))
+            print(row(x))
+            for p in x["problems"]:
+                print(f"  ⚠ {p}")
+            if res["info"]:
+                _print_render(res["info"])
+            print(f"  → sửa metadata (roles, tags, placement, variants…) trong {x['dir'] / 'motion.json'} — xem assets/motion/README.md")
+        elif act == "info":
+            need(1, "<id>")
+            x = ml.get(args[0])
+            print(json.dumps({k: v for k, v in x.items() if k not in ("dir",)}, ensure_ascii=False, indent=2, default=str))
+            print(f"thư mục: {x['dir']} · hash nguồn {ml.source_hash(x)}")
+            for c in ml.cached_renders(x["id"]):
+                print(f"  cache {c['key']} (nguồn {c['src_hash'][:8]}, biến thể {c['spec']['variant']}, tham số {c['spec']['params']}) "
+                      f"{c['frames']} khung → {c['mov']}")
+        elif act in ("render", "check"):
+            need(1, "<id|all>")
+            targets = ml.discover() if args[0] == "all" else [ml.get(args[0])]
+            bad = 0
+            for x in targets:
+                if not x["enabled"] and args[0] == "all":
+                    continue
+                try:
+                    vars_ = [a.variant] if a.variant else ([None] if act == "render" else (list(x["variants"]) or [None]))
+                    for v in vars_:
+                        info = ml.render(x, v, _kv(a.param), force=a.force,
+                                         footage=Path(a.footage) if a.footage else None)
+                        print(f"{x['id']} {'(' + v + ')' if v else ''}")
+                        _print_render(info)
+                        bad += bool(info["check"]["warn"])
+                except ml.MotionError as exc:
+                    bad += 1
+                    print(f"{x['id']}: ✗ {exc}")
+            if act == "check":
+                print("KIỂM: " + ("ĐẠT" if not bad else f"{bad} animation có lỗi/cảnh báo"))
+        elif act in ("enable", "disable"):
+            need(1, "<id>")
+            x = ml.set_enabled(args[0], act == "enable")
+            print(row(x))
+        elif act == "versions":
+            need(1, "<id>")
+            x = ml.get(args[0])
+            for v in ml.versions(x):
+                print(f"  v{v['version']} {'(hiện hành)' if v['current'] else ''} nguồn {v['src_hash']}")
+        elif act == "use":
+            need(2, "<id> <phiên bản>")
+            x = ml.use_version(args[0], int(str(args[1]).lstrip("v")))
+            print(f"Đã chuyển {x['id']} về v{x['version']}")
+        elif act == "export":
+            need(1, "<id>")
+            if not a.out:
+                sys.exit("Cần --out <file.mov|file.webm>")
+            info = ml.render(ml.get(args[0]), a.variant, _kv(a.param))
+            out = Path(a.out)
+            if out.suffix.lower() == ".webm":
+                media.run([config.FFMPEG, "-y", "-v", "error", "-i", info["mov"], "-c:v", "libvpx-vp9", "-pix_fmt",
+                           "yuva420p", "-b:v", "0", "-crf", "18", "-auto-alt-ref", "0", str(out)])
+            else:
+                shutil.copyfile(info["mov"], out)
+            print(f"→ {out} ({info['bbox'][2]}x{info['bbox'][3]}, {info['duration']}s, alpha)")
+        elif act == "plan":
+            need(1, "<job>")
+            from studio import motiondirector, render as rd
+            d = job_dir(args[0])
+            meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
+            edl = json.loads((d / "edl.json").read_text(encoding="utf-8"))
+            if a.update:
+                edl.setdefault("motion", {"mode": "auto"})
+                if isinstance(edl["motion"], dict):
+                    edl["motion"]["update"] = True
+            if "motion" not in edl:
+                print("Job chưa khai edl.motion → flow cũ (logo tĩnh + watermark chữ). Thêm edl[\"motion\"] = "
+                      "{\"mode\": \"auto\"} trong direct.py để dùng animation.")
+                return
+            from studio import logo as lg_mod
+            boxes = rd.label_boxes(d, edl, meta)
+            lp = lg_mod.plan(d, edl, meta, boxes, persistent=True)
+            _print_motion_plan(motiondirector.plan(d, edl, meta, boxes, (lp["x"], lp["y"], lp["w"], lp["h"]) if lp else None),
+                               full=True)
+            print(f"→ {d / 'motion_plan.json'} (vùng chữ ước lượng — render thật dùng ô đã vẽ)")
+        elif act == "storyboard":
+            need(1, "<job>")
+            from studio import motiondirector
+            d = job_dir(args[0])
+            video = d / ("final.mp4" if a.final else "preview.mp4")
+            if not (d / "motion_plan.json").exists() or not video.exists():
+                sys.exit("Cần render trước (vs.py render <job>) — job phải khai edl.motion")
+            out = motiondirector.storyboard(d, video, d / "motion_storyboard.jpg", Path(a.before) if a.before else None)
+            print(f"→ {out}")
+        else:
+            sys.exit(f"Không có việc '{act}' (list | scan | import | info | render | check | enable | disable | "
+                     f"versions | use | export | plan | storyboard)")
+    except ml.MotionError as exc:
+        sys.exit(f"✗ {exc}")
+
+
+def _print_render(info: dict) -> None:
+    c = info["check"]
+    print(f"  ✓ alpha {info['bbox'][2]}x{info['bbox'][3]} (trên khung {info['canvas'][0]}x{info['canvas'][1]}, chạm mép "
+          f"{','.join(c['touches_edge']) or '-'}) · {info['frames']} khung {info['fps']:g}fps = {info['duration']}s · "
+          f"khung đầu α{c['first_alpha_max']} · khung cuối α{c['last_alpha_max']} · halo {c['halo']}")
+    for w in c["warn"]:
+        print(f"  ⚠ {w}")
+    print(f"  clip: {info['mov']}")
+    print(f"  soát 3 nền (tối/sáng/footage): {Path(info['dir']) / 'sheet.jpg'}")
+
+
 def cmd_cost(a) -> None:
     d = job_dir(a.id)
     rows = [json.loads(line) for line in (d / "usage.jsonl").read_text(encoding="utf-8").splitlines() if line]
@@ -275,6 +496,14 @@ def main() -> None:
     s = sub.add_parser("cost"); s.add_argument("id"); s.set_defaults(fn=cmd_cost)
     s = sub.add_parser("look"); s.add_argument("images", nargs="+"); s.add_argument("-q", required=True); s.set_defaults(fn=cmd_look)
     s = sub.add_parser("hear"); s.add_argument("audio"); s.set_defaults(fn=cmd_hear)
+    s = sub.add_parser("motion"); s.add_argument("action"); s.add_argument("args", nargs="*")
+    s.add_argument("--shop"); s.add_argument("--role", action="append", help="vai trò (import: lặp lại được)")
+    s.add_argument("--all", action="store_true")
+    s.add_argument("--id"); s.add_argument("--brand", action="append"); s.add_argument("--name"); s.add_argument("--entry")
+    s.add_argument("--no-render", action="store_true"); s.add_argument("--variant"); s.add_argument("--param", action="append")
+    s.add_argument("--force", action="store_true"); s.add_argument("--footage"); s.add_argument("--out")
+    s.add_argument("--update", action="store_true"); s.add_argument("--final", action="store_true")
+    s.add_argument("--before", help="storyboard: video bản cũ để so cùng mốc giờ"); s.set_defaults(fn=cmd_motion)
     a = p.parse_args()
     a.fn(a)
 

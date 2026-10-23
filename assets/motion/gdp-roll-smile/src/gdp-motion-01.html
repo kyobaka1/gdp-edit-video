@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>GDP Motion 01 — Roll & Smile (render)</title>
+<meta name="viewport" content="width=1080">
+<!-- Transparent 1080×1920 overlay. No CDN. Logo parts are the pixel cut-outs of the original GDP logo used in GDP Outro v2. -->
+<script src="gdp-assets.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+  #stage img, #stage div { position: absolute; left: 0; top: 0; display: block; }
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#C22026"/><path d="M50 30 L70 48 V68 H30 V48 Z" fill="#FFFFFF"/></svg></template>
+<div id="stage"></div>
+<script>
+(function () {
+  const W = 1080, H = 1920, DURATION = 4;
+  const M = window.GDP_META, IMG = window.GDP_IMG;
+  const RED = '#C22026', WHITE = '#FFFFFF';
+
+  const clamp01 = (v) => Math.max(0, Math.min(1, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const tw = (T, a, b) => clamp01((T - a) / (b - a));
+  const E = {
+    enter: (t) => { const c = 0.7, u = t - 1; return 1 + (c + 1) * u * u * u + c * u * u; },   // fast in, ~2% overshoot, settle (Outro v2)
+    move: (t, k = 3) => (t < 0.5 ? Math.pow(2 * t, k) / 2 : 1 - Math.pow(2 - 2 * t, k) / 2),
+    out: (t, k = 4) => 1 - Math.pow(1 - t, k),
+    inn: (t, k = 2.4) => Math.pow(t, k),
+    back: (t, s = 2.2) => { const u = t - 1; return 1 + (s + 1) * u * u * u + s * u * u; },
+    pop: (t, cycles = 0) => (t <= 0 || t >= 1 ? 0 : cycles ? Math.sin(2 * Math.PI * cycles * t) * Math.pow(1 - t, 2.2) : Math.sin(Math.PI * (1 - (1 - t) * (1 - t)))),
+  };
+
+  // Lock-up geometry in source-logo pixels (from GDP_META)
+  const HB = M.house, WB = M.word, GB = M.gd, SM = M.smile, PC = M.plusCenter;
+  const LOCK = { x0: HB.x, x1: WB.x + WB.w, y0: HB.y, y1: GB.y + GB.h };
+  LOCK.cx = (LOCK.x0 + LOCK.x1) / 2; LOCK.cy = (LOCK.y0 + LOCK.y1) / 2; LOCK.w = LOCK.x1 - LOCK.x0;
+  const HC = { x: HB.w / 2, y: HB.h / 2 };                       // house centre, local px
+  const HOUSE_C = { x: HB.x + HC.x, y: HB.y + HC.y };            // house centre, source px
+  const SMILE_HALF = 62, CAP_LIMIT = 43;
+  // Rounded-corner hull of the house (local px, rel. to centre) — keeps the rolling house resting on the ground line.
+  const HR = 34;
+  const HULL = [[215, 42], [34, 192], [396, 192], [34, 420], [396, 420]].map(([x, y]) => [x - HC.x, y - HC.y]);
+  const REST = HB.h - HC.y;
+  const lowest = (th) => Math.max(...HULL.map(([x, y]) => x * Math.sin(th) + y * Math.cos(th))) + HR;
+  const BOB = 0.85;
+
+  const SCENES = [
+    { name: 'Lăn vào', start: 0.0, end: 0.9 },
+    { name: 'Ổn định', start: 0.9, end: 1.4 },
+    { name: 'Cười', start: 1.4, end: 2.0 },
+    { name: 'Wordmark', start: 2.0, end: 2.8 },
+    { name: 'Giữ & nhấn', start: 2.8, end: 3.3 },
+    { name: 'Lăn ra', start: 3.3, end: 4.0 },
+  ];
+
+  const q = new URLSearchParams(location.search);
+  const opts = { x: +q.get('x') || 540, y: +q.get('y') || 960, size: +q.get('size') || 620 };
+
+  // ---- DOM (built once) ----
+  const stage = document.getElementById('stage');
+  const el = (tag, style, parent) => { const n = document.createElement(tag); Object.assign(n.style, style || {}); (parent || stage).appendChild(n); return n; };
+  const img = (src, style, parent) => { const n = el('img', style, parent); n.src = src; n.alt = ''; n.draggable = false; return n; };
+  const full = { width: HB.w + 'px', height: HB.h + 'px' };
+
+  const lock = el('div', { width: W + 'px', height: H + 'px' });
+  const wordEl = img(IMG.wordRed, {}, lock);
+  const gdEl = img(IMG.gdRed, {}, lock);
+  const houseOuter = el('div', { transformOrigin: '0 0' }, lock);
+  const houseInner = el('div', { left: -HC.x + 'px', top: -HC.y + 'px', ...full }, houseOuter);
+  img(IMG.houseRed, full, houseInner);
+  const smileEl = img(IMG.smileWhite, full, houseInner);
+  const capR = SM.thick / 2;
+  const cap = () => el('div', { width: capR * 2 + 'px', height: capR * 2 + 'px', borderRadius: '50%', background: WHITE }, houseInner);
+  const capA = cap(), capB = cap();
+  const plusEl = img(IMG.plusWhite, { ...full, transformOrigin: `${PC.x}px ${PC.y}px` }, houseInner);
+
+  let T = 0;
+
+  function render(t) {
+    T = Math.max(0, Math.min(DURATION, +t || 0));
+    const sF = opts.size / LOCK.w;
+    const cx = opts.x, cy = opts.y;
+    const toC = (sx, sy) => ({ x: cx + (sx - LOCK.cx) * sF, y: cy + (sy - LOCK.cy) * sF });
+    const lockHouse = toC(HOUSE_C.x, HOUSE_C.y);
+    const soloX = cx;                                     // house alone sits on the anchor
+    const reach = (HB.h * 0.72) * sF;                     // safe off-canvas margin incl. rotation
+    const xIn = -reach, xOut = W + reach;
+    const R = (soloX - xIn) / (2 * Math.PI);              // rolling radius → exactly 360° on entry
+
+    // 1 · Lăn vào (0.0–0.9): rotation is locked to travel, so it rolls instead of sliding.
+    const pIn = E.enter(tw(T, 0.0, 0.86));
+    let x = lerp(xIn, soloX, pIn);
+    let roll = (x - soloX) / R;                           // rad, −2π → 0 (+ tiny overshoot)
+
+    // 2 · Ổn định (0.9–1.4): damped rock on the leading corner + very light squash on landing.
+    const rock = 4.2 * E.pop(tw(T, 0.86, 1.40), 1.5);
+    const sq = E.pop(tw(T, 0.74, 1.10));
+    const sqx = 1 + 0.03 * sq, sqy = 1 - 0.04 * sq;
+
+    // 3 · Cười (1.4–2.0): plus pops, smile draws from centre outward, head tilts.
+    const plusP = tw(T, 1.40, 1.72);
+    const plusScale = plusP <= 0 ? 0 : E.back(plusP);
+    const smileP = E.enter(tw(T, 1.52, 1.86));
+    const tiltP = E.move(tw(T, 1.60, 1.84)) - E.move(tw(T, 1.98, 2.30));
+    const tilt = -6 * tiltP;
+    const giggle = 0.018 * E.pop(tw(T, 1.62, 1.90));
+
+    // 4 · Wordmark (2.0–2.8): house glides to its lock-up slot, wordmark slides in from the right.
+    const mv = E.move(tw(T, 2.00, 2.46), 3);
+    x = lerp(x, lockHouse.x, mv);
+    const lean = -2.4 * Math.sin(Math.PI * mv);
+    const w1 = E.out(tw(T, 2.12, 2.64));
+    const w2 = E.out(tw(T, 2.24, 2.78));
+
+    // 5 · Giữ & nhấn (2.8–3.3): one soft press on the whole lock-up.
+    const press = 1 - 0.032 * E.pop(tw(T, 2.90, 3.28), 1);
+
+    // 6 · Lăn ra (3.3–4.0): wordmark fades, small wind-up, house rolls off to the right.
+    const fade = 1 - E.move(tw(T, 3.30, 3.54), 2);
+    const windUp = -3 * E.pop(tw(T, 3.28, 3.50));
+    const pOut = E.inn(tw(T, 3.40, 3.98));
+    const exitX = lerp(0, xOut - lockHouse.x, pOut);
+    x += exitX;
+    roll += exitX / R;
+
+    // Ground contact: the centre rises when a corner is underneath.
+    const lift = (lowest(roll) - REST) * BOB * sF;
+    const y = lockHouse.y - lift - 10 * tiltP * sF / 0.55;
+
+    houseOuter.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px) rotate(${(roll * 180 / Math.PI + lean).toFixed(3)}deg) scale(${(sF * (1 + giggle)).toFixed(5)})`;
+    const ang = rock + tilt + windUp;
+    houseInner.style.transformOrigin = ang >= 0 ? `${HB.w - 36}px ${HB.h}px` : `36px ${HB.h}px`;
+    houseInner.style.transform = `rotate(${ang.toFixed(3)}deg) scale(${sqx.toFixed(4)}, ${sqy.toFixed(4)})`;
+
+    plusEl.style.transform = `scale(${plusScale.toFixed(4)})`;
+    plusEl.style.opacity = clamp01(plusP * 5);
+
+    // Smile: angular clip opening from the bottom centre + round caps that travel with the stroke ends (Outro v2).
+    const half = SMILE_HALF * smileP;
+    smileEl.style.opacity = smileP > 0 ? 1 : 0;
+    if (smileP < 1) {
+      const P = (a) => { const r = a * Math.PI / 180; return `${(SM.cx + 700 * Math.cos(r)).toFixed(1)}px ${(SM.cy + 700 * Math.sin(r)).toFixed(1)}px`; };
+      const pts = [`${SM.cx}px ${SM.cy}px`];
+      for (let a = 90 + half; a > 90 - half; a -= 8) pts.push(P(a));
+      pts.push(P(90 - half));
+      smileEl.style.clipPath = `polygon(${pts.join(',')})`;
+    } else smileEl.style.clipPath = 'none';
+    const capOp = smileP > 0 && smileP < 1 ? clamp01((CAP_LIMIT - half) / 5) : 0;
+    const capS = 0.35 + 0.65 * clamp01(half / 6);
+    [[capA, 90 + half], [capB, 90 - half]].forEach(([c, a]) => {
+      const r = a * Math.PI / 180;
+      c.style.left = (SM.cx + SM.r * Math.cos(r) - capR).toFixed(2) + 'px';
+      c.style.top = (SM.cy + SM.r * Math.sin(r) - capR).toFixed(2) + 'px';
+      c.style.opacity = capOp;
+      c.style.transform = `scale(${capS.toFixed(3)})`;
+    });
+
+    const word = (n, box, p, dx) => {
+      const pos = toC(box.x, box.y);
+      n.style.width = box.w * sF + 'px'; n.style.height = box.h * sF + 'px';
+      n.style.transform = `translate(${(pos.x + (1 - p) * dx * sF / 0.55).toFixed(2)}px, ${pos.y.toFixed(2)}px)`;
+      n.style.opacity = (clamp01(p * 1.6) * fade).toFixed(4);
+    };
+    word(wordEl, WB, w1, 150);
+    word(gdEl, GB, w2, 190);
+
+    lock.style.transformOrigin = `${cx}px ${cy}px`;
+    lock.style.transform = `scale(${press.toFixed(5)})`;
+  }
+
+  // ---- Playback: autoplay loop unless ?render=1 or an external setTime() call takes control ----
+  let auto = !q.has('render'), t0 = null;
+  function tick(now) {
+    if (!auto) return;
+    if (t0 === null) t0 = now;
+    render(((now - t0) / 1000) % (DURATION + 0.6));
+    requestAnimationFrame(tick);
+  }
+
+  const ready = Promise.all([...stage.querySelectorAll('img')].map((i) => (i.decode ? i.decode().catch(() => {}) : Promise.resolve())))
+    .then(() => { document.documentElement.dataset.ready = '1'; });
+
+  window.setTime = function (seconds) { auto = false; render(seconds); return T; };
+  window.GDP_MOTION = {
+    name: 'GDP Motion 01 — Roll & Smile', width: W, height: H, duration: DURATION, scenes: SCENES, ready,
+    setTime: window.setTime,
+    configure(o) { Object.assign(opts, o || {}); render(T); return { ...opts }; },
+    get time() { return T; }, get options() { return { ...opts }; },
+  };
+
+  render(q.has('t') ? +q.get('t') : 0);
+  if (auto) ready.then(() => requestAnimationFrame(tick));
+})();
+</script>
+</body>
+</html>

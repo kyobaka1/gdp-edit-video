@@ -18,6 +18,17 @@
     "files": {
       "primary": "logo/logo-ngang.png",
       "icon": "logo/logo-vuong.jpg"
+    },
+    "persistent": {
+      "width_pct": {
+        "9:16": 0.19,
+        "3:4": 0.18,
+        "1:1": 0.16,
+        "16:9": 0.11
+      },
+      "margin_x_pct": 0.04,
+      "margin_y_pct": 0.03,
+      "note": "Logo thường trực V2 (job bật edl.motion): bề rộng phần logo thấy được / bề rộng khung theo tỉ lệ; lề trên 3% chiều cao, lề ngang 4% bề rộng."
     }
   },
   "intro": {
@@ -81,6 +92,82 @@
     "text": "LTENG HCM",
     "period": 6.0,
     "width_pct": 0.4,
-    "note": "Watermark trôi chống lấy cắp (studio/watermark.py). enabled theo brand kit prod (Phaledo prod tắt); edl.watermark ghi đè."
+    "note": "Watermark trôi chống lấy cắp (studio/watermark.py). enabled theo brand kit prod (Phaledo prod tắt); edl.watermark ghi đè.",
+    "motion": "lteng-ghost-signature",
+    "motion_params": {
+      "hold": 0.15
+    },
+    "motion_width_pct": 0.26,
+    "note_motion": "Sếp 23/10: watermark chữ → animation (job khai edl.motion). Không có edl.motion → vẫn watermark chữ như cũ.",
+    "lifecycle": {
+      "relocate_mode": "slide",
+      "settle_pause": 1.0,
+      "hold": 10,
+      "dim": 0.8,
+      "relocate": true,
+      "fade": 0.4,
+      "exit": 0.4,
+      "after_reveal": 1.0
+    }
+  },
+  "motion": {
+    "auto": {
+      "brand_reveal": {
+        "budget": [
+          [
+            null,
+            1
+          ]
+        ],
+        "window": [
+          0.3,
+          0.45
+        ],
+        "prefer": "early",
+        "brand_mention": true
+      },
+      "accent": {
+        "roles": [
+          "accent",
+          "micro_animation",
+          "corner_signature"
+        ],
+        "budget": [
+          [
+            15,
+            1
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            60,
+            2
+          ]
+        ],
+        "per_extra_30s": 1,
+        "window": [
+          2.0,
+          0.92
+        ],
+        "prefer": "middle"
+      }
+    },
+    "prefer_tags": [
+      "công nghệ",
+      "ngắn",
+      "magenta"
+    ],
+    "exclude": [],
+    "overrides": {
+      "lteng-rail-glide": {
+        "params": {
+          "direction": "rtl"
+        }
+      }
+    },
+    "note": "LTENG HCM dùng chung thư viện LTENG nhưng khác cách dùng: ưu tiên sting ngắn Magenta Signal, Rail Glide chạy chiều ngược (rtl), watermark nhỏ hơn VN.",
+    "min_gap": 2.5
   }
 }

@@ -20,7 +20,15 @@ Set-Location C:\Users\Admin\gdp-video-studio; $env:PYTHONIOENCODING='utf-8'
 .\.venv\Scripts\python.exe vs.py shops                   # tình trạng tài nguyên từng shop (assets/shops/)
 .\.venv\Scripts\python.exe vs.py look <ảnh…> -q "…"      # soát mắt ảnh bằng Codex model rẻ (không tốn Gemini)
 .\.venv\Scripts\python.exe vs.py hear <audio>            # nghe lại lời Việt (Gemini; hết tiền → gpt-audio-mini)
+.\.venv\Scripts\python.exe vs.py motion list --shop <shop> # animation thương hiệu shop dùng được (skill gdp-video-motion)
+.\.venv\Scripts\python.exe vs.py motion import <file.html|zip> --id <id> --brand <BRAND> --role brand_reveal
+.\.venv\Scripts\python.exe vs.py motion plan <id>         # xem animation job sẽ chèn (edl.motion = {"mode": "auto"})
 ```
+
+Animation thương hiệu (Sếp 23/10, Motion Director V2): skill **`gdp-video-motion`** + `assets/motion/README.md`. Job
+mới khai `edl["motion"] = {"mode": "auto"}` → brand reveal + accent (trong budget) + logo THƯỜNG TRỰC (chỉ tạm ẩn đúng
+khoảng reveal chạy) + watermark động (xuất hiện → chìm dần → trượt đổi chỗ mỗi ~6s như cũ). `vs.py motion plan <id>` giải thích
+chọn/bỏ; `vs.py motion storyboard <id>` ảnh soát. Thêm animation mới = `vs.py motion import`, không sửa code.
 
 ## 5 luật không được quên
 

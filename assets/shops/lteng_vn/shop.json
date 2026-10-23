@@ -18,6 +18,17 @@
     "files": {
       "primary": "logo/logo-ngang.png",
       "icon": "logo/logo-nen-trang-vuong.jpg"
+    },
+    "persistent": {
+      "width_pct": {
+        "9:16": 0.2,
+        "3:4": 0.19,
+        "1:1": 0.17,
+        "16:9": 0.12
+      },
+      "margin_x_pct": 0.04,
+      "margin_y_pct": 0.03,
+      "note": "Logo thường trực V2 (job bật edl.motion): bề rộng phần logo thấy được / bề rộng khung theo tỉ lệ; lề trên 3% chiều cao, lề ngang 4% bề rộng."
     }
   },
   "intro": {
@@ -87,6 +98,76 @@
     "text": "LTENG",
     "period": 6.0,
     "width_pct": 0.4,
-    "note": "Watermark trôi chống lấy cắp (studio/watermark.py). enabled theo brand kit prod (Phaledo prod tắt); edl.watermark ghi đè."
+    "note": "Watermark trôi chống lấy cắp (studio/watermark.py). enabled theo brand kit prod (Phaledo prod tắt); edl.watermark ghi đè.",
+    "motion": "lteng-ghost-signature",
+    "motion_params": {
+      "hold": 0.13
+    },
+    "motion_width_pct": 0.3,
+    "note_motion": "Sếp 23/10: watermark chữ → animation (job khai edl.motion). Không có edl.motion → vẫn watermark chữ như cũ.",
+    "lifecycle": {
+      "relocate_mode": "slide",
+      "settle_pause": 1.0,
+      "hold": 10,
+      "dim": 0.8,
+      "relocate": true,
+      "fade": 0.4,
+      "exit": 0.4,
+      "after_reveal": 1.0
+    }
+  },
+  "motion": {
+    "auto": {
+      "brand_reveal": {
+        "budget": [
+          [
+            null,
+            1
+          ]
+        ],
+        "window": [
+          0.3,
+          0.45
+        ],
+        "prefer": "early",
+        "brand_mention": true
+      },
+      "accent": {
+        "roles": [
+          "accent",
+          "micro_animation",
+          "corner_signature"
+        ],
+        "budget": [
+          [
+            15,
+            1
+          ],
+          [
+            30,
+            1
+          ],
+          [
+            60,
+            2
+          ]
+        ],
+        "per_extra_30s": 1,
+        "window": [
+          2.0,
+          0.92
+        ],
+        "prefer": "middle"
+      }
+    },
+    "prefer_tags": [
+      "chính xác",
+      "kỹ thuật",
+      "lắp ráp"
+    ],
+    "exclude": [],
+    "overrides": {},
+    "note": "LTENG VN: chính xác, kỹ thuật — ưu tiên Precision Assembly / Rail Glide.",
+    "min_gap": 2.5
   }
 }

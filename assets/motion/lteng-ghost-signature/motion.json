@@ -1,0 +1,84 @@
+{
+  "id": "lteng-ghost-signature",
+  "source": {
+    "kind": "html",
+    "entry": "src/lteng-motion-04.html",
+    "origin": "Claude Design project 554580b5-089f-4f21-941f-26ffd3c26f26 / lteng-motion-04.html"
+  },
+  "version": 1,
+  "name": "LTENG Motion 04 — Ghost Signature",
+  "brands": [
+    "LTENG"
+  ],
+  "roles": [
+    "watermark"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "watermark",
+    "kỹ thuật"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 3.5,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "Guide",
+      "start": 0,
+      "end": 0.35
+    },
+    {
+      "name": "Reveal",
+      "start": 0.35,
+      "end": 0.85
+    },
+    {
+      "name": "Magenta",
+      "start": 0.85,
+      "end": 1.15
+    },
+    {
+      "name": "Guide mờ",
+      "start": 1.15,
+      "end": 1.7
+    },
+    {
+      "name": "Về opacity giữ",
+      "start": 1.7,
+      "end": 3
+    },
+    {
+      "name": "Giữ",
+      "start": 3,
+      "end": 3.5
+    }
+  ],
+  "params": {
+    "mode": "intro",
+    "anchor": "upper-left",
+    "width": 0.3,
+    "hold": 0.14
+  },
+  "placement": {
+    "width_pct": 0.3
+  },
+  "replaces": [
+    "watermark"
+  ],
+  "ends_transparent": false,
+  "hold": "last",
+  "variants": {
+    "on_dark": {
+      "variant": "white"
+    },
+    "on_light": {
+      "variant": "navy"
+    }
+  },
+  "default_variant": "on_dark",
+  "notes": "Chữ LTENG hiện rồi lắng ở ~14% và GIỮ (watermark). Khung cuối = watermark giữ."
+}

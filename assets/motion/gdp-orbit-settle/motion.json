@@ -1,0 +1,84 @@
+{
+  "id": "gdp-orbit-settle",
+  "source": {
+    "kind": "html",
+    "entry": "src/gdp-motion-08.html",
+    "origin": "Claude Design project 554580b5-089f-4f21-941f-26ffd3c26f26 / gdp-motion-08.html"
+  },
+  "version": 1,
+  "name": "GDP Motion 08 — Orbit & Settle",
+  "brands": [
+    "GIADUNGPLUS"
+  ],
+  "roles": [
+    "brand_reveal"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "thân thiện",
+    "vui",
+    "logo cười"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 3.5,
+  "scenes": [
+    {
+      "name": "Quỹ đạo vào",
+      "start": 0,
+      "end": 0.7
+    },
+    {
+      "name": "Giảm tốc",
+      "start": 0.7,
+      "end": 1.4
+    },
+    {
+      "name": "Dừng & cười",
+      "start": 1.4,
+      "end": 1.8
+    },
+    {
+      "name": "Wordmark",
+      "start": 1.8,
+      "end": 2.6
+    },
+    {
+      "name": "Giữ",
+      "start": 2.6,
+      "end": 3
+    },
+    {
+      "name": "Thu & mờ",
+      "start": 3,
+      "end": 3.5
+    }
+  ],
+  "fps": 30,
+  "params": {
+    "format": "9x16",
+    "anchor": "center",
+    "scale": 0.7
+  },
+  "placement": {
+    "y": "top",
+    "margin_y_pct": 0.03,
+    "x": "left",
+    "margin_x_pct": 0,
+    "width_pct": {
+      "9:16": 0.46,
+      "3:4": 0.44,
+      "1:1": 0.38,
+      "16:9": 0.26
+    },
+    "handoff": 0.4
+  },
+  "replaces": [
+    "logo"
+  ],
+  "ends_transparent": true,
+  "notes": "Icon bay vòng quỹ đạo vào từ mép trái, dừng, cười, chữ trượt vào, thu & mờ (3.5s)."
+}

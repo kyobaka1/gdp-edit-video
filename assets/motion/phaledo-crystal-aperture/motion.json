@@ -1,0 +1,80 @@
+{
+  "id": "phaledo-crystal-aperture",
+  "source": {
+    "kind": "html",
+    "entry": "src/phaledo-motion-01.html",
+    "origin": "Claude Design project 554580b5-089f-4f21-941f-26ffd3c26f26 / phaledo-motion-01.html"
+  },
+  "version": 1,
+  "name": "PHALEDO Motion 01 — Crystal Aperture",
+  "brands": [
+    "PHALEDO"
+  ],
+  "roles": [
+    "brand_reveal",
+    "accent"
+  ],
+  "enabled": true,
+  "priority": 55,
+  "tags": [
+    "cao cấp",
+    "tối giản",
+    "ánh sáng",
+    "thuỷ tinh"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 4.2,
+  "fps": 30,
+  "params": {
+    "width": 0.5,
+    "nx": 0.5,
+    "ny": 0.5
+  },
+  "placement": {
+    "y": "top",
+    "margin_y_pct": 0.025,
+    "x": "logo_side",
+    "width_pct": {
+      "9:16": 0.27,
+      "3:4": 0.26,
+      "1:1": 0.22,
+      "16:9": 0.16
+    },
+    "handoff": 0.5
+  },
+  "replaces": [
+    "logo"
+  ],
+  "ends_transparent": true,
+  "variants": {
+    "on_dark": {
+      "tone": "light"
+    },
+    "on_light": {
+      "tone": "dark"
+    }
+  },
+  "default_variant": "on_dark",
+  "notes": "Vòng sáng champagne khép lại, chữ PHALEDO mở từ giữa, ® hiện (4.2s). Ánh sáng là gradient cùng màu mờ dần về alpha 0 — overlay thường, không khúc xạ footage.",
+  "placement_by_role": {
+    "accent": {
+      "x": "center",
+      "width_pct": {
+        "9:16": 0.3,
+        "3:4": 0.28,
+        "16:9": 0.18
+      },
+      "candidates": [
+        {
+          "y": 0.42
+        },
+        {
+          "y": 0.6
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "id": "gdp-peek-a-boo",
+  "source": {
+    "kind": "html",
+    "entry": "src/gdp-motion-03.html",
+    "origin": "Claude Design project 554580b5-089f-4f21-941f-26ffd3c26f26 / gdp-motion-03.html"
+  },
+  "version": 1,
+  "name": "GDP Motion 03 — Peek-a-Boo",
+  "brands": [
+    "GIADUNGPLUS"
+  ],
+  "roles": [
+    "accent",
+    "micro_animation"
+  ],
+  "enabled": true,
+  "priority": 40,
+  "tags": [
+    "vui",
+    "ló ra",
+    "nhỏ"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 2.5,
+  "scenes": [
+    {
+      "name": "Ló vào",
+      "start": 0,
+      "end": 0.45
+    },
+    {
+      "name": "Quan sát",
+      "start": 0.45,
+      "end": 0.85
+    },
+    {
+      "name": "Cười",
+      "start": 0.85,
+      "end": 1.3
+    },
+    {
+      "name": "Chào",
+      "start": 1.3,
+      "end": 1.85
+    },
+    {
+      "name": "Rút về",
+      "start": 1.85,
+      "end": 2.5
+    }
+  ],
+  "fps": 30,
+  "params": {
+    "side": "left",
+    "verticalPosition": 0.3,
+    "size": 0.18
+  },
+  "placement": {
+    "margin_x_pct": 0,
+    "width_pct": {
+      "9:16": 0.11,
+      "3:4": 0.11,
+      "1:1": 0.09,
+      "16:9": 0.07
+    },
+    "candidates": [
+      {
+        "params": {
+          "side": "left"
+        },
+        "x": "left",
+        "y": 0.36
+      },
+      {
+        "params": {
+          "side": "right"
+        },
+        "x": "right",
+        "y": 0.36
+      },
+      {
+        "params": {
+          "side": "left"
+        },
+        "x": "left",
+        "y": 0.56
+      },
+      {
+        "params": {
+          "side": "right"
+        },
+        "x": "right",
+        "y": 0.56
+      }
+    ]
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "notes": "Icon ló ra từ mép trái/phải, cười, rút về (2.5s). x=design giữ đúng mép."
+}

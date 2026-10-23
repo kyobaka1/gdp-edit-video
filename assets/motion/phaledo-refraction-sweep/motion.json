@@ -1,0 +1,80 @@
+{
+  "id": "phaledo-refraction-sweep",
+  "source": {
+    "kind": "html",
+    "entry": "src/phaledo-motion-02.html",
+    "origin": "Claude Design project 554580b5-089f-4f21-941f-26ffd3c26f26 / phaledo-motion-02.html"
+  },
+  "version": 1,
+  "name": "PHALEDO Motion 02 — Refraction Sweep",
+  "brands": [
+    "PHALEDO"
+  ],
+  "roles": [
+    "brand_reveal",
+    "accent"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "cao cấp",
+    "tối giản",
+    "ánh sáng",
+    "thuỷ tinh"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 3.2,
+  "fps": 30,
+  "params": {
+    "anchor": "center",
+    "scale": 0.9,
+    "lightDirection": "ltr"
+  },
+  "placement": {
+    "y": "top",
+    "margin_y_pct": 0.025,
+    "x": "logo_side",
+    "width_pct": {
+      "9:16": 0.36,
+      "3:4": 0.34,
+      "1:1": 0.3,
+      "16:9": 0.22
+    },
+    "handoff": 0.4
+  },
+  "replaces": [
+    "logo"
+  ],
+  "ends_transparent": true,
+  "variants": {
+    "on_dark": {
+      "colorVariant": "dark"
+    },
+    "on_light": {
+      "colorVariant": "light"
+    }
+  },
+  "default_variant": "on_dark",
+  "notes": "Dải sáng quét qua, chữ chuyển kính → đặc, ® hiện, ánh sáng rời (3.2s). Quang học chỉ mô phỏng TRONG chữ + dải sáng (RGBA), footage bên dưới không bị bẻ cong. Logo đặc ở ~1.9–2.5s → dùng làm watermark (shop.json watermark.hold_at 2.45).",
+  "placement_by_role": {
+    "accent": {
+      "x": "center",
+      "width_pct": {
+        "9:16": 0.4,
+        "3:4": 0.38,
+        "16:9": 0.24
+      },
+      "candidates": [
+        {
+          "y": 0.42
+        },
+        {
+          "y": 0.6
+        }
+      ]
+    }
+  }
+}

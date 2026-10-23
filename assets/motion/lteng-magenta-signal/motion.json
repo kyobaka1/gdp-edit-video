@@ -1,0 +1,105 @@
+{
+  "id": "lteng-magenta-signal",
+  "source": {
+    "kind": "html",
+    "entry": "src/lteng-motion-03.html",
+    "origin": "Claude Design project 554580b5-089f-4f21-941f-26ffd3c26f26 / lteng-motion-03.html"
+  },
+  "version": 1,
+  "name": "LTENG Motion 03 — Magenta Signal",
+  "brands": [
+    "LTENG"
+  ],
+  "roles": [
+    "brand_reveal",
+    "accent"
+  ],
+  "enabled": true,
+  "priority": 45,
+  "tags": [
+    "công nghệ",
+    "ngắn",
+    "magenta"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 2,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "Thanh magenta",
+      "start": 0,
+      "end": 0.25
+    },
+    {
+      "name": "Về vị trí",
+      "start": 0.25,
+      "end": 0.6
+    },
+    {
+      "name": "Reveal",
+      "start": 0.6,
+      "end": 1.15
+    },
+    {
+      "name": "Nhịp sáng",
+      "start": 1.15,
+      "end": 1.45
+    },
+    {
+      "name": "Thu & mờ",
+      "start": 1.45,
+      "end": 2
+    }
+  ],
+  "params": {
+    "anchor": "center",
+    "scale": 0.8
+  },
+  "placement": {
+    "y": "top",
+    "margin_y_pct": 0.03,
+    "x": "logo_side",
+    "width_pct": {
+      "9:16": 0.3,
+      "3:4": 0.3,
+      "1:1": 0.26,
+      "16:9": 0.18
+    },
+    "handoff": 0.3
+  },
+  "replaces": [
+    "logo"
+  ],
+  "ends_transparent": true,
+  "variants": {
+    "on_dark": {
+      "colorVariant": "white"
+    },
+    "on_light": {
+      "colorVariant": "navy"
+    }
+  },
+  "default_variant": "on_dark",
+  "notes": "Vạch magenta mở ra chữ LTENG (2s) — sting ngắn.",
+  "placement_by_role": {
+    "accent": {
+      "x": "center",
+      "width_pct": {
+        "9:16": 0.26,
+        "3:4": 0.26,
+        "16:9": 0.16
+      },
+      "candidates": [
+        {
+          "y": 0.42
+        },
+        {
+          "y": 0.58
+        }
+      ]
+    }
+  }
+}

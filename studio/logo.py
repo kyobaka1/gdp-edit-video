@@ -17,6 +17,21 @@ from studio.templates import SHOPS, shop_profile
 WIDTH_PCT = 0.22   # bề rộng logo / bề rộng khung (brand kit prod quy ước logo ảnh 20%)
 MARGIN_PCT = 0.03  # cách mép
 CORNERS = ("top-left", "top-right")
+# Logo THƯỜNG TRỰC V2 (job bật edl.motion, Sếp 23/10): nhỏ, sát mép trên hơn, đo theo vùng có hình thật của artwork,
+# cỡ theo tỉ lệ khung; cấu hình shop.json.logo.persistent. Job không bật motion giữ nguyên kích thước cũ ở trên.
+PERSISTENT = {"width_pct": {"9:16": 0.16, "3:4": 0.15, "1:1": 0.13, "4:3": 0.11, "16:9": 0.1},
+              "margin_x_pct": 0.04, "margin_y_pct": 0.03, "max_height_pct": 0.075}
+ASPECTS = {"9:16": 16 / 9, "3:4": 4 / 3, "1:1": 1.0, "4:3": 3 / 4, "16:9": 9 / 16}
+
+
+def by_aspect(v, W: int, H: int):
+    """Giá trị theo tỉ lệ khung: số → dùng luôn; dict {"9:16": …, "3:4": …, "16:9": …, "default": …} → khoá gần H/W nhất."""
+    if not isinstance(v, dict):
+        return v
+    keys = [k for k in v if k in ASPECTS]
+    if not keys:
+        return v.get("default")
+    return v[min(keys, key=lambda k: abs(ASPECTS[k] - H / W))]
 
 
 def _logo_file(shop: str, key: str) -> Path:
@@ -27,10 +42,11 @@ def _logo_file(shop: str, key: str) -> Path:
     return SHOPS / shop / rel
 
 
-def _rect(corner: str, W: int, H: int, lw: int, lh: int) -> tuple[int, int, int, int]:
+def _rect(corner: str, W: int, H: int, lw: int, lh: int, mx: int | None = None, my: int | None = None) -> tuple[int, int, int, int]:
     m = round(W * MARGIN_PCT)
-    x = m if corner.endswith("left") else W - m - lw
-    y = m if corner.startswith("top") else H - m - lh
+    mx, my = (m if mx is None else mx), (m if my is None else my)
+    x = mx if corner.endswith("left") else W - mx - lw
+    y = my if corner.startswith("top") else H - my - lh
     return x, y, lw, lh
 
 
@@ -55,17 +71,31 @@ def _busyness(video: Path, rects: dict, duration: float, samples: int = 12) -> d
     return score
 
 
-def plan(job_dir: Path, edl: dict, meta: dict, boxes: list[dict]) -> dict | None:
-    """boxes = [{x,y,w,h,start,end}] các ô chữ đè (đã nới/xoay) + chữ trong cảnh. Trả {png, x, y, corner, reason}."""
+def plan(job_dir: Path, edl: dict, meta: dict, boxes: list[dict], persistent: bool = False) -> dict | None:
+    """boxes = [{x,y,w,h,start,end}] các ô chữ đè (đã nới/xoay) + chữ trong cảnh. Trả {png, x, y, corner, reason}.
+    persistent=True (job bật edl.motion): cỡ/lề logo thường trực V2 (shop.json.logo.persistent, đo vùng có hình thật)."""
     cfg = edl.get("logo")
     if not cfg or cfg.get("enabled") is False:
         return None
     shop = edl["shop"]
     W, H, dur = meta["width"], meta["height"], meta["duration"]
     src = Image.open(_logo_file(shop, cfg.get("file_key", "primary"))).convert("RGBA")
-    lw = round(W * cfg.get("width_pct", WIDTH_PCT))
-    lh = round(src.height * lw / src.width)
-    rects = {c: _rect(c, W, H, lw, lh) for c in CORNERS}
+    mx = my = None
+    if persistent:
+        pc = {**PERSISTENT, **(shop_profile(shop)["logo"].get("persistent") or {}), **(cfg.get("persistent") or {})}
+        bb = src.getchannel("A").point(lambda v: 255 if v > 8 else 0).getbbox()
+        if bb:  # bỏ viền trong suốt thừa của file → cỡ + vị trí theo phần logo thấy được
+            src = src.crop(bb)
+        lw = round(W * float(by_aspect(cfg.get("width_pct") or pc["width_pct"], W, H)))
+        lh = round(src.height * lw / src.width)
+        if lh > H * float(pc["max_height_pct"]):  # logo cao/vuông → khống chế theo chiều cao
+            lh = round(H * float(pc["max_height_pct"]))
+            lw = round(src.width * lh / src.height)
+        mx, my = round(W * float(pc["margin_x_pct"])), round(H * float(pc["margin_y_pct"]))
+    else:
+        lw = round(W * cfg.get("width_pct", WIDTH_PCT))
+        lh = round(src.height * lw / src.width)
+    rects = {c: _rect(c, W, H, lw, lh, mx, my) for c in CORNERS}
 
     overlap = {c: sum(_inter(r, (b["x"], b["y"], b["w"], b["h"])) *
                       max(0.0, min(b["end"], dur) - max(b["start"], 0.0)) for b in boxes) / (lw * lh * dur)

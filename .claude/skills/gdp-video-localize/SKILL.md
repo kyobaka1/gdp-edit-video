@@ -15,7 +15,10 @@ Set-Location C:\Users\Admin\gdp-video-studio; $env:PYTHONIOENCODING='utf-8'; .\.
 Gemini key riêng của Sếp trong `.env` (KHÔNG đọc/in ra). Không chạy model nặng local. Kiểm môi trường: `doctor.py`.
 Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong thư mục studio (có số đo thật).
 **Nguồn skill này = `studio\.claude\skills\gdp-video-localize\`** (đi theo thư mục). Sửa skill → sửa bản đó → chạy
-`tools\sync_skill.py install` (bản cài máy) → đẩy bản sao lên repo giadungplus `skills/gdp-video-localize/`.
+`tools\sync_skill.py install` (cài cho Claude `~\.claude\skills` + Codex `~\.codex\skills`) → đẩy bản sao lên repo
+giadungplus `skills/gdp-video-localize/`.
+**Animation thương hiệu** (logo động, watermark động, nhập animation Claude Design): skill **`gdp-video-motion`** +
+`assets/motion/README.md`. Skill này chỉ ghi phần dùng trong job Việt hoá.
 
 ## Chi phí: ai xem / nghe bằng gì (Sếp 22/10 — Gemini từng tốn 344k/ngày)
 
@@ -63,8 +66,16 @@ Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong t
    - `narration.paragraphs = [{at, text}]` — kịch bản thuyết minh (luật bên dưới).
    - `audio = {mode: "narration", music: "music.mp3", voice_lufs: -14, music_lufs: -27}` · `edl.logo = {"enabled": true}`
      · `edl.outro = {"enabled": true}` nếu shop có video outro.
+   - `edl.motion = {"mode": "auto"}` (Sếp 23/10, mặc định job mới, chỉ 1 dòng): AUTO lập kế hoạch nhận diện động —
+     1 brand reveal đúng brand (gọn ở dải trên) + accent trong budget nếu có quãng trống; **logo thường trực nhỏ ở góc hiện
+     suốt video chính, chỉ tạm ẩn ĐÚNG KHOẢNG animation thay logo chạy rồi tiếp quản**; watermark chữ → **watermark động**
+     (xuất hiện → chìm dần → trượt đổi chỗ mỗi ~6s như cũ). Chèn tay / tắt: skill `gdp-video-motion`. Job cũ không khai = flow cũ.
 4. `vs.py music <id>` (Lyria 3.5, không lời; nghi có lời hát thì `vs.py hear music.mp3` 1 lần) → `vs.py narrate <id>`.
 5. `vs.py render <id>` (preview) → `vs.py qa <id>` (Codex soát) phải **ĐẠT (sót 0)**; chưa đạt → `vs.py patch <id>` → render/qa lại.
+   Job có `edl.motion`: render in kế hoạch (animation chọn/bỏ + lý do, logo hiện khoảng nào, watermark từng pha —
+   `motion_plan.json`); `qa` thêm mục **animation** (số đo: clip alpha đạt, logo thường trực liên tục, watermark đúng vòng
+   đời, không 2 logo chồng / 2 watermark, chồng chữ ≤4%, thời lượng + tiếng) — phải đạt cả hai. Soát mắt nhanh:
+   `vs.py motion storyboard <id>` (ảnh các mốc reveal / logo tiếp quản / watermark / outro).
 6. `vs.py audiocheck <id>`: cả bản −14 ±0,5 LUFS (render TỰ bù sau khi trộn: đo ebur128 → bù dB → chặn đỉnh 0,75
    `level=0`, tối đa 3 vòng), đỉnh ≤ −1 dBFS, nhạc ở khoảng không giọng ≈ −21…−25 LUFS (mặc định `music_lufs: -27`).
 7. Gửi Sếp (SendUserFile) ảnh so sánh + preview. Sếp duyệt → `render --final` + `qa --final` + `audiocheck --final`
@@ -142,7 +153,8 @@ Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong t
 - Theo SHOP, không theo brand (2 shop cùng brand có thể khác màu/logo). Mỗi shop: `shop.json` (brand, bảng màu, giọng
   văn, `templates_from`, logo/intro/outro, nguồn prod) · `logo/` (logo.png, logo-white.png, logo-dark.png, icon.png,
   logo.svg) · `intro/intro.mp4` · `outro/outro.mp4` · `templates/` (mẫu HTML + manifest) · `music/` · `watermark/` ·
-  `fonts/` · `reference/`. `vs.py shops` = bảng tình trạng. Shop mới: `tools/init_shop.py <mã>`.
+  `fonts/` · `reference/` · `motion/` (tuỳ chọn, animation riêng shop). `vs.py shops` = bảng tình trạng. Shop mới:
+  `tools/init_shop.py <mã>`. Animation chung theo brand: `assets/motion/`, cách dùng riêng shop: `shop.json.motion`.
 - Shop chưa có mẫu riêng mượn qua `templates_from` (3 shop PHALEDO phụ mượn `phaledo_official`; lteng_tiktok chưa có).
 - Nhận diện Sếp chốt 20/10 (đã có mẫu caption/hook/badge/info, `shop.json.fonts` + `style`):
   · `giadungplus_official`: đỏ/trắng, **UTM Avo** Bold+Regular mọi chỗ; thêm `outline-black` / `outline-red`.
@@ -159,6 +171,8 @@ Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong t
   ⛔ Luật che phủ: ô che chữ Trung VÀO SỚM 0,25s để đục 100% đúng lúc chữ Trung hiện; ô bắt đầu ~0s không có hiệu ứng vào
   (không thể mà không lộ). Chuyển nhãn cùng chỗ = nhãn mới đè lên nhãn cũ (KHÔNG mờ chéo — lộ ~25% chữ Trung). Mờ dần khi
   tắt chỉ khi không có nhãn khác vào thay chỗ. Morph co giãn khung: KHÔNG làm (tốn công, lợi ích nhỏ).
+  **Từ 23/10 thêm `edl.motion = {"mode": "auto"}`**: brand reveal (điểm nhấn) + logo THƯỜNG TRỰC (luôn có, chỉ tạm ẩn
+  trong lúc reveal) + watermark động (thay chữ: xuất hiện → chìm dần → trượt đổi chỗ như cũ) + accent khi có quãng trống.
 - **Phần tử CHÈN MỚI** `edl.extras` (mẫu `covers:false`, không bao giờ dùng che chữ Trung):
   `{"template": "lower-third", "text", "sub", "start", "end", "position": "lower-left"|"upper-left"}` ·
   `{"template": "callout-left"|"callout-right", "text", "target": [x, y], "start", "end"}` — `target` = điểm trên sản phẩm
@@ -168,14 +182,20 @@ Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong t
   VN/HCM, Phaledo (Sếp bật Phaledo 20/10 dù brand kit prod tắt cho ảnh); `edl.watermark` ghi đè): chữ thương hiệu mờ 12–15%, rộng 40% khung (Phaledo 30% — Sếp chê to; chỉnh `width_pct`), đổi chỗ êm mỗi ~6s trong vùng giữa, né ô chữ +
   góc logo, nằm DƯỚI ô chữ, không có trên outro. Nói thật với Sếp: không watermark nhìn thấy nào chống tuyệt đối (công cụ
   xoá AI vẫn xoá được) — chỉ làm khó: logo dán tĩnh/cắt góc không che hết; muốn xoá phải bám từng khung.
-  `watermark/watermark.png` của shop (nếu có) dùng thay chữ.
+  `watermark/watermark.png` của shop (nếu có) dùng thay chữ. **Job có `edl.motion`** → watermark ĐỘNG theo
+  `shop.json.watermark.motion` (GDP `gdp-ghost-smile`, LTENG `lteng-ghost-signature`, PHALEDO `phaledo-refraction-sweep`
+  giữ tại 2,45s) thay chữ: xuất hiện → chìm dần → trượt êm đổi chỗ mỗi `period` ~6s như chữ cũ (chỉ sau khi chìm xong) →
+  mờ hẳn trước outro, xa logo góc; `edl.motion.watermark = false` để giữ chữ trôi cũ.
 - **QA / soát mắt BỎ QUA OUTRO**: `qa` chỉ kiểm phần video chính (`meta.duration`, báo cáo `outro_skipped`); khi soát
   khung đừng lấy mốc nằm trong outro (video có sẵn của shop, không cần kiểm lại).
 - **Logo chính** (Sếp 20/10: đã đưa logo thì phải có trên video): `edl.logo = {"enabled": true}` → `studio/logo.py`
   đặt logo `shop.json.logo.files.primary` rộng 22% khung, cách mép 3%, suốt phần video chính (KHÔNG đè outro), vẽ trên
   cùng. Góc trên-trái/trên-phải MÁY TỰ CHỌN theo video: điểm = chồng ô chữ (đè + trong cảnh, diện tích × thời gian) ×10
   + độ rối Canny trên 12 khung; render in lý do, lưu `logo.json`. Ép tay: `position`, đổi file: `file_key`, mờ: `opacity`.
-  Mặc định BẬT cho mọi job có shop đã có logo.
+  Mặc định BẬT cho mọi job có shop đã có logo. **Job có `edl.motion` (V2, Sếp 23/10)**: logo THƯỜNG TRỰC nhỏ hơn + sát mép
+  trên hơn (`shop.json.logo.persistent`: GDP 15% · LTENG 18–19% · PHALEDO 20% bề rộng khung 3:4, lề trên 3% chiều cao, đo
+  phần logo thấy được); brand reveal (vd Roll & Smile) chạy thì logo chỉ TẠM ẨN đúng khoảng đó rồi hiện lại tới hết video
+  chính — ⛔ không tắt logo cả video. `edl.motion.keep_logo = true` = không ẩn cả lúc reveal.
 - **Outro = video Sếp đưa sẵn** trong `assets/shops/<shop>/outro/` (⛔ KHÔNG tự dựng outro — Sếp chốt 20/10).
   `edl.outro = {"enabled": true}` → `studio/outro.py` lấy `shop.json.outro.file`, không có thì file video đầu tiên trong
   thư mục; không có file → báo lỗi, đừng tự làm. Nối sau video chính (scale giữ tỉ lệ, viền đen nếu lệch). Đang có

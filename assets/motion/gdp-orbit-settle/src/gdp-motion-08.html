@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>GDP Motion 08 — Orbit & Settle (render)</title>
+<!-- Transparent overlay, 1080×1920 (9:16) or 1920×1080 (16:9). No CDN.
+     Icon: vector rebuild of the original mark (assets/gdp-icon.svg). Wordmark: original pixel cut-outs from gdp-assets.js. -->
+<script src="gdp-assets.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { display: block; background: transparent; }
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#F5F1EA"/><path d="M50 28 L68 45 V66 H32 V45 Z" fill="#C22026"/><path d="M24 22 Q34 70 50 47" fill="none" stroke="#C22026" stroke-width="2" stroke-dasharray="3 3"/></svg></template>
+<svg id="stage" xmlns="http://www.w3.org/2000/svg">
+  <g id="guides" visibility="hidden" fill="none" stroke-width="3">
+    <rect id="gRegion" stroke="#33587F" stroke-dasharray="14 10"/>
+    <path id="gPath" stroke="#C22026" stroke-dasharray="10 10"/>
+  </g>
+  <g id="lock">
+    <image id="word" preserveAspectRatio="none"/>
+    <image id="gd" preserveAspectRatio="none"/>
+    <g id="icon">
+      <path fill="#C22026" d="M243.53 11.71 L412.53 168.13 A42 42 0 0 1 426 198.95 L426 400 A50 50 0 0 1 376 450 L54 450 A50 50 0 0 1 4 400 L4 198.95 A42 42 0 0 1 17.47 168.13 L186.47 11.71 A42 42 0 0 1 243.53 11.71 Z"/>
+      <path d="M215 168.5 V224.5 M187 196.5 H243" fill="none" stroke="#FFFFFF" stroke-width="34" stroke-linecap="round"/>
+      <g id="smile" fill="none" stroke="#FFFFFF" stroke-width="46" stroke-linecap="round" opacity="0">
+        <path id="smileL" pathLength="1" stroke-dasharray="0 2"/>
+        <path id="smileR" pathLength="1" stroke-dasharray="0 2"/>
+      </g>
+    </g>
+  </g>
+</svg>
+<script>
+(function () {
+  const DURATION = 3.5;
+  const M = window.GDP_META, IMG = window.GDP_IMG;
+  const HB = M.house, WB = M.word, GB = M.gd;
+  const LOCK = { x0: HB.x, x1: WB.x + WB.w, y0: HB.y, y1: GB.y + GB.h };
+  LOCK.cx = (LOCK.x0 + LOCK.x1) / 2; LOCK.cy = (LOCK.y0 + LOCK.y1) / 2; LOCK.w = LOCK.x1 - LOCK.x0; LOCK.h = LOCK.y1 - LOCK.y0;
+  const IC = { cx: 215, cy: 227 };                                  // icon pivot (vector local px)
+  const HOME = { x: HB.x + IC.cx, y: HB.y + IC.cy };                // icon centre in the lock-up (source px)
+  const SM = { cx: 215.08, cy: 157.43, r: 173.99, half: 39.5 };
+
+  const clamp01 = (v) => Math.max(0, Math.min(1, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const tw = (T, a, b) => clamp01((T - a) / (b - a));
+  const E = {
+    enter: (t) => { const c = 0.7, u = t - 1; return 1 + (c + 1) * u * u * u + c * u * u; },   // Outro v2 curve
+    move: (t, k = 3) => (t < 0.5 ? Math.pow(2 * t, k) / 2 : 1 - Math.pow(2 - 2 * t, k) / 2),
+    out: (t, k = 3) => 1 - Math.pow(1 - t, k),
+    settle: (t) => (t <= 0 || t >= 1 ? 0 : Math.sin(2 * Math.PI * 1.25 * t) * Math.pow(1 - t, 2.4)),
+  };
+
+  const FORMATS = { '9x16': [1080, 1920], '16x9': [1920, 1080] };
+  const ANCHORS = {
+    '9x16': { center: [0.5, 0.5], upper: [0.5, 0.3], lower: [0.5, 0.58] },
+    '16x9': { center: [0.5, 0.5], 'lower-left': [0.26, 0.74], 'lower-right': [0.74, 0.74], 'upper-left': [0.26, 0.24], 'upper-right': [0.74, 0.24] },
+  };
+
+  const q = new URLSearchParams(location.search);
+  const num = (k, d) => (q.has(k) && q.get(k) !== '' && !isNaN(+q.get(k)) ? +q.get(k) : d);
+  const opts = {
+    format: FORMATS[q.get('format')] ? q.get('format') : '9x16',
+    anchor: q.get('anchor') || 'center',
+    nx: q.has('nx') ? num('nx', null) : null,          // custom lock-up centre (normalized) overrides anchor
+    ny: q.has('ny') ? num('ny', null) : null,
+    scale: num('scale', 1),                            // 1 = lock-up width 52% of the frame's short side
+    orbit: num('orbit', 0.40),                         // orbit region width / frame width (0.35–0.45)
+    guides: q.get('guides') === '1',                   // preview only — draws the Bezier path + region
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const svg = $('stage'), lock = $('lock'), icon = $('icon'), word = $('word'), gd = $('gd'), smile = $('smile');
+  const f = (v, n = 3) => (+v).toFixed(n);
+  const rad = (a) => a * Math.PI / 180;
+  const pt = (a) => `${f(SM.cx + SM.r * Math.cos(rad(a)), 2)} ${f(SM.cy + SM.r * Math.sin(rad(a)), 2)}`;
+  $('smileL').setAttribute('d', `M${pt(90)} A${SM.r} ${SM.r} 0 0 1 ${pt(90 + SM.half)}`);
+  $('smileR').setAttribute('d', `M${pt(90)} A${SM.r} ${SM.r} 0 0 0 ${pt(90 - SM.half)}`);
+  const setImg = (el, src, b) => { el.setAttribute('href', src); el.setAttribute('x', b.x); el.setAttribute('y', b.y); el.setAttribute('width', b.w); el.setAttribute('height', b.h); };
+  setImg(word, IMG.wordRed, WB); setImg(gd, IMG.gdRed, GB);
+  const ready = Promise.all([IMG.wordRed, IMG.gdRed].map((src) => { const i = new Image(); i.src = src; return i.decode ? i.decode().catch(() => {}) : Promise.resolve(); }))
+    .then(() => { document.documentElement.dataset.ready = '1'; });
+
+  // ---- Bezier orbit (cubic). Shape is fixed in "region units" (1 = region width), then normalized so its bbox width = region width.
+  const SHAPE = [[-0.78, -0.62], [-0.70, 0.10], [0.42, 0.30], [0, 0]];   // P0 upper-left → swing under → curl back into the target
+  const bez = (P, t) => { const u = 1 - t; return [0, 1].map((i) => u * u * u * P[0][i] + 3 * u * u * t * P[1][i] + 3 * u * t * t * P[2][i] + t * t * t * P[3][i]); };
+  const LUT = (() => {                                // arc-length table → constant-speed parameter
+    const n = 200, pts = [], len = [0];
+    for (let i = 0; i <= n; i++) pts.push(bez(SHAPE, i / n));
+    for (let i = 1; i <= n; i++) len.push(len[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const xs = pts.map((p) => p[0]);
+    return { n, pts, len, total: len[n], bw: Math.max(...xs) - Math.min(...xs) };
+  })();
+  const atLength = (s) => {                           // s ∈ [0,1] of arc length
+    const target = clamp01(s) * LUT.total; let i = 1;
+    while (i < LUT.n && LUT.len[i] < target) i++;
+    const a = LUT.len[i - 1], b = LUT.len[i], k = b > a ? (target - a) / (b - a) : 0;
+    return [lerp(LUT.pts[i - 1][0], LUT.pts[i][0], k), lerp(LUT.pts[i - 1][1], LUT.pts[i][1], k)];
+  };
+
+  function geometry() {
+    const [W, H] = FORMATS[opts.format];
+    const a = (ANCHORS[opts.format] || {})[opts.anchor] || [0.5, 0.5];
+    const nx = opts.nx != null ? opts.nx : a[0], ny = opts.ny != null ? opts.ny : a[1];
+    const lockW = 0.52 * Math.min(W, H) * opts.scale;
+    const sF = lockW / LOCK.w;
+    const regionPx = opts.orbit * W;
+    const unit = regionPx / LUT.bw / sF;              // source px per region unit
+    return { W, H, cx: nx * W, cy: ny * H, sF, unit, regionPx };
+  }
+
+  let T = 0;
+  function render(t) {
+    T = Math.max(0, Math.min(DURATION, +t || 0));
+    const G = geometry();
+    if (svg.getAttribute('width') != G.W) { svg.setAttribute('width', G.W); svg.setAttribute('height', G.H); svg.setAttribute('viewBox', `0 0 ${G.W} ${G.H}`); }
+
+    // 0.0–1.4 · travel the orbit (fast in, long deceleration) while spinning ~180° then easing out the last bit
+    const p = tw(T, 0.0, 1.4);
+    const s = 1 - Math.pow(1 - p, 2.4);
+    const [ox, oy] = atLength(s);
+    const spin = -230 * Math.pow(1 - p, 2.6);
+    const sc = T < 0.7 ? lerp(0.65, 0.9, E.out(tw(T, 0, 0.7), 2)) : lerp(0.9, 1, E.move(tw(T, 0.7, 1.4), 2));
+    const fadeIn = E.out(tw(T, 0.0, 0.22), 2);
+    // 1.4–1.8 · lands upright with a tiny settle, smile draws in from the centre
+    const settle = 2.2 * E.settle(tw(T, 1.36, 1.86));
+    const smileP = E.enter(tw(T, 1.42, 1.76));
+    // 1.8–2.6 · wordmark slides in on the right
+    const w1 = E.out(tw(T, 1.80, 2.45), 4), w2 = E.out(tw(T, 1.92, 2.60), 4);
+    // 3.0–3.5 · whole lock-up scales down slightly and fades
+    const ex = E.move(tw(T, 3.0, 3.5), 2);
+    const lockScale = 1 - 0.06 * ex, lockAlpha = 1 - ex;
+
+    lock.setAttribute('transform', `translate(${f(G.cx)} ${f(G.cy)}) scale(${f(G.sF * lockScale, 5)}) translate(${f(-LOCK.cx)} ${f(-LOCK.cy)})`);
+    lock.setAttribute('opacity', f(lockAlpha, 4));
+    lock.setAttribute('visibility', lockAlpha <= 0.0005 || T <= 0 ? 'hidden' : 'visible');
+    icon.setAttribute('opacity', f(fadeIn, 4));
+    icon.setAttribute('transform', `translate(${f(HOME.x + ox * G.unit)} ${f(HOME.y + oy * G.unit)}) rotate(${f(spin + settle)}) scale(${f(sc, 4)}) translate(${-IC.cx} ${-IC.cy})`);
+    smile.setAttribute('opacity', smileP > 0.001 ? 1 : 0);
+    const dash = `${f(smileP, 4)} 2`;
+    $('smileL').setAttribute('stroke-dasharray', dash); $('smileR').setAttribute('stroke-dasharray', dash);
+    const slide = 0.10 * LOCK.w;
+    word.setAttribute('transform', `translate(${f((1 - w1) * slide)} 0)`); word.setAttribute('opacity', f(clamp01(w1 * 1.4), 4));
+    gd.setAttribute('transform', `translate(${f((1 - w2) * slide * 1.2)} 0)`); gd.setAttribute('opacity', f(clamp01(w2 * 1.4), 4));
+
+    // Preview guides (off in exports)
+    const gEl = $('guides');
+    gEl.setAttribute('visibility', opts.guides ? 'visible' : 'hidden');
+    if (opts.guides) {
+      const toPx = ([x, y]) => [G.cx + (HOME.x - LOCK.cx + x * G.unit) * G.sF, G.cy + (HOME.y - LOCK.cy + y * G.unit) * G.sF];
+      const P = SHAPE.map(toPx);
+      $('gPath').setAttribute('d', `M${P[0].map((v) => f(v, 1)).join(' ')} C${P.slice(1).map((q) => q.map((v) => f(v, 1)).join(' ')).join(', ')}`);
+      const xs = LUT.pts.map((q) => toPx(q)[0]), ys = LUT.pts.map((q) => toPx(q)[1]);
+      const pad = 0.5 * 454 * G.sF;
+      const r = $('gRegion');
+      r.setAttribute('x', f(Math.min(...xs))); r.setAttribute('width', f(Math.max(...xs) - Math.min(...xs)));
+      r.setAttribute('y', f(Math.min(...ys) - pad)); r.setAttribute('height', f(Math.max(...ys) - Math.min(...ys) + pad * 2));
+    }
+  }
+
+  let auto = !q.has('render'), t0 = null;
+  function tick(now) {
+    if (!auto) return;
+    if (t0 === null) t0 = now;
+    render(((now - t0) / 1000) % (DURATION + 0.8));
+    requestAnimationFrame(tick);
+  }
+
+  window.setTime = function (seconds) { auto = false; render(seconds); return T; };
+  window.GDP_MOTION = {
+    name: 'GDP Motion 08 — Orbit & Settle',
+    get width() { return FORMATS[opts.format][0]; }, get height() { return FORMATS[opts.format][1]; },
+    duration: DURATION, ready, anchors: ANCHORS, bezier: SHAPE,
+    scenes: [
+      { name: 'Quỹ đạo vào', start: 0, end: 0.7 }, { name: 'Giảm tốc', start: 0.7, end: 1.4 }, { name: 'Dừng & cười', start: 1.4, end: 1.8 },
+      { name: 'Wordmark', start: 1.8, end: 2.6 }, { name: 'Giữ', start: 2.6, end: 3.0 }, { name: 'Thu & mờ', start: 3.0, end: 3.5 },
+    ],
+    setTime: window.setTime,
+    configure(o) { Object.assign(opts, o || {}); render(T); return { ...opts }; },
+    get time() { return T; }, get options() { return { ...opts }; },
+  };
+  render(q.has('t') ? num('t', 0) : 0);
+  if (auto) ready.then(() => requestAnimationFrame(tick));
+})();
+</script>
+</body>
+</html>

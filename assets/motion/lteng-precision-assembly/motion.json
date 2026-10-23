@@ -1,0 +1,94 @@
+{
+  "id": "lteng-precision-assembly",
+  "source": {
+    "kind": "html",
+    "entry": "src/lteng-motion-01.html",
+    "origin": "Claude Design project 554580b5-089f-4f21-941f-26ffd3c26f26 / lteng-motion-01.html"
+  },
+  "version": 1,
+  "name": "LTENG Motion 01 — Precision Assembly",
+  "brands": [
+    "LTENG"
+  ],
+  "roles": [
+    "brand_reveal"
+  ],
+  "enabled": true,
+  "priority": 55,
+  "tags": [
+    "chính xác",
+    "kỹ thuật",
+    "lắp ráp",
+    "guide lines"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 4,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "Guide lines",
+      "start": 0,
+      "end": 0.45
+    },
+    {
+      "name": "Dựng nét",
+      "start": 0.45,
+      "end": 1.65
+    },
+    {
+      "name": "Căn & khớp",
+      "start": 1.65,
+      "end": 2.15
+    },
+    {
+      "name": "Magenta",
+      "start": 2.15,
+      "end": 2.5
+    },
+    {
+      "name": "BLUE VINE ®",
+      "start": 2.5,
+      "end": 3.05
+    },
+    {
+      "name": "Giữ",
+      "start": 3.05,
+      "end": 3.55
+    },
+    {
+      "name": "Fade-out",
+      "start": 3.55,
+      "end": 4
+    }
+  ],
+  "params": {
+    "width": 0.6,
+    "nx": 0.5,
+    "ny": 0.5,
+    "subline": 1
+  },
+  "placement": {
+    "y": "top",
+    "margin_y_pct": 0.03,
+    "x": "logo_side",
+    "width_pct": {
+      "9:16": 0.38,
+      "3:4": 0.36,
+      "1:1": 0.32,
+      "16:9": 0.22
+    },
+    "handoff": 0.4
+  },
+  "replaces": [
+    "logo"
+  ],
+  "ends_transparent": true,
+  "variants": {
+    "on_dark": {}
+  },
+  "default_variant": "on_dark",
+  "notes": "Guide lines → dựng từng nét L T E N G → khớp → magenta + BLUE VINE (4s). Artwork TRẮNG → chỉ dùng trên footage tối (biến thể on_dark)."
+}

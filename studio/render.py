@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from studio import config, logo, media, motion, outro, watermark
+from studio import config, logo, media, motion, motiondirector, motionlib, outro, watermark
 from studio.overlay import grow_to_min_font, render_label
 from studio.templates import TemplateRenderer
 
@@ -196,6 +196,29 @@ def validate(edl: dict, meta: dict, allow_empty: bool) -> list[dict]:
     return layers
 
 
+def label_boxes(job_dir: Path, edl: dict, meta: dict) -> list[dict]:
+    """Vùng chữ ƯỚC LƯỢNG (ô gốc, chưa nới theo mẫu) + chữ trong cảnh — cho `vs.py motion plan` xem trước, không vẽ ô.
+    Lúc render thật, motiondirector nhận vùng chữ đã vẽ (chính xác hơn)."""
+    out = [{"x": L["x"], "y": L["y"], "w": L["w"], "h": L["h"], "start": max(0.0, L["start"] - motion.LEAD),
+            "end": L["end"] + motion.FADE_OUT} for L in validate(edl, meta, allow_empty=True) if L["mode"] == "label"]
+    W, H = meta["width"], meta["height"]
+    for e in edl.get("extras", []):
+        if e.get("skip"):
+            continue
+        if e.get("template") == "lower-third":
+            w, h = round(W * e.get("w_pct", 0.64)), round(H * 0.085)
+            y = round(H * {"lower-left": 0.66, "upper-left": 0.14}.get(e.get("position", "lower-left"), 0.66))
+            out.append({"x": round(W * 0.04), "y": y, "w": w, "h": h, "start": e["start"], "end": e["end"]})
+        elif "target" in e:
+            tx, ty = (int(v) for v in e["target"])
+            w, h = round(W * e.get("w_pct", 0.5)), round(H * 0.07)
+            x = tx - w if e["template"] == "callout-left" else tx
+            out.append({"x": x, "y": ty - h // 2, "w": w, "h": h, "start": e["start"], "end": e["end"]})
+    out += [{"x": o["box"][0], "y": o["box"][1], "w": o["box"][2], "h": o["box"][3], "start": o["start"], "end": o["end"]}
+            for o in edl.get("overlays", []) if o.get("mode") == "keep"]
+    return out
+
+
 def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
     meta = json.loads((job_dir / "meta.json").read_text(encoding="utf-8"))
     edl_path = job_dir / "edl.json"
@@ -261,14 +284,41 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
     boxes += [{"x": o["box"][0], "y": o["box"][1], "w": o["box"][2], "h": o["box"][3], "start": o["start"], "end": o["end"]}
               for o in edl.get("overlays", []) if o.get("mode") == "keep"]
 
-    # watermark trôi (dưới ô chữ, trên hình) — chống lấy cắp; né ô chữ + góc logo; không có trên outro
-    lp = logo.plan(job_dir, edl, meta, boxes)
-    wp = watermark.plan(job_dir, edl, meta, boxes, (lp["x"], lp["y"], lp["w"], lp["h"]) if lp else None)
-    if wp:
+    # Nhận diện động (chỉ khi edl.motion có khai — không khai = flow cũ y nguyên, kể cả cỡ logo + watermark chữ trôi):
+    # logo THƯỜNG TRỰC V2 (nhỏ, sát mép trên, chỉ tạm ẩn trong KHOẢNG animation thay logo), animation từ thư viện
+    # assets/motion, watermark động V2 thay chữ. Tất cả ghép TRƯỚC khi nối outro → không đè outro.
+    mcfg = edl.get("motion")
+    motion_on = "motion" in edl and not (mcfg is False or mcfg == "off" or (isinstance(mcfg, dict) and mcfg.get("mode") == "off"))
+    lp = logo.plan(job_dir, edl, meta, boxes, persistent=motion_on)
+    try:
+        mp = motiondirector.plan(job_dir, edl, meta, boxes, (lp["x"], lp["y"], lp["w"], lp["h"]) if lp else None)
+    except (motiondirector.MotionPlanError, motionlib.MotionError) as exc:
+        raise EdlError(f"Animation: {exc}")
+    m_items = mp["items"] if mp else []
+    m_logo = mp["logo"] if mp else None
+    m_wm = mp["watermark"] if mp else None
+    wp = None
+    if m_wm:  # watermark động V2: intro → dim → giữ 1 chỗ → đổi chỗ có điều kiện → mờ trước outro
         n_png += 1
-        inputs += ["-i", str(wp["png"])]
-        chain.append(f"[{prev}][{n_png}:v]overlay=x='{wp['x']}':y='{wp['y']}':eval=frame[vwm]")
+        ins, lines = motiondirector.chain_watermark(n_png, prev, "vwm", m_wm, meta["duration"])
+        inputs += ins
+        chain += lines
         prev = "vwm"
+    else:  # watermark chữ trôi (dưới ô chữ, trên hình) — chống lấy cắp; né ô chữ + góc logo; không có trên outro
+        wboxes = boxes + [{"x": it["x"], "y": it["y"], "w": it["w"], "h": it["h"], "start": it["start"],
+                           "end": it["end"]} for it in m_items]
+        wp = watermark.plan(job_dir, edl, meta, wboxes, (lp["x"], lp["y"], lp["w"], lp["h"]) if lp else None)
+        if wp:
+            n_png += 1
+            inputs += ["-i", str(wp["png"])]
+            chain.append(f"[{prev}][{n_png}:v]overlay=x='{wp['x']}':y='{wp['y']}':eval=frame[vwm]")
+            prev = "vwm"
+    for it in [m for m in m_items if m["z"] != "top"]:  # animation nằm DƯỚI ô chữ (mặc định): chữ luôn đọc được
+        n_png += 1
+        ins, lines = motiondirector.chain_item(n_png, prev, f"vm{n_png}", it)
+        inputs += ins
+        chain += lines
+        prev = f"vm{n_png}"
     for j, it in enumerate(items, 1):
         n_png += 1
         ins, lines = motion.chain(n_png, prev, f"v{j}", it, meta["fps"])
@@ -279,9 +329,20 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
     # Gắn TRƯỚC khi nối outro → outro không có logo đè.
     if lp:
         n_png += 1
-        inputs += ["-i", str(lp["png"])]
-        chain.append(f"[{prev}][{n_png}:v]overlay={lp['x']}:{lp['y']}[vlogo]")
+        if m_logo and m_logo["hidden"]:  # logo thường trực chỉ ẩn trong khoảng animation thay logo (có chuyển giao)
+            ins, lines = motiondirector.chain_logo(n_png, prev, "vlogo", lp, m_logo, meta["fps"], meta["duration"])
+            inputs += ins
+            chain += lines
+        else:
+            inputs += ["-i", str(lp["png"])]
+            chain.append(f"[{prev}][{n_png}:v]overlay={lp['x']}:{lp['y']}[vlogo]")
         prev = "vlogo"
+    for it in [m for m in m_items if m["z"] == "top"]:  # animation khai z=top: trên cả chữ + logo
+        n_png += 1
+        ins, lines = motiondirector.chain_item(n_png, prev, f"vm{n_png}", it)
+        inputs += ins
+        chain += lines
+        prev = f"vm{n_png}"
 
     scale = ",scale=-2:960" if not final else ""
     n_in = n_png + 1
@@ -379,6 +440,15 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
         a_args = ["-map", f"{n_in}:a", "-c:a", "aac", "-b:a", "96k"]
 
     out_path = job_dir / ("final.mp4" if final else "preview.mp4")
+    # các lớp THẬT đã ghép (QA + test đọc file này — filter.txt không có tên file input)
+    (job_dir / "layers.json").write_text(json.dumps({
+        "logo": bool(lp), "logo_rect": [lp["x"], lp["y"], lp["w"], lp["h"]] if lp else None,
+        "logo_mode": ("persistent" if motion_on else "legacy") if lp else None,
+        "logo_hidden": (m_logo or {}).get("hidden", []) if lp else [],
+        "watermark": f"motion:{m_wm['id']}" if m_wm else ("text" if wp else None),
+        "watermark_segments": m_wm["segments"] if m_wm else None,
+        "motion": [it["id"] for it in m_items], "labels": len(items), "outro": bool(op), "final": final},
+        ensure_ascii=False, indent=2), encoding="utf-8")
     filter_file = job_dir / "filter.txt"
     filter_file.write_text(";\n".join(chain), encoding="utf-8")
     v_args = ["-c:v", "libx264", "-preset", "medium" if final else "veryfast", "-crf", "18" if final else "26"]

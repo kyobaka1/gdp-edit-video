@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>PHALEDO Motion 01 — Crystal Aperture (render)</title>
+<!-- Transparent overlay 1080×1920, 4.2 s, 30 fps. No CDN.
+     Wordmark + ® are the original artwork (assets/phaledo-word.png, assets/phaledo-reg.png, 1000×1000 artboard).
+     An SVG export on the same 1000×1000 artboard can be swapped in with ?word=…svg&reg=…svg.
+     All light is drawn as same-RGB gradients fading to alpha 0 (no black/white fringes), normal blend only. -->
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { display: block; background: transparent; }
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1C1A18"/><circle cx="50" cy="50" r="30" fill="none" stroke="#E9DDC9" stroke-width="1.2" opacity="0.7"/><circle cx="29" cy="29" r="3" fill="#FFF9F0"/><text x="50" y="54" text-anchor="middle" font-size="9" fill="#F2E9E3" font-family="sans-serif" letter-spacing="1">PHALEDO</text></svg></template>
+<canvas id="stage" width="1080" height="1920"></canvas>
+<script>
+(function () {
+  const DURATION = 4.2, FPS = 30, W = 1080, H = 1920, TAU = Math.PI * 2;
+  const q = new URLSearchParams(location.search);
+  const num = (k, d) => (q.has(k) && q.get(k) !== '' && !isNaN(+q.get(k)) ? +q.get(k) : d);
+  const opts = {
+    width: num('width', 0.56),   // PHALEDO letters (P→O) width / frame width
+    nx: num('nx', 0.5), ny: num('ny', 0.5),
+    tone: q.get('tone') === 'dark' ? 'dark' : 'light',  // light = original ivory artwork for dark footage · dark = charcoal for light footage
+  };
+  // Artwork boxes on the 1000×1000 artboard (measured from alpha)
+  const ART = {
+    word: { src: q.get('word') || 'assets/phaledo-word.png', box: [72, 435, 900, 565] },
+    reg: { src: q.get('reg') || 'assets/phaledo-reg.png', box: [877, 374, 940, 437] },
+  };
+  const ORIGIN = [486, 500], LETTERS_W = 828;
+  const TONES = {
+    light: { ink: null, line: [234, 222, 202], hi: [255, 250, 243], halo: [238, 225, 203], sheen: [255, 252, 248] },
+    dark: { ink: '#1F1C1A', line: [124, 112, 98], hi: [255, 251, 245], halo: [182, 162, 134], sheen: [150, 138, 123] },
+  };
+
+  const c01 = (v) => Math.max(0, Math.min(1, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const tw = (T, a, b) => c01((T - a) / (b - a));
+  const E = {
+    out: (t, k = 3) => 1 - Math.pow(1 - t, k),
+    io: (t, k = 3) => (t < 0.5 ? Math.pow(2 * t, k) / 2 : 1 - Math.pow(2 - 2 * t, k) / 2),
+    bump: (t) => (t <= 0 || t >= 1 ? 0 : Math.sin(Math.PI * t)),
+  };
+  const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${Math.max(0, Math.min(1, a)).toFixed(4)})`;
+
+  const cv = document.getElementById('stage');
+  const ctx = cv.getContext('2d');
+  const imgs = {};
+  let L = null, cur = num('t', 0), auto = q.get('render') !== '1', ready = false;
+
+  function sprite(img, box, s, ink) {
+    const pad = 3, sx = box[0] - pad, sy = box[1] - pad, sw = box[2] - box[0] + pad * 2, sh = box[3] - box[1] + pad * 2;
+    const x = Math.round(L.cx + (sx - ORIGIN[0]) * s), y = Math.round(L.cy + (sy - ORIGIN[1]) * s);
+    const c = document.createElement('canvas');
+    c.width = Math.ceil(sw * s) + 1; c.height = Math.ceil(sh * s) + 1;
+    const g = c.getContext('2d');
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    g.drawImage(img, sx, sy, sw, sh, 0, 0, sw * s, sh * s);
+    if (ink) { g.globalCompositeOperation = 'source-in'; g.fillStyle = ink; g.fillRect(0, 0, c.width, c.height); }
+    return { c, x, y, w: c.width, h: c.height, top: pad * s, lh: (box[3] - box[1]) * s };
+  }
+
+  function layout() {
+    const s = (opts.width * W) / LETTERS_W;
+    L = { s, k: s / 0.73, cx: opts.nx * W, cy: opts.ny * H, half: (LETTERS_W * s) / 2, tone: TONES[opts.tone] };
+    L.R = L.half * 1.14;
+    L.word = sprite(imgs.word, ART.word.box, s, L.tone.ink);
+    L.reg = sprite(imgs.reg, ART.reg.box, s, L.tone.ink);
+    const mk = () => { const c = document.createElement('canvas'); c.width = L.word.w; c.height = L.word.h; return c; };
+    L.lay = mk(); L.sh = mk();
+  }
+
+  // ---- Timeline (s)
+  // 0–0.55 arc lit by travelling champagne light · 0.55–1.2 ring completes (+1 inner hairline)
+  // 1.2–1.85 point of light runs the rim, spirals to centre · 1.85–2.65 wordmark reveal centre → sides
+  // 2.65–3.2 ring fades, ® appears · 3.2–3.7 hold, light skims the top edge · 3.7–4.15 fade to alpha 0
+  const TH0 = -Math.PI * 0.82, SWEEP = Math.PI * 2.7;
+  const phi = (T) => SWEEP * E.io(tw(T, 0, 1.85), 2);   // head travel; = 2π at ≈1.19 s
+  const headR = (T) => L.R * (1 - E.io(tw(T, 1.45, 1.85), 2));
+
+  function ringPass(T, R, lw, extent, alphaAt, blur) {
+    const g = ctx.createConicGradient(TH0, L.cx, L.cy), N = 96, stops = [];
+    for (let i = 0; i <= N; i++) stops.push(i / N);
+    const ho = (phi(T) % TAU) / TAU;
+    if (ho > 0.002 && ho < 0.998) stops.push(ho - 0.001, ho + 0.001);
+    stops.sort((a, b) => a - b).forEach((o) => g.addColorStop(o, rgba(L.tone.line, alphaAt(o * TAU))));
+    ctx.save();
+    if (blur) { ctx.filter = `blur(${blur}px)`; }
+    ctx.strokeStyle = g; ctx.lineWidth = lw; ctx.lineCap = 'butt';
+    ctx.beginPath(); ctx.arc(L.cx, L.cy, R, TH0, TH0 + extent); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawRing(T, G) {
+    const fade = 1 - E.io(tw(T, 2.65, 3.2));
+    if (fade <= 0) return;
+    const P = phi(T), extent = Math.min(TAU, P);
+    if (extent <= 0.001) return;
+    const R = L.R * (1 + 0.012 * E.out(tw(T, 2.65, 3.2)));
+    const body = lerp(0.03, 0.34, E.io(tw(T, 0.15, 1.25))) * (1 - 0.3 * E.bump(tw(T, 1.4, 2.3))) * fade * G;
+    const thL = -Math.PI * 0.75 + 0.35 * E.io(tw(T, 0.8, 2.9));
+    const onRing = 1 - E.io(tw(T, 1.45, 1.72));
+    const hI = E.out(tw(T, 0, 0.18)) * onRing * fade * G;
+    const shade = (th, off) => { const c = Math.cos(th - thL - off); return 0.28 + 0.72 * Math.pow(Math.max(0, c), 2) + 0.35 * Math.pow(Math.max(0, -c), 4); };
+    const trail = (o) => { const d = ((P - o) % TAU + TAU) % TAU; return Math.exp(-d / 0.8); };
+    const main = (o) => body * shade(TH0 + o, 0) + 0.62 * hI * trail(o);
+    ringPass(T, R, 6 * L.k, extent, (o) => 0.14 * main(o), 2.5 * L.k);   // glass body, very soft
+    ringPass(T, R, 1.5 * L.k, extent, main, 0);                            // rim
+    const ext2 = TAU * E.io(tw(T, 0.45, 1.25));
+    if (ext2 > 0.001) ringPass(T, R - 10 * L.k, 0.8 * L.k, ext2, (o) => 0.5 * body * shade(TH0 + o, Math.PI) + 0.2 * hI * trail(o), 0);
+  }
+
+  function glint(x, y, i, r, tang) {
+    if (i <= 0.002) return;
+    const { hi, halo } = L.tone;
+    let g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, rgba(hi, 0.85 * i)); g.addColorStop(0.12, rgba(hi, 0.4 * i));
+    g.addColorStop(0.42, rgba(halo, 0.13 * i)); g.addColorStop(1, rgba(halo, 0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+    ctx.save(); ctx.translate(x, y); ctx.rotate(tang); ctx.scale(3.4, 1);
+    const r2 = r * 0.32; g = ctx.createRadialGradient(0, 0, 0, 0, 0, r2);
+    g.addColorStop(0, rgba(hi, 0.45 * i)); g.addColorStop(1, rgba(hi, 0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r2, 0, TAU); ctx.fill(); ctx.restore();
+    ctx.fillStyle = rgba(hi, i); ctx.beginPath(); ctx.arc(x, y, 1.4 * L.k, 0, TAU); ctx.fill();
+  }
+
+  function drawLights(T, G) {
+    const { hi, halo } = L.tone, k = L.k;
+    if (T < 2.2) {
+      const th = TH0 + phi(T), r = headR(T);
+      const gi = E.out(tw(T, 0, 0.2)) * (0.72 + 0.28 * E.bump(tw(T, 0.9, 1.6))) * (1 - E.io(tw(T, 1.86, 2.15))) * G;
+      glint(L.cx + r * Math.cos(th), L.cy + r * Math.sin(th), gi, 30 * k * (1 - 0.25 * tw(T, 1.45, 1.85)), th + Math.PI / 2);
+    }
+    const bi = E.out(tw(T, 1.68, 1.9), 2) * (1 - E.io(tw(T, 1.9, 2.5))) * G;
+    if (bi > 0.002) {
+      const r = 95 * k;
+      let g = ctx.createRadialGradient(L.cx, L.cy, 0, L.cx, L.cy, r);
+      g.addColorStop(0, rgba(hi, 0.26 * bi)); g.addColorStop(0.35, rgba(halo, 0.08 * bi)); g.addColorStop(1, rgba(halo, 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(L.cx, L.cy, r, 0, TAU); ctx.fill();
+      ctx.save(); ctx.translate(L.cx, L.cy); ctx.scale(7, 1);
+      const r2 = 34 * k; g = ctx.createRadialGradient(0, 0, 0, 0, 0, r2);
+      g.addColorStop(0, rgba(hi, 0.2 * bi)); g.addColorStop(1, rgba(hi, 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r2, 0, TAU); ctx.fill(); ctx.restore();
+    }
+    const ri = 0.38 * E.bump(tw(T, 2.8, 3.3)) * G;
+    if (ri > 0.002) { const R = L.reg; glint(R.x + R.w * 0.5 + R.w * 0.32, R.y + R.h * 0.5 - R.h * 0.32, ri, 16 * k, -Math.PI / 4); }
+  }
+
+  function drawLogo(T, G) {
+    if (T < 1.85) return;
+    const Wd = L.word, lay = L.lay, lx = lay.getContext('2d');
+    lx.globalCompositeOperation = 'source-over'; lx.globalAlpha = 1;
+    lx.clearRect(0, 0, lay.width, lay.height);
+    lx.drawImage(Wd.c, 0, 0);
+    const rv = tw(T, 1.85, 2.65), p = E.out(rv, 2.6);
+    const cxL = L.cx - Wd.x, feather = L.half * 0.28, hw = p * (L.half + feather + 4);
+    if (hw <= 0.5) return;
+    if (rv < 1) {
+      const f = Math.min(0.5, feather / (2 * hw)), peak = Math.min(1, hw / feather);
+      const g = lx.createLinearGradient(cxL - hw, 0, cxL + hw, 0);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(f, `rgba(0,0,0,${peak})`);
+      g.addColorStop(1 - f, `rgba(0,0,0,${peak})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+      lx.globalCompositeOperation = 'destination-in'; lx.fillStyle = g; lx.fillRect(0, 0, lay.width, lay.height);
+      // soft optical edge on the reveal front
+      const ea = 0.5 * (1 - E.io(rv, 2));
+      lx.globalCompositeOperation = 'source-atop';
+      [-1, 1].forEach((d) => {
+        const ex = cxL + d * (hw - feather * 0.55), half = feather * 0.45;
+        const eg = lx.createLinearGradient(ex - half, 0, ex + half, 0);
+        eg.addColorStop(0, rgba(L.tone.sheen, 0)); eg.addColorStop(0.5, rgba(L.tone.sheen, ea)); eg.addColorStop(1, rgba(L.tone.sheen, 0));
+        lx.fillStyle = eg; lx.fillRect(ex - half, 0, half * 2, lay.height);
+      });
+    }
+    // light skims the top edge of the letters
+    const sv = tw(T, 3.15, 3.75);
+    if (sv > 0 && sv < 1) {
+      const sh = L.sh, sx = sh.getContext('2d'), w = sh.width, bw = 70 * L.k;
+      const bx = lerp(-0.15 * w, 1.15 * w, E.io(sv, 2));
+      sx.setTransform(1, 0, 0, 1, 0, 0); sx.globalCompositeOperation = 'source-over'; sx.clearRect(0, 0, w, sh.height);
+      sx.setTransform(1, 0, -0.38, 1, 0.38 * sh.height * 0.5, 0);
+      const g = sx.createLinearGradient(bx - bw, 0, bx + bw, 0);
+      g.addColorStop(0, rgba(L.tone.sheen, 0)); g.addColorStop(0.5, rgba(L.tone.sheen, 1)); g.addColorStop(1, rgba(L.tone.sheen, 0));
+      sx.fillStyle = g; sx.fillRect(bx - bw, 0, bw * 2, sh.height);
+      sx.setTransform(1, 0, 0, 1, 0, 0);
+      const vg = sx.createLinearGradient(0, Wd.top, 0, Wd.top + Wd.lh * 0.34);
+      vg.addColorStop(0, 'rgba(0,0,0,1)'); vg.addColorStop(1, 'rgba(0,0,0,0)');
+      sx.globalCompositeOperation = 'destination-in'; sx.fillStyle = vg; sx.fillRect(0, 0, w, sh.height);
+      lx.globalCompositeOperation = 'source-atop'; lx.globalAlpha = 0.62 * E.bump(sv);
+      lx.drawImage(sh, 0, 0); lx.globalAlpha = 1;
+    }
+    ctx.globalAlpha = G; ctx.drawImage(lay, Wd.x, Wd.y);
+    const ra = E.io(tw(T, 2.72, 3.15)) * G;
+    if (ra > 0) { ctx.globalAlpha = ra; ctx.drawImage(L.reg.c, L.reg.x, L.reg.y); }
+    ctx.globalAlpha = 1;
+  }
+
+  function draw(T) {
+    cur = T;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.filter = 'none';
+    ctx.clearRect(0, 0, W, H);
+    if (!ready) return;
+    const G = 1 - E.io(tw(T, 3.7, 4.15));
+    if (G <= 0) return;
+    drawRing(T, G);
+    drawLogo(T, G);
+    drawLights(T, G);
+  }
+
+  const load = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => (i.decode ? i.decode().catch(() => {}) : Promise.resolve()).then(() => res(i)); i.onerror = () => rej(new Error('Không tải được ' + src)); i.src = src; });
+  const readyP = Promise.all(Object.entries(ART).map(([k, a]) => load(a.src).then((i) => { imgs[k] = i; }))).then(() => { ready = true; layout(); draw(cur); });
+
+  function setTime(t) { auto = false; draw(Math.max(0, Math.min(DURATION, +t || 0))); }
+  function configure(o) { Object.assign(opts, o || {}); if (ready) { layout(); draw(cur); } }
+
+  window.setTime = setTime;
+  window.PHALEDO_MOTION = { ready: readyP, duration: DURATION, fps: FPS, width: W, height: H, setTime, configure, opts, get time() { return cur; } };
+  window.GDP_MOTION = window.PHALEDO_MOTION;
+
+  let clock = cur, last = performance.now();
+  const loop = (now) => {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (auto) { clock += dt; if (clock > DURATION + 0.6) clock = 0; draw(Math.min(DURATION, clock)); }
+    if (auto) requestAnimationFrame(loop);
+  };
+  readyP.then(() => { if (auto) requestAnimationFrame((n) => { last = n; loop(n); }); });
+})();
+</script>
+</body>
+</html>
