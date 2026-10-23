@@ -89,7 +89,7 @@
     "motion": "phaledo-refraction-sweep",
     "hold_at": 2.45,
     "settle": 1.2,
-    "motion_width_pct": 0.3,
+    "motion_width_pct": 0.36,
     "note_motion": "Sếp 23/10: watermark chữ → animation (job khai edl.motion). Không có edl.motion → vẫn watermark chữ như cũ.",
     "lifecycle": {
       "relocate_mode": "slide",

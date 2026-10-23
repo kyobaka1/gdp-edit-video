@@ -44,8 +44,8 @@ WATERMARK = {  # watermark động thay chữ (giữ nguyên enabled/opacity/tex
     "giadungplus_official": {"motion": "gdp-ghost-smile", "motion_params": {"hold": 0.13}, "motion_width_pct": 0.13},
     "lteng_vn": {"motion": "lteng-ghost-signature", "motion_params": {"hold": 0.13}, "motion_width_pct": 0.3},
     "lteng_hcm": {"motion": "lteng-ghost-signature", "motion_params": {"hold": 0.15}, "motion_width_pct": 0.26},
-    "phaledo_official": {"motion": "phaledo-refraction-sweep", "hold_at": 2.45, "settle": 1.2, "motion_width_pct": 0.3},
-    "phaledo": {"motion": "phaledo-refraction-sweep", "hold_at": 2.45, "settle": 1.2, "motion_width_pct": 0.3},
+    "phaledo_official": {"motion": "phaledo-refraction-sweep", "hold_at": 2.45, "settle": 1.2, "motion_width_pct": 0.36},
+    "phaledo": {"motion": "phaledo-refraction-sweep", "hold_at": 2.45, "settle": 1.2, "motion_width_pct": 0.36},
 }
 
 
