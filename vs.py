@@ -29,6 +29,19 @@
                                               vòng đời watermark (intro/mờ/giữ/đổi chỗ) → motion_plan.json
       storyboard <job> [--final] [--before video_cũ.mp4]   ảnh soát các mốc (trước/giữa/sau reveal, logo tiếp quản,
                                               watermark mờ/giữ/đổi chỗ, trước/trong outro) → motion_storyboard.jpg
+  edit <việc> …                dựng video từ source QUAY SẴN theo PLAN (skill gdp-video-edit, studio/edit/)
+      new <thư mục|file…> --id ID --capcut co|khong [--plan plan.md]   tạo job, chép clip vào sources/ (c01, c02…)
+                                              ⚠ chưa rõ CÓ/KHÔNG dùng CapCut thì DỪNG hỏi Sếp (Sếp chốt 05/11)
+      mode <id> co|khong                      đổi chế độ: co = giao bản nháp CapCut · khong = giao final.mp4
+      add <id> <file> --key vo [--text kịch_bản.txt]  thêm giọng đọc riêng / clip (có văn bản chuẩn thì tự đối chiếu)
+      ingest <id>                             chép lời có mốc từng từ (Whisper GPU) + ảnh lưới từng clip
+      fix <id> <key> (--hear | --text file)   đối chiếu lời với Gemini / kịch bản: giữ mốc, sửa chữ
+      words <id>                              in lời từng nguồn (có giây) để viết cut.py
+      cut <id>                                chạy jobs/<id>/cut.py → edit.json (in trục dựng)
+      render <id> [--final]                   preview 540x960 / final 1080x1920
+      qa <id> [--final]                       cổng kiểm (lời, cắt, chữ né mặt + vùng an toàn, hình, tiếng) + ảnh soát
+      capcut <id> [--name N] [--until S] [--fmt pngmov|prores] [--wait]   xuất BẢN NHÁP CapCut desktop để dựng viên
+                                              sửa tiếp (clip gốc + chữ động trong suốt + chữ CapCut ẩn + logo + tiếng)
 """
 
 import argparse
@@ -478,6 +491,97 @@ def cmd_cost(a) -> None:
     print(f"{len(rows)} lần gọi · {tot}")
 
 
+def cmd_edit(a) -> None:
+    """Dựng video từ source quay sẵn theo PLAN (skill gdp-video-edit)."""
+    import runpy
+    from studio.edit import project
+    act, args = a.action, a.args
+    if act == "new":
+        if not args or not a.id:
+            sys.exit("vs.py edit new <thư mục|file…> --id <id> --capcut co|khong [--plan plan.md]")
+        if a.capcut is not None and project.parse_mode(a.capcut) is None:
+            sys.exit(f"--capcut '{a.capcut}' không hiểu (dùng co | khong)")
+        d = project.new(a.id, [Path(x) for x in args], Path(a.plan) if a.plan else None,
+                        capcut=project.parse_mode(a.capcut))
+        print(f"Tạo {d}\nChế độ: {project.MODE_TEXT[project.mode(d)]}")
+        for k, s in project.load_sources(d).items():
+            print(f"  [{k}] {Path(s['origin']).name} · {s['duration']:.1f}s · {'hình+tiếng' if s.get('has_video') else 'tiếng'}")
+        print(f"→ vs.py edit ingest {a.id}")
+    elif act == "add":
+        if len(args) < 2:
+            sys.exit("vs.py edit add <id> <file> --key vo [--text kịch_bản.txt]")
+        s = project.add(args[0], Path(args[1]), a.key or "vo", Path(a.text) if a.text else None)
+        print(f"Thêm {a.key or 'vo'}: {s['duration']:.1f}s · {'hình+tiếng' if s.get('has_video') else 'tiếng'}"
+              + (" · có văn bản chuẩn" if s.get("reference") else ""))
+    elif act == "ingest":
+        t0 = time.time()
+        project.ingest(args[0])
+        print(f"Xong {time.time() - t0:.1f}s\n" + project.describe(args[0]))
+        print(f"Ảnh lưới từng clip: jobs/{args[0]}/sheets/<key>.jpg")
+    elif act == "fix":
+        if len(args) < 2 or not (a.text or a.hear):
+            sys.exit("vs.py edit fix <id> <key> (--text file | --hear)")
+        d = project.job_path(args[0])
+        if a.hear:
+            src = project.load_sources(d)
+            ref = voice.hear(d / src[args[1]]["file"])
+        else:
+            ref = Path(a.text).read_text(encoding="utf-8")
+        for c in project.fix(args[0], args[1], ref, heard=bool(a.hear)):
+            print(f"  {c['at']:6.2f}s  '{c['asr']}' → '{c['ref']}'" + (f"  ⚠ {c['note']}" if c.get("note") else ""))
+    elif act == "words":
+        print(project.describe(args[0]))
+    elif act == "cut":
+        d = project.job_path(args[0])
+        runpy.run_path(str(d / "cut.py"), run_name="__main__")
+    elif act == "mode":
+        if len(args) < 2 or project.parse_mode(args[1]) is None:
+            sys.exit("vs.py edit mode <id> co|khong   (có / không dùng CapCut — Sếp chốt trước khi edit)")
+        project.set_mode(args[0], project.parse_mode(args[1]))
+        print(f"Chế độ: {project.MODE_TEXT[project.parse_mode(args[1])]}")
+    elif act == "render":
+        from studio.edit import build
+        m = project.mode(project.job_path(args[0]))
+        if m is None:
+            sys.exit("DỪNG: job chưa khai chế độ — hỏi Sếp có/không dùng CapCut rồi `vs.py edit mode <id> co|khong`")
+        if a.final and m:
+            print("ℹ Job CÓ dùng CapCut: không bắt buộc render --final — duyệt preview xong thì `vs.py edit capcut <id> --wait`")
+        rep = build.run(args[0], final=a.final)
+        print(f"Xong {rep['seconds']}s → jobs/{args[0]}/{rep['output']} · {rep['size'][0]}x{rep['size'][1]} "
+              f"{rep['duration']:.2f}s · {rep['lufs']} LUFS · chữ chụp {rep['caption_frames_captured']}/{rep['frames']} khung "
+              f"({rep['caption_seconds']}s)")
+        for pl in rep["placements"]:
+            flag = (f"  ⚠ đè mặt {pl['face_overlap']:.0%}" if pl["face_overlap"] > 0.03 else "") + \
+                   (f"  ⚠ ngoài vùng an toàn {pl['outside_safe']:.0%}" if pl["outside_safe"] > 0.01 else "")
+            print(f"  {pl['id']} {pl['pos']:6s} y{pl['y']:.2f}  mặt {len(pl['faces'])}{flag}  {pl['markup']}")
+    elif act == "qa":
+        from studio.edit import qa as eqa
+        res = eqa.run(args[0], final=a.final)
+        print(("ĐẠT" if res["ok"] else "CHƯA ĐẠT") + f" · {res['lufs']} LUFS · đỉnh {res['true_peak']} dBTP · "
+              f"{res['duration']:.2f}s {res['size'][0]}x{res['size'][1]}")
+        for f in res["fails"]:
+            print(f"  ✗ {f}")
+        for w in res["warnings"]:
+            print(f"  ⚠ {w}")
+        if res["sheet"]:
+            print(f"  ảnh soát khối chữ: jobs/{args[0]}/{res['sheet']}")
+    elif act == "capcut":
+        from studio.edit import capcut
+        if project.mode(project.job_path(args[0])) is False:
+            sys.exit("Job khai KHÔNG dùng CapCut (giao final.mp4). Sếp đổi ý thì `vs.py edit mode <id> co` rồi chạy lại.")
+        if capcut.capcut_running():
+            print("⚠ CapCut đang mở: bản nháp vẫn ghi, nhưng danh sách dự án sẽ bị CapCut ghi đè — "
+                  + ("chờ Sếp đóng CapCut rồi tự ghi danh sách…" if a.wait else "đóng CapCut rồi chạy lại với --wait"))
+        res = capcut.export(args[0], name=a.name, until=a.until, formats=[a.fmt] if a.fmt else None)
+        print(f"Bản nháp CapCut: {res['draft']}\n  {res['duration']:.2f}s · track {res['tracks']}")
+        if a.wait and capcut.capcut_running():
+            ok = capcut.wait_and_register([res["name"]], timeout=1800)
+            print("Đã ghi vào danh sách dự án — mở CapCut là thấy" if ok else "Hết 30 phút chờ CapCut tắt — chạy lại sau")
+        print("  ⚠ CapCut tự cập nhật có thể đổi định dạng bản nháp; mở không được → báo để xuất lại theo bản mới")
+    else:
+        sys.exit(f"Không có việc '{act}' (new · mode · add · ingest · fix · words · cut · render · qa · capcut)")
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="GDP Video Studio")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -504,6 +608,13 @@ def main() -> None:
     s.add_argument("--force", action="store_true"); s.add_argument("--footage"); s.add_argument("--out")
     s.add_argument("--update", action="store_true"); s.add_argument("--final", action="store_true")
     s.add_argument("--before", help="storyboard: video bản cũ để so cùng mốc giờ"); s.set_defaults(fn=cmd_motion)
+    s = sub.add_parser("edit"); s.add_argument("action"); s.add_argument("args", nargs="*")
+    s.add_argument("--id"); s.add_argument("--plan"); s.add_argument("--key"); s.add_argument("--text")
+    s.add_argument("--hear", action="store_true"); s.add_argument("--final", action="store_true")
+    s.add_argument("--name"); s.add_argument("--until", type=float); s.add_argument("--fmt", choices=["pngmov", "prores", "qtrle"])
+    s.add_argument("--wait", action="store_true", help="capcut: chờ CapCut tắt rồi ghi danh sách dự án")
+    s.add_argument("--capcut", help="new: co | khong — CÓ / KHÔNG dùng CapCut (bắt buộc chốt với Sếp trước khi edit)")
+    s.set_defaults(fn=cmd_edit)
     a = p.parse_args()
     a.fn(a)
 

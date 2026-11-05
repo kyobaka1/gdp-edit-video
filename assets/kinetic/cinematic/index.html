@@ -1,0 +1,237 @@
+<!doctype html>
+<!--
+  Bộ chữ động "cinematic" cho skill gdp-video-edit (đo từ video mẫu example/, 24 khung/giây, 05/11/2026).
+  Trang KHÔNG tự chạy theo đồng hồ: Python nạp dữ liệu bằng KINETIC.load(data) rồi gọi setTime(giây) cho TỪNG khung
+  (studio/edit/kinetic.py chụp nền trong suốt). Mọi số đo nằm trong STYLE bên dưới — chỉnh ở đây, không rải khắp code.
+
+  data = {W, H, blocks: [{id, start, end, exit: "words"|"rise"|"fade", card: bool,
+                          align: "center"|"left"|"right", x: 0..1, y: 0..1,
+                          lines: [{role: "live"|"key"|"sub"|"big", italic, accent, morph_at?: giây,
+                                   words: [{text, t}]}]}]}
+  - role: live = dòng đang nói (chữ thường, nét vừa) · key = cụm khoá IN HOA rất đậm · sub = dòng phụ mảnh nhỏ ·
+          big = chữ mảnh cỡ to ("2010", "CAO").
+  - morph_at: dòng live co lại thành dòng dẫn nhỏ (cỡ sub) khi cụm khoá bắt đầu (mẫu 17,1s).
+  - exit (mẫu): words = rút lần lượt từng từ trái→phải · rise = cả khối trôi lên nhanh · fade = mờ + nhoè chậm.
+  - card: màn đen chữ — dòng cũ tối đi khi dòng mới vào (mẫu 2,7s).
+-->
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: "AvertaK"; font-weight: 900; font-style: normal; src: url("../../fonts/Averta/Averta-Black.otf"); }
+  @font-face { font-family: "AvertaK"; font-weight: 900; font-style: italic; src: url("../../fonts/Averta/Averta-BlackItalic.otf"); }
+  @font-face { font-family: "AvertaK"; font-weight: 600; font-style: normal; src: url("../../fonts/Averta/Averta-Semibold.otf"); }
+  @font-face { font-family: "AvertaK"; font-weight: 600; font-style: italic; src: url("../../fonts/Averta/Averta-SemiboldItalic.otf"); }
+  @font-face { font-family: "AvertaK"; font-weight: 300; font-style: normal; src: url("../../fonts/Averta/Averta-Light.otf"); }
+  @font-face { font-family: "AvertaK"; font-weight: 300; font-style: italic; src: url("../../fonts/Averta/Averta-LightItalic.otf"); }
+  @font-face { font-family: "AvertaK"; font-weight: 200; font-style: normal; src: url("../../fonts/Averta/Averta-Thin.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: relative; overflow: hidden; }
+  .block { position: absolute; white-space: nowrap; }
+  /* bóng gần (nét chữ) + quầng tối rộng mềm (đọc được cả trên trời / tường sáng — test 05/11 "THẲNG TẮP") */
+  .line { display: block; white-space: nowrap; font-family: "AvertaK", sans-serif; line-height: 1.04;
+          filter: drop-shadow(0 0.05em 0.16em rgba(0, 0, 0, 0.6)) drop-shadow(0 0 0.5em rgba(0, 0, 0, 0.38)); }
+  .line + .line { margin-top: -0.04em; }
+  .w { display: inline-block; white-space: pre; will-change: transform, opacity, filter;
+       background: linear-gradient(180deg, #ffffff 0%, #ffffff 42%, #c3c3c3 100%);
+       -webkit-background-clip: text; background-clip: text; color: transparent;
+       /* chừa chỗ cho dấu tiếng Việt chồng (Ấ, Ể, Ỗ) để nền gradient không cắt mất dấu */
+       padding: 0.2em 0.02em 0.12em; margin: -0.2em -0.02em -0.12em; }
+  .accent .w { background: linear-gradient(180deg, #ffe17a 0%, #ffd23f 45%, #d9a300 100%);
+               -webkit-background-clip: text; background-clip: text; }
+  .role-key  { font-weight: 900; text-transform: uppercase; letter-spacing: -0.035em; }
+  .role-live { font-weight: 600; letter-spacing: -0.02em; }
+  .role-sub  { font-weight: 300; letter-spacing: -0.01em; }
+  .role-big  { font-weight: 200; letter-spacing: -0.03em; line-height: 0.96; }
+  .italic { font-style: italic; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+(() => {
+  // ───── số đo (tỉ lệ theo chiều cao khung H, giây) — đo từ video mẫu ─────
+  const STYLE = {
+    size: { live: 0.034, key: 0.041, sub: 0.024, big: 0.066 },  // cỡ chữ / H
+    maxWidth: 0.74,                                              // dòng dài nhất / W (tự thu cỡ cho vừa) — vừa vùng an
+                                                                 // toàn TikTok 6%–84% bề ngang, chừa nhoè/bóng
+    enter: { lead: 0.06, dur: 0.16, keyDur: 0.18,                // vào sớm hơn tiếng 60ms; 3–4 khung ở 24fps
+             rise: 0.38, blur: 0.24, squeeze: 0.84, keyScale: 1.14 },
+    morph: { dur: 0.22 },                                        // dòng live co thành dòng dẫn
+    exitWords: { stagger: 0.083, dur: 0.12, shift: 0.14, maxTotal: 0.3 },  // 2 khung/từ, cả khối rút ≤0,3s+0,12s
+                                                                 // (mẫu 6,25s · 13,1s · 18,5s; 16,3s xoá hẳn khi khối mới vào)
+    exitRise: { dur: 0.33, dist: 0.18 },                         // mẫu 4,0–4,33s: ~18% H, tăng tốc
+    exitFade: { dur: 0.45, blur: 0.18 },                         // mẫu 11,1–11,6s
+    cardDim: { to: 0.42, dur: 0.2 },                             // mẫu 2,7s
+  };
+  const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+  const easeOut = p => 1 - Math.pow(1 - p, 3);
+  const easeIn = p => p * p * p;
+  const stage = document.getElementById('stage');
+  let D = null, W = 1080, H = 1920;
+
+  function exitSpan(b) {
+    if (b.exit === 'rise') return STYLE.exitRise.dur;
+    if (b.exit === 'fade') return STYLE.exitFade.dur;
+    return (b._n - 1) * stagger(b) + STYLE.exitWords.dur;
+  }
+
+  function stagger(b) {
+    const X = STYLE.exitWords;
+    return b.stagger ?? Math.min(X.stagger, X.maxTotal / Math.max(1, b._n - 1));
+  }
+
+  function build(b) {
+    const el = document.createElement('div');
+    el.className = 'block';
+    el.style.textAlign = b.align || 'center';
+    b._el = el; b._words = []; b._n = b.lines.reduce((s, l) => s + l.words.length, 0);
+    for (const ln of b.lines) {
+      const L = document.createElement('div');
+      L.className = `line role-${ln.role}` + (ln.italic ? ' italic' : '') + (ln.accent ? ' accent' : '');
+      ln._el = L; ln._base = STYLE.size[ln.role] * H;
+      ln.words.forEach((w, i) => {
+        const s = document.createElement('span');
+        s.className = 'w';
+        s.textContent = w.text;
+        L.appendChild(s);
+        if (i < ln.words.length - 1) L.appendChild(document.createTextNode(' '));
+        w._el = s; w._line = ln;
+        b._words.push(w);
+      });
+      el.appendChild(L);
+    }
+    stage.appendChild(el);
+    // thu cỡ từng dòng cho vừa bề rộng tối đa (đo ở trạng thái cuối, chưa biến đổi)
+    for (const ln of b.lines) {
+      ln._el.style.fontSize = ln._base + 'px';
+      const w = ln._el.scrollWidth;
+      const max = STYLE.maxWidth * W;
+      if (w > max) ln._base *= max / w;
+      ln._el.style.fontSize = ln._base + 'px';
+    }
+    place(b);
+    el.style.display = 'none';
+  }
+
+  function place(b) {
+    const el = b._el, x = (b.x ?? 0.5) * W, y = (b.y ?? 0.47) * H;
+    const tx = b.align === 'left' ? '0' : b.align === 'right' ? '-100%' : '-50%';
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    b._anchor = `translate(${tx}, -50%)`;
+  }
+
+  function lineSize(ln, t) {
+    if (ln.morph_at == null) return ln._base;
+    const p = easeOut(clamp((t - ln.morph_at) / STYLE.morph.dur));
+    const small = Math.min(ln._base, STYLE.size.sub * H);
+    return ln._base + (small - ln._base) * p;
+  }
+
+  function wordState(b, w, idx, t) {
+    const E = STYLE.enter, key = w._line.role === 'key';
+    const t0 = w.t - E.lead, dur = key ? E.keyDur : E.dur;
+    const p = easeOut(clamp((t - t0) / dur));
+    let op = p, blur = (1 - p) * E.blur, ty = (1 - p) * E.rise, sx = 1, sc = 1, tx = 0;
+    if (key) { ty = 0; sc = 1 + (E.keyScale - 1) * (1 - p); } else { sx = E.squeeze + (1 - E.squeeze) * p; }
+    if (b.exit === 'words') {   // rút từng từ trái → phải (b.stagger: khối sát khối sau thì rút nhanh hơn)
+      const X = STYLE.exitWords, q = clamp((t - b.end - idx * stagger(b)) / X.dur);
+      op *= 1 - q; blur += q * 0.2; tx -= q * X.shift;
+    }
+    if (b.card) {               // màn đen chữ: dòng cũ tối đi khi dòng mới hiện
+      const later = b.lines.slice(b.lines.indexOf(w._line) + 1).map(l => l.words[0].t);
+      if (later.length) {
+        const q = clamp((t - (Math.min(...later) - E.lead)) / STYLE.cardDim.dur);
+        op *= 1 - (1 - STYLE.cardDim.to) * q;
+        if (q > 0 && q < 1) return { op, blur, ty, sx, sc, tx, live: true };
+      }
+    }
+    return { op, blur, ty, sx, sc, tx, live: t >= t0 && t <= t0 + dur };
+  }
+
+  function setTime(t) {
+    if (!D) return;
+    let anim = false;
+    for (const b of D.blocks) {
+      const first = Math.min(...b._words.map(w => w.t)) - STYLE.enter.lead;
+      const last = b.end + exitSpan(b);
+      if (t < first || t > last) { b._el.style.display = 'none'; continue; }
+      b._el.style.display = 'block';
+      let bop = 1, bty = 0, bblur = 0;
+      if (b.exit === 'rise') {
+        const q = clamp((t - b.end) / STYLE.exitRise.dur);
+        bty = -easeIn(q) * STYLE.exitRise.dist * H; bop = 1 - clamp((q - 0.35) / 0.65); bblur = q * 6;
+        if (q > 0 && q < 1) anim = true;
+      } else if (b.exit === 'fade') {
+        const q = clamp((t - b.end) / STYLE.exitFade.dur);
+        bop = 1 - q; bblur = q * STYLE.exitFade.blur * STYLE.size.live * H;
+        if (q > 0 && q < 1) anim = true;
+      } else if (t > b.end) anim = true;
+      b._el.style.transform = `${b._anchor} translateY(${bty}px)`;
+      b._el.style.opacity = bop;
+      b._el.style.filter = bblur > 0.05 ? `blur(${bblur}px)` : 'none';
+      for (const ln of b.lines) {
+        const fs = lineSize(ln, t);
+        if (ln.morph_at != null && t > ln.morph_at && t < ln.morph_at + STYLE.morph.dur) anim = true;
+        ln._el.style.fontSize = fs + 'px';
+        ln._el.classList.toggle('role-sub', ln.morph_at != null && t >= ln.morph_at + STYLE.morph.dur * 0.5);
+      }
+      b._words.forEach((w, i) => {
+        const s = wordState(b, w, i, t), fs = parseFloat(w._line._el.style.fontSize);
+        if (s.live) anim = true;
+        const el = w._el;
+        el.style.opacity = s.op.toFixed(3);
+        el.style.filter = s.blur > 0.004 ? `blur(${(s.blur * fs).toFixed(2)}px)` : 'none';
+        el.style.transformOrigin = w._line.role === 'key' ? '50% 60%' : '0% 70%';
+        el.style.transform = `translate(${(s.tx * fs).toFixed(2)}px, ${(s.ty * fs).toFixed(2)}px) ` +
+                             `scale(${(s.sx * s.sc).toFixed(4)}, ${s.sc.toFixed(4)})`;
+      });
+    }
+    window.__animating = anim;
+  }
+
+  // Khung bao (px) của từng khối ở trạng thái đầy đủ chữ (dùng cho QA né mặt / vùng an toàn và chọn chỗ đặt).
+  function measure() {
+    const out = [];
+    for (const b of D.blocks) {
+      const el = b._el, prev = [el.style.display, el.style.transform, el.style.opacity, el.style.filter];
+      el.style.display = 'block'; el.style.transform = b._anchor; el.style.opacity = 1; el.style.filter = 'none';
+      for (const ln of b.lines) ln._el.style.fontSize = (ln.morph_at != null ? Math.min(ln._base, STYLE.size.sub * H) : ln._base) + 'px';
+      for (const w of b._words) { w._el.style.transform = 'none'; w._el.style.filter = 'none'; w._el.style.opacity = 1; }
+      const r = el.getBoundingClientRect();
+      out.push({ id: b.id, x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) });
+      [el.style.display, el.style.transform, el.style.opacity, el.style.filter] = prev;
+    }
+    return out;
+  }
+
+  // Khung bao chữ đang thấy ở thời điểm hiện tại (chụp gọn vùng có chữ cho nhanh).
+  function visibleBox() {
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (const b of D.blocks) {
+      if (b._el.style.display === 'none') continue;
+      const r = b._el.getBoundingClientRect();
+      x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top); x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom);
+    }
+    if (x1 < x0) return null;
+    const pad = 0.04 * H;  // nhoè + bóng đổ tràn ra ngoài khung chữ
+    x0 = Math.max(0, Math.floor(x0 - pad)); y0 = Math.max(0, Math.floor(y0 - pad));
+    x1 = Math.min(W, Math.ceil(x1 + pad)); y1 = Math.min(H, Math.ceil(y1 + pad));
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  }
+
+  function load(data) {
+    D = data; W = data.W; H = data.H;
+    stage.style.width = W + 'px'; stage.style.height = H + 'px';
+    stage.innerHTML = '';
+    for (const b of D.blocks) build(b);
+    return measure();
+  }
+
+  const ready = (async () => { await document.fonts.ready; })();
+  window.KINETIC = { name: 'cinematic', ready, load, setTime, measure, visibleBox, STYLE };
+  window.setTime = setTime;
+})();
+</script>
+</body>
+</html>

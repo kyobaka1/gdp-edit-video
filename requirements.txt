@@ -6,3 +6,7 @@ playwright==1.64.0
 fonttools==4.67.0
 psutil==7.2.2
 requests==2.34.2
+# skill gdp-video-edit: chép lời có mốc từng từ bằng Whisper chạy GPU (model large-v3 tự tải về cache HuggingFace ~3GB)
+faster-whisper==1.2.1
+nvidia-cublas-cu12==12.9.2.10
+nvidia-cudnn-cu12==9.28.0.42

@@ -23,6 +23,13 @@ Set-Location C:\Users\Admin\gdp-video-studio; $env:PYTHONIOENCODING='utf-8'
 .\.venv\Scripts\python.exe vs.py motion list --shop <shop> # animation thương hiệu shop dùng được (skill gdp-video-motion)
 .\.venv\Scripts\python.exe vs.py motion import <file.html|zip> --id <id> --brand <BRAND> --role brand_reveal
 .\.venv\Scripts\python.exe vs.py motion plan <id>         # xem animation job sẽ chèn (edl.motion = {"mode": "auto"})
+# Dựng video QUAY SẴN theo PLAN (skill gdp-video-edit, studio/edit/) — 9:16 TikTok, chữ động theo từng từ
+# ⛔ TRƯỚC KHI EDIT phải chốt với Sếp: CÓ dùng CapCut (giao bản nháp) hay KHÔNG (giao final.mp4) — chưa rõ thì HỎI
+.\.venv\Scripts\python.exe vs.py edit new <thư mục clip> --id <id> --capcut co|khong --plan plan.md
+.\.venv\Scripts\python.exe vs.py edit ingest <id>         # Whisper GPU: lời có mốc từng từ + ảnh lưới từng clip
+#   → viết jobs\<id>\cut.py (mẫu: jobs\test-vlog-bac-kinh\cut.py) → vs.py edit cut <id>
+.\.venv\Scripts\python.exe vs.py edit render <id> [--final]; .\.venv\Scripts\python.exe vs.py edit qa <id> [--final]
+.\.venv\Scripts\python.exe vs.py edit capcut <id> --wait  # bản nháp CapCut desktop cho dựng viên sửa tiếp (CapCut phải tắt)
 ```
 
 Animation thương hiệu (Sếp 23/10, Motion Director V2): skill **`gdp-video-motion`** + `assets/motion/README.md`. Job
