@@ -1,0 +1,72 @@
+{
+  "id": "scene-number-impact",
+  "source": {
+    "kind": "html",
+    "entry": "src/number-impact.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\number-impact\\src\\number-impact.html"
+  },
+  "version": 1,
+  "name": "Scene C07 Number Impact",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "number_impact"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "scene",
+    "con số",
+    "đếm",
+    "từ đến",
+    "biểu đồ",
+    "doanh thu",
+    "tăng trưởng"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 2.6,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "số vào + đếm",
+      "start": 0,
+      "end": 0.6
+    },
+    {
+      "name": "đứng đọc",
+      "start": 0.6,
+      "end": 2.266666666666667
+    },
+    {
+      "name": "ra",
+      "start": 2.266666666666667,
+      "end": 2.6
+    }
+  ],
+  "params": {
+    "theme": "gdp_red",
+    "preset": "standard",
+    "value": "15 kg",
+    "label": "",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "opaque": true,
+  "z": "top",
+  "variants": {},
+  "scene": "number-impact",
+  "notes": "Scene Library C07 Number Impact v1.0 — hồ sơ assets/scenes/number-impact/scene.json. Nguồn assets/scenes/number-impact/src (Claude viết 06/11). Số đếm lên (giữ cách viết số Việt), cặp từ → đến, full = biểu đồ 2 cột + mức tăng. Dùng: c.graphic('scene-number-impact', value=… | from_value=…, to_value=…, to_at=…)."
+}

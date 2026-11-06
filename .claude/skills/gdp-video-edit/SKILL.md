@@ -129,6 +129,14 @@ c.graphic("scene-a-vs-b", at="hộp nhựa", until="không ám mùi", a="Nhựa"
 c.graphic("scene-detail-spotlight", at="cái móc này", until="inox", x=0.62, y=0.48, label="Móc inox 304")  # C09
 c.graphic("scene-evidence-frame", at="đây là doanh thu", until="một tháng", title="Doanh thu thật", clip="c09@3.0",
           zoom=1.4, zx=0.5, zy=0.35, figure="342.992.500đ", figure_at="ba trăm", caption="Quay màn hình app")  # C08
+c.graphic("scene-problem-solution", at="khoan tường", until="năm phút", problem="Khoan tường", problem_note="nứt gạch",
+          solution="Dán keo", solution_note="5 phút xong", switch_at="chỉ cần")  # C06: vấn đề → giải pháp
+c.graphic("scene-number-impact", at="từ một rưỡi", until="mười triệu", from_value="1,5tr", from_label="từ",
+          to_value="10tr", to_label="lên hơn", to_at="mười triệu")       # C07: số đếm lên (1 số: value="15 kg")
+c.graphic("scene-timeline", at="đầu tiên", until="treo đồ", title="4 bước dán móc",
+          items=[("lau sạch", "Lau sạch tường"), ("bóc", "Bóc lớp keo"), ("ép", "Ép thật chặt"), ("treo", "Treo đồ")])  # C10
+c.graphic("scene-quote", at="đồ tốt", until="phải nghĩ", quote="Đồ tốt là đồ *dùng mỗi ngày không phải nghĩ*",
+          by="Anh Vương · GIADUNGPLUS")                                  # C11: câu nói đắt thành thẻ riêng
 c.theme("phaledo_warm")                                  # (tuỳ) ép theme Scene Library cả video
 c.cap("!NHƯNG NHƯỢC ĐIỂM LÀ / .giá thuê của nó / rất là / ~CAO")
 c.audio(music=None)        # mẫu KHÔNG có nhạc nền rõ; có nhạc thì music_lufs −30 (dưới giọng xa)
@@ -201,6 +209,27 @@ c.save()
   `figure_label`, `figure_at` cụm lời) số liệu ĐÚNG như trong bằng chứng; `caption` dòng nguồn. Preset theo thời lượng:
   < 2s micro (khung nhỏ góc màn hình, `side`) · < 4,2s standard · full — standard/full phủ khung. Đặt sau câu chuyện,
   trước câu chốt (mẫu M2). ⛔ Ảnh AI KHÔNG làm bằng chứng; che thông tin riêng tư của khách trong ảnh chụp màn hình.
+- `scene-problem-solution` (C06): 2 pha trong 1 thẻ — VẤN ĐỀ (`problem` ≤ 18 + `problem_note`, dấu SAI / gạch) → đúng
+  `switch_at` (cụm lời CHUYỂN Ý: "nhưng", "chỉ cần") sang GIẢI PHÁP (`solution` + `solution_note`, dấu ĐÚNG). Ảnh
+  `photo_problem` / `photo_solution` (`src:`/`lib:` — sản phẩm ảnh THẬT); `stamp_problem`/`stamp_solution` đổi chữ dấu.
+  GDP xé đôi giấy đỏ lộ giấy vàng · Dark vệt sáng mở giải pháp · Warm lật trang sổ. Preset: < 2s micro (2 dòng đè
+  footage, không ảnh/ghi chú) · < 4,2s standard · full — standard/full phủ khung. ⛔ Vấn đề là CÁCH LÀM / thói quen,
+  không chê đích danh đối thủ; giải pháp đúng lời.
+- `scene-number-impact` (C07): con số TO tự đếm lên (giữ cách viết số Việt: "342.992.500đ", "1,5tr", "+30%") — 1 số
+  (`value` + `label`) hoặc cặp `from_value` → `to_value` (+ `from_label`/`to_label`, `to_at` = cụm lời nói số đến; cùng đơn
+  vị thì đếm tiếp từ số cũ). Preset: < 1,6s micro · < 4,2s standard (đè footage, số to có thể nằm SAU người — `behind`
+  auto như C01, nhãn nhỏ luôn trước) · full = thẻ phủ khung biểu đồ 2 cột + mức tăng tự tính (`change` auto|chữ|none).
+  ⛔ Số đúng lời / nguồn, không làm tròn đẹp hơn; 2 số khác đơn vị không tính mức tăng.
+- `scene-timeline` (C10): quy trình / hành trình có THỨ TỰ — `items=[(cụm lời, "Nhãn bước" ≤ 18[, "mốc thời gian" ≤ 16]),
+  …]` 2–6 (bắt buộc), mỗi mốc hiện đúng lời, đường nối chạy mốc → mốc, mốc đang nói nổi bật, mốc đã qua mờ (full: tick).
+  `title` ≤ 24. Preset theo NỘI DUNG: có ghi chú → full · không → standard (cả 2 phủ khung, timeline dọc) ·
+  `preset="micro"` = **thanh tiến độ ngang** tầm trên (12% khung) + chip "2/4 · Nhãn" — đè footage, **chữ động KHÔNG
+  tắt** (vẫn viết `cap()`), logo tạm ẩn; hợp đoạn demo dài người làm từng bước. Ý không thứ tự → C04 / C03.
+- `scene-quote` (C11): câu nói đắt thành MỘT THẺ RIÊNG — `quote` ≤ 110 (đẹp 6–16 từ, `*cụm khoá*` nổi màu + gạch chân tự
+  vẽ) · `by` người nói / nguồn · `eyebrow` ("Ghi nhớ", "Khách nói") · `photo` (full). Chữ hiện từng từ rồi đứng đọc.
+  Preset: < 1,8s micro (thẻ gọn đè footage vùng phụ đề, `y` 0,66) · còn lại standard phủ khung · có `photo` → tự nâng full
+  (≥ 3s). QA "đứng đọc ngắn" → kéo dài thẻ / rút câu. ⛔ Câu NGUYÊN VĂN, người nói / lời khách có thật (không bịa lời chứng
+  thực, không thêm tuyên bố sản phẩm).
 
 ## Luật chữ động (đo từ mẫu — `references/mau-phan-tich.md`)
 
@@ -229,7 +258,7 @@ c.save()
 | Phụ đề liền mảnh cố định ~55% H (M2, M3) | ⏳ đợt 1 | CapCut: dùng luôn track chữ thường (hiện, không ẩn) |
 | Từ khoá lớn trên đầu, gradient trắng→trong, vào nhoè+trượt | ✅ Scene C01 Keyword Burst v1.0 (05/11) | `c.graphic("scene-keyword-burst", …)` |
 | Tiêu đề ghim + nhãn con dựng dần theo lời ("Bước 2 / S-T-P") | ✅ Scene C03 Pinned Title v1.0 (05/11) | `c.graphic("scene-pinned-title", …)` |
-| Số liệu từ→đến 2 bên đầu ("1,5tr" → "10tr"), ý mới đẩy ý cũ | ⏳ đợt 1 | |
+| Số liệu từ→đến 2 bên đầu ("1,5tr" → "10tr"), ý mới đẩy ý cũ | ✅ Scene C07 Number Impact v1.0 (06/11) — số đếm lên, có thể sau người | `c.graphic("scene-number-impact", …)` |
 | Thẻ series (chương · tập N · câu hứa + biểu đồ), giọng chạy tiếp | ⏳ đợt 1 khuôn đơn giản | đẹp: Sếp thiết kế Claude Design |
 | Tiếng "vút / bùm / tách" theo chữ & thẻ | ✅ theo Scene (thẻ chương, từ khoá) — `tools/make_scene_sfx.py` | chữ động `cap()` chưa có tiếng |
 | Minh hoạ trắng đen theo nghĩa, chuyển nhoè 1 khung, kết trên hình thương hiệu | ⏳ đợt 1 | |
@@ -242,7 +271,11 @@ c.save()
 | Scene C05 A vs B — 2 phe (ảnh thật / khung từ clip) + VS + chốt phe thắng | ✅ v1.0 (06/11) | `assets/scenes/a-vs-b/` |
 | Scene C09 Detail Spotlight — khoanh / mũi tên / đường chỉ dẫn + kính lúp, toạ độ bằng `vs.py edit frame` | ✅ v1.0 (06/11) | `assets/scenes/detail-spotlight/` |
 | Scene C08 Evidence Frame — ảnh / CLIP thật phát trong khung + số liệu + nguồn | ✅ v1.0 (06/11) | `assets/scenes/evidence-frame/` |
-| Scene C12 Brand Outro, C06 C07 C10 C11 | ⏳ lần lượt (đợt 1 đề xuất ChatGPT) | mỗi family 1 thư mục `assets/scenes/<family>/` |
+| Scene C06 Problem → Solution — vấn đề (SAI) → chuyển ý → giải pháp (ĐÚNG), xé giấy / vệt sáng / lật trang | ✅ v1.0 (06/11) | `assets/scenes/problem-solution/` |
+| Scene C07 Number Impact — số đếm lên, cặp từ → đến, full = biểu đồ 2 cột + mức tăng | ✅ v1.0 (06/11) | `assets/scenes/number-impact/` |
+| Scene C10 Timeline / Process — mốc theo lời + đường nối; micro = thanh tiến độ giữ chữ động | ✅ v1.0 (06/11) | `assets/scenes/timeline/` |
+| Scene C11 Quote / Insight — câu nói đắt thành thẻ riêng, chữ hiện từng từ, cụm khoá gạch chân | ✅ v1.0 (06/11) | `assets/scenes/quote/` |
+| Scene C12 Brand Outro | ⛔ bỏ (Sếp 06/11: outro / intro thương hiệu đã có sẵn ở `assets/shops/<shop>/outro/` + Motion) | |
 
 ## Scene Library + Story Library (05/11 — đề xuất ChatGPT, Sếp bảo làm)
 

@@ -1,0 +1,70 @@
+{
+  "id": "scene-timeline",
+  "source": {
+    "kind": "html",
+    "entry": "src/timeline.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\timeline\\src\\timeline.html"
+  },
+  "version": 1,
+  "name": "Scene C10 Timeline / Process",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "timeline"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "scene",
+    "quy trình",
+    "các bước",
+    "mốc thời gian",
+    "hướng dẫn",
+    "tiến độ",
+    "hành trình"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 5,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "khung vào",
+      "start": 0,
+      "end": 0.55
+    },
+    {
+      "name": "các mốc theo lời",
+      "start": 0.55,
+      "end": 4.616666666666667
+    },
+    {
+      "name": "ra",
+      "start": 4.616666666666667,
+      "end": 5
+    }
+  ],
+  "params": {
+    "theme": "gdp_red",
+    "preset": "standard",
+    "items": "[{\"t\":0.6,\"x\":\"Bước 1\"},{\"t\":1.6,\"x\":\"Bước 2\"},{\"t\":2.6,\"x\":\"Bước 3\"}]",
+    "title": "",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "opaque": true,
+  "scene": "timeline",
+  "notes": "Scene Library C10 Timeline / Process v1.0 — hồ sơ assets/scenes/timeline/scene.json. Nguồn assets/scenes/timeline/src (Claude viết 06/11). Mốc hiện theo lời, đường nối chạy mốc → mốc, mốc đang nói nổi bật; standard/full = thẻ phủ khung timeline dọc, micro = thanh tiến độ trên footage giữ chữ động. Dùng: c.graphic('scene-timeline', items=[(cụm lời, 'Nhãn'[, 'ghi chú']), …])."
+}

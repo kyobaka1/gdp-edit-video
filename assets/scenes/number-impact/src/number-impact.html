@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Number Impact</title>
+<!-- Scene Library · C07 Number Impact v1.0 (Claude viết 06/11/2026) — assets/scenes/number-impact/scene.json.
+     Số TO tự đếm lên đúng nhịp lời (giữ cách viết số Việt: 1,5tr · 342.992.500đ · 15 kg · +30%). 1 số (value) hoặc
+     cặp TỪ → ĐẾN (from_value → to_value, mẫu M3 "từ 1,5tr" bên trái đầu, "lên hơn 10tr" to bên phải). micro/standard
+     đè footage (có thể nằm SAU người — build.py), full = thẻ phủ khung biểu đồ 2 cột mọc lên + mức tăng tự tính.
+     Hợp đồng Motion Engine: window.setTime(giây) vẽ ĐỒNG BỘ, không Internet, KHÔNG will-change.
+     Query: theme · preset · dur · value · label · from_value · to_value · from_label · to_label · to_t (giây số sau
+     vào) · change (auto | chữ tự ghi | none) · y (tâm số, tỉ lệ khung) · bg · seed. -->
+<style>
+  @font-face { font-family: "GdpBold"; src: url("fonts/UTM_AvoBold.ttf"); }
+  @font-face { font-family: "GdpReg"; src: url("fonts/UTM_Avo.ttf"); }
+  @font-face { font-family: "PhBold"; src: url("fonts/Averta-Bold.otf"); }
+  @font-face { font-family: "PhReg"; src: url("fonts/Averta-Regular.otf"); }
+  @font-face { font-family: "PhLight"; src: url("fonts/Averta-Light.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  #root { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .abs { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; white-space: nowrap; box-sizing: border-box; }
+  .full { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; }
+  .num { position: absolute; left: 0; top: 0; white-space: nowrap; text-align: center; line-height: 1.02; }
+  .fill, .sh { display: block; padding: .22em .05em .18em; margin: -.22em -.05em -.18em; }
+  .fill { -webkit-background-clip: text; background-clip: text; color: transparent; position: relative; }
+  .sh { position: absolute; left: 0; top: 0; width: 100%; }
+  svg { position: absolute; left: 0; top: 0; overflow: visible; }
+</style>
+<script src="assets.js"></script>
+<script src="themes.js"></script>
+</head>
+<body>
+<div id="stage"><div id="root"></div></div>
+<script>
+(function () {
+  const W = 1080, H = 1920, FPS = 30;
+  const Q = new URLSearchParams(location.search);
+  const TH_ID = Q.get("theme") || "gdp_red";
+  const T = window.SCENE_THEMES[TH_ID] || window.SCENE_THEMES.gdp_red;
+  const C = T.color, A = window.KIT_ASSETS, E = T.engine;
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const prog = (t, a, b) => b <= a ? (t >= b ? 1 : 0) : clamp((t - a) / (b - a));
+  const outBack = (x, s = 1.5) => 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2);
+  const outCubic = x => 1 - Math.pow(1 - x, 3);
+  const outQuart = x => 1 - Math.pow(1 - x, 4);
+  const inCubic = x => x * x * x;
+  const inOut = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  const stop12 = t => Math.floor(t * 12 + 1e-6) / 12;
+
+  const PRESETS = { micro: { min: 0.9, def: 1.4 }, standard: { min: 1.4, def: 2.6 }, full: { min: 2.4, def: 4 } };
+  const PRESET = PRESETS[Q.get("preset")] ? Q.get("preset") : "standard";
+  const D = Math.max(PRESETS[PRESET].min, parseFloat(Q.get("dur") || PRESETS[PRESET].def) || PRESETS[PRESET].def);
+  const MICRO = PRESET === "micro", FULL = PRESET === "full";
+  const FV = (Q.get("from_value") || "").trim(), TV = (Q.get("to_value") || Q.get("value") || "").trim() || "0";
+  const PAIR = !!FV && !MICRO;
+  const FL = (Q.get("from_label") || "").trim(), TL = (Q.get("to_label") || "").trim(), LAB = (Q.get("label") || "").trim();
+  const Y = clamp(parseFloat(Q.get("y") || T.y) || T.y, 0.14, 0.72);
+  const BGK = (T.bg || {})[Q.get("bg") || "default"] || (T.bg || {}).default;
+  const DE = D - 1 / FPS, EX = MICRO ? 0.2 : 0.3;
+  const TT = PAIR ? clamp(parseFloat(Q.get("to_t") || (D * 0.4)) || D * 0.4, 0.5, Math.max(0.5, DE - EX - 0.8)) : 0.05;
+  const QA = { theme: TH_ID, preset: PRESET, dur: D, overflow: [], warn: [], fontPx: {} };
+  const root = document.getElementById("root");
+  const imgs = [];
+  function node(tag, cls, parent) { const e = document.createElement(tag); if (cls) e.className = cls; (parent || root).appendChild(e); return e; }
+  function image(src, parent, cls) { const im = node("img", cls || "", parent); im.src = src; imgs.push(im); return im; }
+  function asset(key, w, parent) { const a = A[key], im = image(a.src, parent, "abs"); im.style.width = w + "px"; im.style.height = (w * a.h / a.w) + "px"; return im; }
+  function place(el, x, y) { el.style.left = Math.round(x) + "px"; el.style.top = Math.round(y) + "px"; }
+  function rect(el) { const r = el.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; }
+  const CX = 486;
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg"); svg.setAttribute("width", W); svg.setAttribute("height", H);
+  function path(d, color, w) { const p = document.createElementNS(svgNS, "path"); p.setAttribute("d", d);
+    Object.assign(p.style, { fill: "none", stroke: color, strokeWidth: w + "px", strokeLinecap: "round", strokeLinejoin: "round" });
+    svg.appendChild(p); p.dataset.len = p.getTotalLength(); p.style.strokeDasharray = p.dataset.len; p.style.strokeDashoffset = p.dataset.len; return p; }
+  function draw(p, k) { if (!p) return; p.style.strokeDashoffset = ((1 - k) * p.dataset.len).toFixed(1); p.style.visibility = k > 0 ? "visible" : "hidden"; }
+
+  // ── số kiểu Việt: '.' hàng nghìn, ',' thập phân (vẫn hiểu '1.5' kiểu Anh), giữ tiền tố/hậu tố (đ, tr, kg, %, ×…) ──
+  function parseNum(s) {
+    const m = s.match(/([-+−])?(\d[\d.,]*)/); if (!m) return null;
+    const sign = m[1] || "", raw = m[2].replace(/[.,]$/, "");
+    let val, dec = 0, group = false, dsep = ",";
+    if (raw.includes(",")) { const i = raw.lastIndexOf(","); dec = raw.length - i - 1; val = parseFloat(raw.slice(0, i).replace(/\./g, "") + "." + raw.slice(i + 1)); group = raw.slice(0, i).includes("."); }
+    else if (/^\d{1,3}(\.\d{3})+$/.test(raw)) { val = parseFloat(raw.replace(/\./g, "")); group = true; }
+    else if (raw.includes(".")) { dec = raw.length - raw.indexOf(".") - 1; val = parseFloat(raw); dsep = "."; }
+    else val = parseFloat(raw);
+    if (!isFinite(val)) return null;
+    const end = m.index + m[0].length - (m[2].length - raw.length);
+    return { pre: s.slice(0, m.index), plus: sign === "+", suf: s.slice(end), val: sign && sign !== "+" ? -val : val, dec, group, dsep };
+  }
+  function fmt(p, v) {   // giữ đúng cách viết gốc: số lẻ, dấu thập phân, chấm hàng nghìn, tiền tố/hậu tố
+    let [i, d] = Math.abs(v).toFixed(p.dec).split(".");
+    if (p.group) i = i.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return p.pre + (v < 0 ? "−" : p.plus ? "+" : "") + i + (d ? p.dsep + d : "") + p.suf;
+  }
+  const PF = PAIR ? parseNum(FV) : null, PT = parseNum(TV);
+  function changeText() {
+    const c = (Q.get("change") || "auto").trim();
+    if (c === "none") return ""; if (c !== "auto") return c;
+    if (!PF || !PT || PF.val <= 0 || PF.suf.trim() !== PT.suf.trim()) return "";
+    const r = PT.val / PF.val;
+    if (r >= 1.5) return "×" + (r >= 10 ? Math.round(r) : r.toFixed(1).replace(".", ",").replace(",0", ""));
+    const pc = Math.round((r - 1) * 100); return (pc > 0 ? "+" : "−") + Math.abs(pc) + "%";
+  }
+  const CHG = PAIR ? changeText() : "";
+  const UP = !PF || !PT || PT.val >= PF.val;
+
+  // ── nền (full = thẻ phủ khung) ──
+  let bg = null, vig = null, light = null, page = null;
+  if (FULL) {
+    bg = image(A[BGK].src, root, "full");
+    vig = node("div", "full"); vig.style.background = E === "glass" ? "radial-gradient(ellipse 80% 60% at 50% 42%, rgba(0,0,0,0) 30%, rgba(0,0,0,.62) 100%)"
+      : E === "journal" ? "radial-gradient(ellipse 85% 70% at 50% 45%, rgba(0,0,0,0) 45%, rgba(70,45,20,.28) 100%)" : "radial-gradient(ellipse 80% 70% at 50% 45%, rgba(0,0,0,0) 40%, rgba(0,0,0,.35) 100%)";
+    if (E === "glass") { light = image(A[T.light].src, root, "full"); light.style.mixBlendMode = "screen"; }
+    if (E === "journal") { page = asset(T.page, 940); page.style.filter = "drop-shadow(0 14px 18px rgba(60,40,20,.3))"; }
+  }
+  // ── số (đè footage: chữ trắng → nhạt dần + bóng mềm như mẫu; full: chữ đặc trên thẻ) ──
+  function makeNum(px, hi) {
+    const w = node("div", "num"); w.style.fontFamily = T.fonts.num; w.style.fontSize = px + "px";
+    let sh = null;
+    if (!FULL) { sh = node("span", "sh", w); Object.assign(sh.style, { color: C.shadow, filter: "blur(14px)", transform: "translateY(9px)" }); }
+    const f = node("span", "fill", w);
+    if (FULL) { f.style.color = C.chartNum; f.style.background = "none"; }
+    else f.style.backgroundImage = `linear-gradient(180deg, ${hi ? C.hiTop : C.top} 0%, ${hi ? C.hiTop : C.top} 50%, ${hi ? C.hiBottom : C.bottom} 100%)`;
+    return { w, f, sh, set(txt) { f.textContent = txt; if (sh) sh.textContent = txt; } };
+  }
+  function makeSmall(txt) { if (!txt) return null; const e = node("div", "abs"); e.textContent = txt;
+    Object.assign(e.style, { fontFamily: T.fonts.small, color: FULL ? C.chartSmall : C.small, fontSize: T.px.small + "px",
+      fontStyle: E === "paper" && !FULL ? "italic" : "normal", letterSpacing: E === "glass" ? ".12em" : "0",
+      textShadow: FULL ? "none" : "0 2px 10px rgba(0,0,0,.7)" }); return e; }
+  let title = null;
+  if (FULL && LAB) { title = node("div", "abs"); title.textContent = E === "glass" ? LAB.toLocaleUpperCase("vi") : LAB;
+    Object.assign(title.style, { fontFamily: T.fonts.title, color: C.title, fontSize: T.px.title + "px", letterSpacing: E === "glass" ? ".24em" : "0" });
+    if (E === "paper") { const a = A["nhan-tieu-de-trong"]; title.style.backgroundImage = `url(${a.src})`; title.style.backgroundSize = "100% 100%"; title.style.color = "#2b1b12";
+      title.style.padding = "22px 50px 26px"; title.style.filter = "drop-shadow(0 8px 8px rgba(0,0,0,.35))"; const im = new Image(); im.src = a.src; imgs.push(im); } }
+  const nF = PAIR ? makeNum(FULL ? T.px.chart * 0.82 : T.px.from, false) : null;
+  const nT = makeNum(FULL ? T.px.chart : (PAIR ? T.px.big : T.px.big * (MICRO ? 0.95 : 1.05)), PAIR);
+  const lF = PAIR ? makeSmall(FL) : null, lT = makeSmall(PAIR ? TL : LAB && !FULL ? LAB : "");
+  let barA = null, barB = null, base = null, badge = null, badgeC = null;
+  if (FULL && PAIR) {
+    barA = node("div", "abs"); barB = node("div", "abs");
+    [barA, barB].forEach((b, i) => Object.assign(b.style, { width: "230px", transformOrigin: "50% 100%",
+      background: i ? C.barB : C.barA, border: E === "glass" ? `1px solid ${C.line}` : "none", borderRadius: E === "glass" ? "2px" : E === "journal" ? "6px 6px 0 0" : "0",
+      boxShadow: E === "paper" ? "0 10px 16px rgba(0,0,0,.35)" : "none" }));
+    base = node("div", "abs"); Object.assign(base.style, { height: E === "glass" ? "1px" : "6px", background: E === "glass" ? C.line : E === "paper" ? "#1d1410" : "#8a6a4a" });
+    if (CHG) { badge = node("div", "abs"); badge.textContent = CHG;
+      Object.assign(badge.style, { fontFamily: T.fonts.num, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "54px" });
+      if (E === "paper") { const a = A["tem-do-trong"]; badge.style.backgroundImage = `url(${a.src})`; badge.style.backgroundSize = "100% 100%";
+        Object.assign(badge.style, { width: "200px", height: "200px", color: "#b3121a", filter: "drop-shadow(0 8px 8px rgba(0,0,0,.35))" }); const im = new Image(); im.src = a.src; imgs.push(im); }
+      else if (E === "glass") Object.assign(badge.style, { padding: "14px 30px", border: `1px solid ${C.line}`, borderRadius: "999px", color: C.up, background: "rgba(16,16,16,.6)", fontSize: "48px" });
+      else Object.assign(badge.style, { padding: "10px 26px", color: C.arrow, fontSize: "56px" }); }
+  }
+  root.appendChild(svg);
+  let arrow = null, head = null, badgeRing = null;
+  let FROM_T = 0.05;
+
+  function layout() {
+    // cỡ số theo GIÁ TRỊ CUỐI (đếm không làm xô bề ngang)
+    const maxW = FULL ? 360 : PAIR ? 820 : 820;
+    nT.set(TV); if (nF) nF.set(FV);
+    const fitPair = () => (nF ? nF.w.offsetWidth + 110 : 0) + nT.w.offsetWidth;
+    let k = 1; const pxT = parseFloat(nT.w.style.fontSize), pxF = nF ? parseFloat(nF.w.style.fontSize) : 0;
+    while ((FULL ? Math.max(nT.w.offsetWidth, nF ? nF.w.offsetWidth : 0) > maxW : fitPair() > maxW) && k > 0.45) {
+      k -= 0.04; nT.w.style.fontSize = Math.round(pxT * k) + "px"; if (nF) nF.w.style.fontSize = Math.round(pxF * k) + "px"; }
+    QA.fontPx.to = parseFloat(nT.w.style.fontSize); if (nF) QA.fontPx.from = parseFloat(nF.w.style.fontSize);
+    [nF, nT].forEach(n => { if (n) { n.w.style.width = n.w.offsetWidth + "px"; } });
+    if (!FULL) {
+      const yc = Y * H;
+      if (PAIR) {
+        const gw = fitPair(), x0 = CX - gw / 2;
+        place(nF.w, x0, yc - nF.w.offsetHeight / 2 + (nT.w.offsetHeight - nF.w.offsetHeight) * 0.28);
+        place(nT.w, x0 + nF.w.offsetWidth + 110, yc - nT.w.offsetHeight / 2);
+        const fb = rect(nF.w), tb = rect(nT.w);
+        if (lF) place(lF, fb.x + 4, fb.y - lF.offsetHeight + 8);
+        if (lT) place(lT, tb.x + 6, tb.y - lT.offsetHeight + 12);
+        const sx = fb.x + fb.w * 0.6, sy = fb.y - 18, ex = tb.x + 10, ey = tb.y + tb.h * 0.22;   // mũi tên từ số cũ sang số mới
+        arrow = path(`M ${sx} ${sy} Q ${(sx + ex) / 2} ${Math.min(sy, ey) - 120} ${ex} ${ey}`, C.arrow, E === "glass" ? 2.5 : E === "paper" ? 9 : 5);
+        const ha = Math.atan2(ey - (Math.min(sy, ey) - 120), ex - (sx + ex) / 2), hl = E === "glass" ? 20 : 32;
+        head = path(`M ${ex - hl * Math.cos(ha - 0.5)} ${ey - hl * Math.sin(ha - 0.5)} L ${ex} ${ey} L ${ex - hl * Math.cos(ha + 0.5)} ${ey - hl * Math.sin(ha + 0.5)}`, C.arrow, E === "glass" ? 2.5 : E === "paper" ? 9 : 5);
+      } else {
+        place(nT.w, CX - nT.w.offsetWidth / 2, yc - nT.w.offsetHeight / 2);
+        if (lT) { const tb = rect(nT.w); place(lT, CX - lT.offsetWidth / 2, tb.y - lT.offsetHeight + 10); }
+      }
+    } else {
+      let top = 0.13 * H;
+      if (page) place(page, CX - 470, 0.11 * H);
+      if (title) { place(title, CX - title.offsetWidth / 2, top); top += title.offsetHeight + 40; }
+      if (PAIR) {
+        const baseY = 0.68 * H, maxH = baseY - top - 260, xa = CX - 195, xb = CX + 195;
+        const va = PF ? Math.abs(PF.val) : 1, vb = PT ? Math.abs(PT.val) : 1, vm = Math.max(va, vb) || 1;
+        const ha = Math.max(maxH * 0.12, maxH * va / vm), hb = Math.max(maxH * 0.12, maxH * vb / vm);
+        Object.assign(barA.style, { height: ha + "px" }); Object.assign(barB.style, { height: hb + "px" });
+        place(barA, xa - 115, baseY - ha); place(barB, xb - 115, baseY - hb);
+        place(base, CX - 420, baseY); base.style.width = "840px";
+        place(nF.w, xa - nF.w.offsetWidth / 2, baseY - ha - nF.w.offsetHeight - 14);
+        place(nT.w, xb - nT.w.offsetWidth / 2, baseY - hb - nT.w.offsetHeight - 14);
+        if (lF) place(lF, xa - lF.offsetWidth / 2, baseY + 26);
+        if (lT) place(lT, xb - lT.offsetWidth / 2, baseY + 26);
+        const fb = rect(nF.w), tb = rect(nT.w);
+        const sx = fb.x + fb.w / 2, sy = fb.y - 16, ex = tb.x + tb.w * 0.3, ey = tb.y - 6;
+        arrow = path(`M ${sx} ${sy} Q ${(sx + ex) / 2 - 40} ${Math.min(sy, ey) - 150} ${ex} ${ey}`, C.arrow, E === "glass" ? 2.5 : E === "paper" ? 9 : 5);
+        const hx = (sx + ex) / 2 - 40, hy = Math.min(sy, ey) - 150, an = Math.atan2(ey - hy, ex - hx), hl = E === "glass" ? 20 : 32;
+        head = path(`M ${ex - hl * Math.cos(an - 0.5)} ${ey - hl * Math.sin(an - 0.5)} L ${ex} ${ey} L ${ex - hl * Math.cos(an + 0.5)} ${ey - hl * Math.sin(an + 0.5)}`, C.arrow, E === "glass" ? 2.5 : E === "paper" ? 9 : 5);
+        if (badge) { const bw = badge.offsetWidth, bh = badge.offsetHeight; place(badge, Math.min(900 - bw, tb.x + tb.w - bw * 0.2), tb.y - bh - 10);
+          if (E === "journal") { const br = rect(badge), cx = br.x + br.w / 2, cy = br.y + br.h / 2; let d = "";
+            for (let i = 0; i <= 36; i++) { const a = -1.9 + i / 36 * Math.PI * 2.12; d += (i ? " L " : "M ") + (cx + br.w * 0.62 * Math.cos(a)).toFixed(1) + " " + (cy + br.h * 0.75 * Math.sin(a)).toFixed(1); }
+            badgeRing = path(d, C.arrow, 5); } }
+      } else {
+        place(nT.w, CX - nT.w.offsetWidth / 2, 0.42 * H - nT.w.offsetHeight / 2);
+        if (lT || LAB) { const l = lT || makeSmall(LAB); const tb = rect(nT.w); place(l, CX - l.offsetWidth / 2, tb.y + tb.h + 20); }
+      }
+    }
+    const parts = [rect(nT.w), ...(nF ? [rect(nF.w)] : []), ...[lF, lT, title, badge].filter(Boolean).map(rect)];
+    const x0 = Math.min(...parts.map(p => p.x)), y0 = Math.min(...parts.map(p => p.y)), x1 = Math.max(...parts.map(p => p.x + p.w)), y1 = Math.max(...parts.map(p => p.y + p.h));
+    QA.area = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    const nb = [rect(nT.w), ...(nF ? [rect(nF.w)] : [])];
+    const bx0 = Math.min(...nb.map(p => p.x)), by0 = Math.min(...nb.map(p => p.y)), bx1 = Math.max(...nb.map(p => p.x + p.w)), by1 = Math.max(...nb.map(p => p.y + p.h));
+    QA.box = { x: bx0, y: Math.round((by0 + by1) / 2 - (by1 - by0) / 2), w: bx1 - bx0, h: by1 - by0 };   // tâm = y (cho chữ sau người)
+    QA.keep = [lF, lT].filter(Boolean).map(rect);
+    if (x0 < 0.06 * W - 8 || x1 > 0.84 * W + 8 || y0 < 0.10 * H || y1 > 0.77 * H) QA.warn.push(`ra ngoài vùng an toàn TikTok (x ${x0}–${x1}, y ${y0}–${y1})`);
+    if (!PT) QA.warn.push(`'${TV}' không đọc được thành số — hiện nguyên chữ, không đếm`);
+    QA.land = +(PAIR ? TT + 0.6 : 0.6).toFixed(3); QA.full_at = +Math.min(DE - EX - 0.05, (PAIR ? TT : 0) + 0.9).toFixed(3); QA.to_t = +TT.toFixed(3);
+    QA.change = CHG;
+  }
+
+  function setTime(t0) {
+    const t = clamp(t0, 0, D), kx = inCubic(prog(t, DE - EX, DE));
+    if (bg) { const kb = outCubic(prog(t, 0, 0.3)); bg.style.opacity = kb; vig.style.opacity = kb; bg.style.transform = `scale(${(1.04 - 0.04 * t / D).toFixed(4)})`;
+      if (light) { light.style.opacity = (0.45 * outCubic(prog(t, 0.15, 1.1))).toFixed(4); light.style.transform = `translateY(${lerp(-50, 40, t / D).toFixed(1)}px) scale(1.1)`; }
+      if (page) { const k = outCubic(prog(t, 0, 0.45)); page.style.transform = `translateY(${((1 - k) * 220).toFixed(1)}px) rotate(-1deg)`; page.style.opacity = Math.min(1, k * 3).toFixed(4); } }
+    if (title) { const k = outCubic(prog(t, 0.05, 0.4)); title.style.opacity = k.toFixed(4); title.style.transform = `translateY(${((1 - k) * -24).toFixed(1)}px)${E === "paper" ? " rotate(-1.5deg)" : ""}`; }
+    // số đếm lên: vào → đếm (≈0,55s, chậm dần) → khựng
+    function animNum(n, p, a, startVal, finalTxt, dir) {
+      if (!n) return;
+      const k = prog(t, a, a + (MICRO ? 0.45 : 0.6)), ke = outQuart(k);
+      n.set(p ? fmt(p, lerp(startVal, p.val, ke)) : finalTxt);
+      const kin = prog(t, a, a + 0.22);
+      n.w.style.opacity = (t >= a ? Math.min(1, kin * 3) : 0).toFixed(4);
+      const snap = E === "paper" ? (1 - outBack(prog(stop12(Math.max(0, t - a)), 0, 0.25), 1.8)) * 40 : (1 - outCubic(kin)) * 26;
+      n.w.style.transform = E === "paper" ? `translateY(${(-snap).toFixed(1)}px)` : `translate${dir}(${snap.toFixed(1)}px)`;
+      n.w.style.filter = kin < 1 && kin > 0 ? `blur(${((1 - kin) * 8).toFixed(2)}px)` : "none";
+    }
+    animNum(nF, PF, FROM_T, 0, FV, "X");
+    animNum(nT, PT, PAIR ? TT : FROM_T, PAIR && PF && PT && PF.suf.trim() === PT.suf.trim() ? PF.val : 0, TV, "Y");
+    [[lF, FROM_T], [lT, PAIR ? TT - 0.05 : FROM_T]].forEach(([l, a]) => { if (!l) return; const k = outCubic(prog(t, a, a + 0.3)); l.style.opacity = k.toFixed(4); l.style.transform = `translateY(${((1 - k) * 10).toFixed(1)}px)`; });
+    draw(arrow, inOut(prog(t, TT - 0.1, TT + 0.3))); draw(head, inOut(prog(t, TT + 0.25, TT + 0.38)));
+    if (barA) { const ka = outCubic(prog(t, 0.1, 0.65)), kb = outCubic(prog(t, TT, TT + 0.6));
+      barA.style.transform = `scaleY(${ka.toFixed(4)})`; barB.style.transform = `scaleY(${kb.toFixed(4)})`; barB.style.opacity = t >= TT ? 1 : 0;
+      base.style.opacity = outCubic(prog(t, 0.05, 0.3)).toFixed(4); }
+    if (badge) { const kb = prog(t, TT + 0.5, TT + 0.75);
+      if (E === "paper") { badge.style.opacity = t >= TT + 0.5 ? 1 : 0; badge.style.transform = `translateY(${((1 - outBack(prog(stop12(Math.max(0, t - TT - 0.5)), 0, 0.2), 1.6)) * -80).toFixed(1)}px) rotate(10deg)`; }
+      else { badge.style.opacity = outCubic(kb).toFixed(4); badge.style.transform = `translateY(${((1 - outCubic(kb)) * 14).toFixed(1)}px)`; }
+      draw(badgeRing, inOut(prog(t, TT + 0.6, TT + 0.95))); }
+    root.style.opacity = (t >= DE - 1e-6 ? 0 : 1 - kx).toFixed(4);
+    root.style.filter = kx > 0.001 ? `blur(${(8 * kx).toFixed(2)}px)` : "none";
+  }
+
+  const fams = [...new Set(Object.values(T.fonts))];
+  const ready = Promise.all([
+    ...fams.map(f => document.fonts.load(`80px "${f}"`, FV + TV + FL + TL + LAB + CHG + "0123456789.,%×+−Ợ")),
+    ...imgs.map(im => im.decode().catch(() => { throw new Error("thiếu ảnh " + im.src); })),
+  ]).then(() => { layout(); setTime(0); });
+
+  window.setTime = setTime;
+  window.SCENE_MOTION = { name: `Number Impact · ${T.label} · ${PRESET}`, duration: D, width: W, height: H, fps: FPS,
+    ready, setTime, qa: QA,
+    scenes: [{ name: "số vào + đếm", start: 0, end: PAIR ? TT + 0.6 : 0.6 }, { name: "đứng đọc", start: PAIR ? TT + 0.6 : 0.6, end: DE - EX }, { name: "ra", start: DE - EX, end: D }] };
+  if (!Q.has("render")) {
+    const t0 = performance.now();
+    (function loop() { setTime(((performance.now() - t0) / 1000) % (D + 0.6)); requestAnimationFrame(loop); })();
+  }
+})();
+</script>
+</body>
+</html>

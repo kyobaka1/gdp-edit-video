@@ -1,0 +1,96 @@
+[
+ {
+  "theme": "gdp_red",
+  "preset": "full",
+  "ok": true,
+  "duration": 6.0333,
+  "frames": 181,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "gdp_red",
+  "preset": "micro",
+  "ok": true,
+  "duration": 6.0333,
+  "frames": 181,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 225.1) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "gdp_red",
+  "preset": "standard",
+  "ok": true,
+  "duration": 6.0333,
+  "frames": 181,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "phaledo_dark",
+  "preset": "full",
+  "ok": true,
+  "duration": 6.0333,
+  "frames": 181,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "phaledo_dark",
+  "preset": "micro",
+  "ok": true,
+  "duration": 6.0333,
+  "frames": 181,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 140.5) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "phaledo_dark",
+  "preset": "standard",
+  "ok": true,
+  "duration": 6.0333,
+  "frames": 181,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "phaledo_warm",
+  "preset": "full",
+  "ok": true,
+  "duration": 6.0333,
+  "frames": 181,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "phaledo_warm",
+  "preset": "micro",
+  "ok": true,
+  "duration": 6.0333,
+  "frames": 181,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "phaledo_warm",
+  "preset": "standard",
+  "ok": true,
+  "duration": 6.0333,
+  "frames": 181,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ }
+]

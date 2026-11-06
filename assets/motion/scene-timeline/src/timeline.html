@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Timeline</title>
+<!-- Scene Library · C10 Timeline / Process v1.0 (Claude viết 06/11/2026) — assets/scenes/timeline/scene.json.
+     Các bước / mốc thời gian NỐI nhau: mỗi mốc hiện đúng lúc lời nhắc tới (items), đường nối chạy từ mốc trước tới mốc
+     mới, mốc đang nói nổi bật, mốc đã qua đánh dấu. standard/full = thẻ phủ khung timeline dọc; micro = thanh tiến độ
+     ngang gọn trên footage ('2/5 · Lắp đặt'), chạy được lâu cùng chữ động.
+     Hợp đồng Motion Engine: window.setTime(giây) vẽ ĐỒNG BỘ, không Internet, KHÔNG will-change.
+     Query: theme · preset · dur · title · items (JSON [{t, x: nhãn, n: mốc thời gian / ghi chú}]) · bg · seed. -->
+<style>
+  @font-face { font-family: "GdpBold"; src: url("fonts/UTM_AvoBold.ttf"); }
+  @font-face { font-family: "GdpReg"; src: url("fonts/UTM_Avo.ttf"); }
+  @font-face { font-family: "PhBold"; src: url("fonts/Averta-Bold.otf"); }
+  @font-face { font-family: "PhReg"; src: url("fonts/Averta-Regular.otf"); }
+  @font-face { font-family: "PhLight"; src: url("fonts/Averta-Light.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  #root { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .abs { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; white-space: nowrap; box-sizing: border-box; }
+  .full { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; }
+  .bgimg { background-size: 100% 100%; background-repeat: no-repeat; }
+  .ctr { display: flex; align-items: center; justify-content: center; }
+  svg { position: absolute; left: 0; top: 0; overflow: visible; }
+</style>
+<script src="assets.js"></script>
+<script src="themes.js"></script>
+</head>
+<body>
+<div id="stage"><div id="root"></div></div>
+<script>
+(function () {
+  const W = 1080, H = 1920, FPS = 30;
+  const Q = new URLSearchParams(location.search);
+  const TH_ID = Q.get("theme") || "gdp_red";
+  const T = window.SCENE_THEMES[TH_ID] || window.SCENE_THEMES.gdp_red;
+  const C = T.color, A = window.KIT_ASSETS, E = T.engine;
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const prog = (t, a, b) => b <= a ? (t >= b ? 1 : 0) : clamp((t - a) / (b - a));
+  const outBack = (x, s = 1.5) => 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2);
+  const outCubic = x => 1 - Math.pow(1 - x, 3);
+  const inCubic = x => x * x * x;
+  const inOut = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  const stop12 = t => Math.floor(t * 12 + 1e-6) / 12;
+  const SEED = parseInt(Q.get("seed") || "1", 10) || 1;
+  function rng(n) { let a = (SEED * 7919 + n * 104729) >>> 0;
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+  const PRESETS = { micro: { min: 2.0, def: 8 }, standard: { min: 3.0, def: 5 }, full: { min: 4.0, def: 7 } };
+  const PRESET = PRESETS[Q.get("preset")] ? Q.get("preset") : "standard";
+  const D = Math.max(PRESETS[PRESET].min, parseFloat(Q.get("dur") || PRESETS[PRESET].def) || PRESETS[PRESET].def);
+  const MICRO = PRESET === "micro", FULL = PRESET === "full";
+  const TITLE = (Q.get("title") || "").trim();
+  const BGK = (T.bg || {})[Q.get("bg") || "default"] || (T.bg || {}).default;
+  const DE = D - 1 / FPS, EX = MICRO ? 0.25 : 0.35, HIN = MICRO ? 0.3 : 0.55;
+  const QA = { theme: TH_ID, preset: PRESET, dur: D, overflow: [], warn: [], fontPx: {} };
+  let ITEMS = [];
+  try { ITEMS = JSON.parse(Q.get("items") || "[]"); } catch (e) { QA.overflow.push("items JSON lỗi"); }
+  ITEMS = (Array.isArray(ITEMS) ? ITEMS : []).filter(it => it && it.x).slice(0, 6)
+    .map(it => ({ t: clamp(+it.t || HIN, HIN * 0.6, Math.max(HIN, DE - EX - 0.4)), x: String(it.x).trim(), n: it.n ? String(it.n).trim() : "" }))
+    .sort((a, b) => a.t - b.t);
+  const N = ITEMS.length, KN = N <= 4 ? 1 : N === 5 ? 0.9 : 0.8;
+  const root = document.getElementById("root");
+  const imgs = [];
+  function node(tag, cls, parent) { const e = document.createElement(tag); if (cls) e.className = cls; (parent || root).appendChild(e); return e; }
+  function bgi(el, key) { const a = A[key]; const im = new Image(); im.src = a.src; imgs.push(im); el.style.backgroundImage = `url(${a.src})`; el.classList.add("bgimg"); return el; }
+  function image(src, parent, cls) { const im = node("img", cls || "", parent); im.src = src; imgs.push(im); return im; }
+  function asset(key, w, parent) { const a = A[key], im = image(a.src, parent, "abs"); im.style.width = w + "px"; im.style.height = (w * a.h / a.w) + "px"; return im; }
+  function place(el, x, y) { el.style.left = Math.round(x) + "px"; el.style.top = Math.round(y) + "px"; }
+  function rect(el) { const r = el.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; }
+  function fitFont(el, px, maxW, minK) { let k = 1; el.style.fontSize = px + "px";
+    while (el.offsetWidth > maxW && k > minK) { k -= 0.04; el.style.fontSize = Math.round(px * k) + "px"; } return el.offsetWidth <= maxW + 1; }
+  const svgNS = "http://www.w3.org/2000/svg";
+  function path(svg, d, color, w, op) { const p = document.createElementNS(svgNS, "path"); p.setAttribute("d", d);
+    Object.assign(p.style, { fill: "none", stroke: color, strokeWidth: w + "px", strokeLinecap: "round", strokeLinejoin: "round", opacity: op ?? 1 });
+    svg.appendChild(p); p.dataset.len = p.getTotalLength(); p.style.strokeDasharray = p.dataset.len; p.style.strokeDashoffset = p.dataset.len; return p; }
+  function draw(p, k) { if (!p) return; p.style.strokeDashoffset = ((1 - k) * p.dataset.len).toFixed(1); p.style.visibility = k > 0 ? "visible" : "hidden"; }
+  if (!N) QA.warn.push("không có mốc nào (items rỗng)");
+
+  // nền (phủ khung)
+  let bg = null, vig = null, light = null, page = null, bar = null;
+  if (!MICRO) {
+    bg = image(A[BGK].src, root, "full");
+    vig = node("div", "full"); vig.style.background = E === "glass" ? "radial-gradient(ellipse 80% 60% at 50% 42%, rgba(0,0,0,0) 30%, rgba(0,0,0,.62) 100%)"
+      : E === "journal" ? "radial-gradient(ellipse 85% 70% at 50% 45%, rgba(0,0,0,0) 45%, rgba(70,45,20,.28) 100%)" : "radial-gradient(ellipse 80% 70% at 50% 45%, rgba(0,0,0,0) 40%, rgba(0,0,0,.35) 100%)";
+    if (E === "glass") { light = image(A[T.light].src, root, "full"); light.style.mixBlendMode = "screen"; }
+    if (E === "journal") { page = asset(T.page, 960); page.style.filter = "drop-shadow(0 14px 18px rgba(60,40,20,.3))"; }
+  } else {
+    bar = node("div", "abs"); Object.assign(bar.style, { background: C.bar, borderRadius: E === "paper" ? "6px" : "999px",
+      border: E === "glass" ? `1px solid ${C.line}` : "none", boxShadow: E === "journal" ? "0 8px 14px rgba(50,28,12,.25)" : "none" });
+  }
+  let title = null;
+  if (TITLE && !MICRO) { title = node("div", "abs"); title.textContent = E === "glass" ? TITLE.toLocaleUpperCase("vi") : TITLE;
+    Object.assign(title.style, { fontFamily: T.fonts.title, color: C.title, fontSize: T.px.title + "px", letterSpacing: E === "glass" ? ".24em" : "0" });
+    if (E === "paper") { bgi(title, "bang-giay-den-trong"); Object.assign(title.style, { padding: "16px 44px 18px 40px", filter: "drop-shadow(0 6px 7px rgba(0,0,0,.35))" }); } }
+  const svg = document.createElementNS(svgNS, "svg"); svg.setAttribute("width", W); svg.setAttribute("height", H); root.appendChild(svg);
+  // các mốc
+  const items = ITEMS.map((it, i) => {
+    const o = { ...it, i };
+    o.dot = node("div", "abs ctr");
+    if (E === "paper") { bgi(o.dot, "tem-do-trong"); const s = MICRO ? 54 : Math.round(112 * KN);
+      Object.assign(o.dot.style, { width: s + "px", height: s + "px", fontFamily: T.fonts.num, color: C.num, fontSize: Math.round(s * 0.46) + "px", paddingTop: "3px",
+        filter: "drop-shadow(0 5px 6px rgba(0,0,0,.35))" }); o.dot.textContent = i + 1; }
+    else if (E === "glass") { const s = MICRO ? 26 : 46; Object.assign(o.dot.style, { width: s + "px", height: s + "px", borderRadius: "50%", border: `2px solid ${C.line}`,
+      background: "rgba(14,14,14,.85)" }); }
+    else { const s = MICRO ? 34 : Math.round(78 * KN); Object.assign(o.dot.style, { width: s + "px", height: s + "px", borderRadius: "50%", border: `4px solid ${C.line}`,
+      background: "#fbf3e6", fontFamily: T.fonts.num, color: C.num, fontSize: Math.round(s * 0.46) + "px" }); o.dot.textContent = MICRO ? "" : i + 1; }
+    if (!MICRO) {
+      o.lab = node("div", "abs"); o.lab.textContent = it.x;
+      Object.assign(o.lab.style, { fontFamily: T.fonts.label, color: C.label, fontSize: T.px.label + "px" });
+      if (E === "paper") { bgi(o.lab, "nhan-tieu-de-trong"); Object.assign(o.lab.style, { padding: "16px 44px 18px 34px", filter: "drop-shadow(0 6px 7px rgba(0,0,0,.3))" });
+        o.lab.dataset.pad = "8"; }
+      else if (E === "glass") Object.assign(o.lab.style, { letterSpacing: ".02em", textShadow: "0 2px 12px rgba(0,0,0,.6)" });
+      if (it.n) { o.note = node("div", "abs"); o.note.textContent = E === "glass" ? it.n.toLocaleUpperCase("vi") : it.n;
+        Object.assign(o.note.style, { fontFamily: T.fonts.note, color: C.note, fontSize: T.px.note + "px", letterSpacing: E === "glass" ? ".22em" : "0" });
+        if (E === "paper") { bgi(o.note, "bang-giay-den-trong"); Object.assign(o.note.style, { padding: "10px 26px 12px 22px" }); } }
+    }
+    return o;
+  });
+  let chip = null;
+  if (MICRO) { chip = node("div", "abs"); Object.assign(chip.style, { fontFamily: T.fonts.label, fontSize: T.px.micro + "px", color: C.chipText, background: C.chip,
+    padding: "10px 24px 11px", borderRadius: E === "paper" ? "4px" : "999px", border: E === "glass" ? `1px solid ${C.line}` : "none",
+    boxShadow: E === "glass" ? "none" : "0 6px 10px rgba(0,0,0,.3)", textShadow: E === "glass" ? "0 1px 6px rgba(0,0,0,.5)" : "none" }); }
+  const svgTop = document.createElementNS(svgNS, "svg"); svgTop.setAttribute("width", W); svgTop.setAttribute("height", H); root.appendChild(svgTop);
+  const segs = [], ticks = [];
+  let rings = [], track = null;
+
+  function layout() {
+    if (MICRO) {   // thanh tiến độ ngang trên footage
+      const y = 0.125 * H, x0 = 150, x1 = 830, bh = 70;
+      Object.assign(bar.style, { width: (x1 - x0 + 120) + "px", height: bh + "px" }); place(bar, x0 - 60, y - bh / 2);
+      track = path(svg, `M ${x0} ${y} L ${x1} ${y}`, C.line, E === "glass" ? 2 : 4, 0.3);
+      items.forEach((o, i) => { o.cx = N > 1 ? x0 + i * (x1 - x0) / (N - 1) : (x0 + x1) / 2; o.cy = y;
+        place(o.dot, o.cx - o.dot.offsetWidth / 2, o.cy - o.dot.offsetHeight / 2); });
+      for (let i = 1; i < N; i++) { const a = items[i - 1], b = items[i];
+        segs.push(path(svg, `M ${a.cx} ${a.cy} L ${b.cx} ${b.cy}`, C.line, E === "glass" ? 2 : E === "paper" ? 7 : 4)); }
+      let maxW = 0; items.forEach((o, i) => { chip.textContent = `${i + 1}/${N} · ${o.x}`; fitFont(chip, T.px.micro, 700, 0.6); maxW = Math.max(maxW, chip.offsetWidth); });
+      chip.dataset.y = y + bh / 2 + 18;
+      const by = y - bh / 2, area = { x: x0 - 60, y: by, w: x1 - x0 + 120, h: bh + 18 + chip.offsetHeight };
+      QA.area = area; QA.box = area;
+    } else {
+      let top = 0.13 * H;
+      if (page) place(page, 540 - 480 - 54, 0.1 * H);
+      if (title) { const tx = E === "journal" ? 230 : 120, ty = top + (E === "journal" ? 24 : 0);
+        fitFont(title, T.px.title, W - 120 - tx, 0.6); place(title, tx, ty); top = ty + title.offsetHeight + 60; }
+      const X = E === "paper" ? 200 : 190, Y0 = Math.max(top + 70, 0.25 * H), Y1 = 0.76 * H;
+      const lx0 = o => X + o.dot.offsetWidth / 2 + (E === "paper" ? 24 : 32);
+      items.forEach(o => { fitFont(o.lab, T.px.label * KN, W - 120 - lx0(o) - 16, 0.55); if (o.note) fitFont(o.note, T.px.note * KN, 560, 0.6); });
+      const need = Math.max(0, ...items.map(o => Math.max(o.lab.offsetHeight, o.dot.offsetHeight) + (o.note ? o.note.offsetHeight : 0))) + 30;
+      const step = N > 1 ? Math.min(FULL ? 330 : 290, (Y1 - Y0) / (N - 1)) : 0;
+      if (N > 1 && step < need) QA.warn.push(`mốc sát nhau (bước ${Math.round(step)} < ${Math.round(need)}px) — bớt mốc / bỏ ghi chú`);
+      const ys = (Y0 + Y1) / 2 - 20 - step * (N - 1) / 2;
+      items.forEach((o, i) => {
+        o.cx = X; o.cy = ys + i * step;
+        place(o.dot, o.cx - o.dot.offsetWidth / 2, o.cy - o.dot.offsetHeight / 2);
+        const lh = o.lab.offsetHeight, nh = o.note ? o.note.offsetHeight : 0, lx = lx0(o), ly = o.cy - lh / 2;
+        place(o.lab, lx, ly);
+        if (o.note) { if (E === "journal") place(o.note, lx + 4, ly + lh - 2);          // ghi chú bút chì dưới nhãn
+                      else place(o.note, lx + (E === "paper" ? 22 : 2), ly - nh + (E === "paper" ? 12 : 0)); }   // băng đen / chữ nhỏ trên nhãn
+        o.box = rect(o.lab);
+        const nb = o.note ? rect(o.note) : o.box;
+        if (Math.max(o.box.y + o.box.h, nb.y + nb.h) > 0.8 * H) QA.overflow.push(`mốc ${i + 1} tràn đáy`);
+      });
+      const r = rng(5);
+      for (let i = 1; i < N; i++) { const a = items[i - 1], b = items[i];
+        const y0 = a.cy + a.dot.offsetHeight * (E === "paper" ? 0.42 : 0.5) + 4, y1 = b.cy - b.dot.offsetHeight * (E === "paper" ? 0.42 : 0.5) - 4;
+        const d = E === "paper" ? `M ${a.cx + (r() - 0.5) * 6} ${y0} Q ${a.cx + (r() - 0.5) * 22} ${(y0 + y1) / 2} ${b.cx + (r() - 0.5) * 6} ${y1}` : `M ${a.cx} ${y0} L ${b.cx} ${y1}`;
+        segs.push(path(svg, d, C.line, E === "glass" ? 2 : E === "paper" ? 10 : 4, E === "journal" ? 0.85 : 1)); }
+      items.forEach(o => {   // dấu đã qua (full): GDP tick xanh góc tem; PHALEDO tick nằm TRONG nút (số mờ đi)
+        if (!FULL) return; const s = o.dot.offsetWidth; let d;
+        if (E === "paper") { const x = o.cx + 0.2 * s, y = o.cy - 0.38 * s; d = `M ${x} ${y} L ${x + 0.14 * s} ${y + 0.16 * s} L ${x + 0.42 * s} ${y - 0.2 * s}`; }
+        else d = `M ${o.cx - 0.26 * s} ${o.cy + 0.02 * s} L ${o.cx - 0.07 * s} ${o.cy + 0.21 * s} L ${o.cx + 0.27 * s} ${o.cy - 0.2 * s}`;
+        ticks.push(path(svgTop, d, E === "glass" ? "#161616" : C.done, E === "glass" ? 4 : E === "paper" ? 9 : 6)); });
+      if (E === "glass") rings = items.map(o => { const c = document.createElementNS(svgNS, "circle"); c.setAttribute("cx", o.cx); c.setAttribute("cy", o.cy);
+        c.setAttribute("r", 23); Object.assign(c.style, { fill: "none", stroke: C.line, strokeWidth: "1.5px", opacity: 0 }); svg.appendChild(c); return c; });
+      const parts = items.flatMap(o => [rect(o.dot), o.box, ...(o.note ? [rect(o.note)] : [])]).concat(title ? [rect(title)] : []);
+      const x0 = Math.min(...parts.map(p => p.x)), y0 = Math.min(...parts.map(p => p.y)), x1 = Math.max(...parts.map(p => p.x + p.w)), y1 = Math.max(...parts.map(p => p.y + p.h));
+      QA.area = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }; QA.box = QA.area;
+      if (x1 > 0.84 * W + 8) QA.warn.push(`nhãn dài sát mép phải (x ${x1})`);
+      QA.fontPx.label = items[0] ? parseFloat(items[0].lab.style.fontSize) : 0;
+    }
+    QA.items = items.map(o => o.box || rect(o.dot)); QA.items_t = ITEMS.map(it => +it.t.toFixed(3));
+    QA.land = HIN; QA.full_at = +Math.min(DE - EX - 0.05, (N ? ITEMS[N - 1].t : HIN) + 0.55).toFixed(3);
+  }
+
+  function setTime(t0) {
+    const t = clamp(t0, 0, D), kx = inCubic(prog(t, DE - EX, DE));
+    if (bg) { const kb = outCubic(prog(t, 0, 0.3)); bg.style.opacity = kb; vig.style.opacity = kb; bg.style.transform = `scale(${(1.04 - 0.04 * t / D).toFixed(4)})`;
+      if (light) { light.style.opacity = (0.45 * outCubic(prog(t, 0.15, 1.1))).toFixed(4); light.style.transform = `translateY(${lerp(-50, 40, t / D).toFixed(1)}px) scale(1.1)`; }
+      if (page) { const k = outCubic(prog(t, 0, 0.45)); page.style.transform = `translateY(${((1 - k) * 220).toFixed(1)}px) rotate(-1deg)`; page.style.opacity = Math.min(1, k * 3).toFixed(4); } }
+    const kbar = outCubic(prog(t, 0, HIN));
+    if (bar) { bar.style.opacity = kbar.toFixed(4); bar.style.transform = `translateY(${((1 - kbar) * -20).toFixed(1)}px)`; draw(track, outCubic(prog(t, 0.05, HIN + 0.2))); }
+    if (title) { const k = E === "paper" ? prog(stop12(t), 0.05, 0.3) : outCubic(prog(t, 0.05, 0.45));
+      title.style.opacity = E === "paper" ? (t >= 0.05 ? 1 : 0) : k.toFixed(4); title.style.transform = `translateX(${((1 - (E === "paper" ? outBack(k, 1.4) : k)) * -60).toFixed(1)}px)${E === "paper" ? " rotate(-2deg)" : ""}`; }
+    let cur = -1;
+    items.forEach((o, i) => {
+      const nx = items[i + 1], isCur = t >= o.t && (!nx || t < nx.t); if (isCur) cur = i;
+      const kp = prog(t, o.t, o.t + 0.3), passed = nx && t >= nx.t;
+      // đường nối chạy tới mốc này (trước khi mốc hiện)
+      if (i > 0) draw(segs[i - 1], inOut(prog(t, o.t - 0.32, o.t)));
+      const wait = MICRO ? 0.35 * kbar : 0;   // micro: mốc chưa tới hiện mờ trên thanh
+      if (E === "paper") { const ks = t >= o.t ? prog(stop12(t - o.t), 0, 0.2) : 1; o.dot.style.opacity = t >= o.t ? 1 : wait;
+        o.dot.style.transform = `translateY(${((1 - outBack(ks, 1.6)) * -40).toFixed(1)}px) rotate(${-8 + (i % 2) * 14}deg)`; }
+      else { o.dot.style.opacity = Math.max(wait, outCubic(prog(t, o.t, o.t + 0.2))).toFixed(4);
+        o.dot.style.transform = `translateY(${((1 - (t >= o.t || !MICRO ? outCubic(kp) : 1)) * 12).toFixed(1)}px)`;
+        if (E === "glass") o.dot.style.background = passed || isCur ? C.line : "rgba(14,14,14,.85)";
+        if (E === "journal" && ticks[i]) o.dot.style.color = passed && t >= nx.t + 0.1 ? "rgba(0,0,0,0)" : C.num; }
+      if (o.lab) {
+        const kl = outCubic(prog(t, o.t + 0.05, o.t + 0.38));
+        o.lab.style.opacity = (Math.min(1, kl * 2) * (passed ? 0.62 : 1)).toFixed(4);
+        o.lab.style.transform = `translateX(${((1 - kl) * 40).toFixed(1)}px)${E === "paper" ? ` rotate(${(i % 2 ? 1 : -1) * 1.2}deg)` : ""}`;
+        if (E === "paper") { const kh = (isCur ? prog(t, o.t + 0.25, o.t + 0.45) : 0);
+          o.lab.style.boxShadow = "none"; o.lab.style.color = C.label;
+          o.lab.style.backgroundColor = "transparent";
+          o.lab.style.backgroundImage = kh > 0.001 ? `linear-gradient(180deg, rgba(0,0,0,0) 56%, rgba(${C.mark},${(0.85 * kh).toFixed(3)}) 56%, rgba(${C.mark},${(0.85 * kh).toFixed(3)}) 84%, rgba(0,0,0,0) 84%), url(${A["nhan-tieu-de-trong"].src})` : `url(${A["nhan-tieu-de-trong"].src})`; }
+        if (o.note) { const kn = outCubic(prog(t, o.t, o.t + 0.3)); o.note.style.opacity = (kn * (passed ? 0.6 : 1)).toFixed(4);
+          o.note.style.transform = `translateY(${((1 - kn) * -10).toFixed(1)}px)${E === "paper" ? " rotate(-3deg)" : ""}`; }
+      }
+      if (ticks[i]) draw(ticks[i], passed ? inOut(prog(t, nx.t, nx.t + 0.3)) : 0);
+      if (rings[i]) { const kr = isCur ? (((t - o.t) % 1.2) / 1.2) : 0; rings[i].setAttribute("r", (23 + 28 * kr).toFixed(1)); rings[i].style.opacity = isCur ? (0.8 * (1 - kr)).toFixed(3) : 0; }
+    });
+    if (chip) {
+      if (cur >= 0) { const o = items[cur]; chip.textContent = `${cur + 1}/${N} · ${o.x}`;
+        const kc = outCubic(prog(t, o.t, o.t + 0.25)); chip.style.opacity = kc.toFixed(4);
+        place(chip, clamp(o.cx - chip.offsetWidth / 2, 70, 900 - chip.offsetWidth), +chip.dataset.y + (1 - kc) * 10); }
+      else chip.style.opacity = 0;
+    }
+    root.style.opacity = (t >= DE - 1e-6 ? 0 : 1 - kx).toFixed(4);
+    root.style.filter = kx > 0.001 ? `blur(${(8 * kx).toFixed(2)}px)` : "none";
+  }
+
+  const fams = [...new Set(Object.values(T.fonts))];
+  const ready = Promise.all([
+    ...fams.map(f => document.fonts.load(`50px "${f}"`, TITLE + ITEMS.map(it => it.x + it.n).join("") + "0123456789/·Ợ")),
+    ...imgs.map(im => im.decode().catch(() => { throw new Error("thiếu ảnh " + im.src); })),
+  ]).then(() => { layout(); setTime(0); });
+
+  window.setTime = setTime;
+  window.SCENE_MOTION = { name: `Timeline · ${T.label} · ${PRESET}`, duration: D, width: W, height: H, fps: FPS,
+    ready, setTime, qa: QA,
+    scenes: [{ name: "khung vào", start: 0, end: HIN }, { name: "các mốc theo lời", start: HIN, end: DE - EX }, { name: "ra", start: DE - EX, end: D }] };
+  if (!Q.has("render")) {
+    const t0 = performance.now();
+    (function loop() { setTime(((performance.now() - t0) / 1000) % (D + 0.6)); requestAnimationFrame(loop); })();
+  }
+})();
+</script>
+</body>
+</html>

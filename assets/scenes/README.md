@@ -65,5 +65,9 @@ tiếng Việt, chữ tràn, khung lệch.
 | C05 | A vs B — 2 phe + VS + chốt phe thắng | `a-vs-b/` | ✅ v1.0 — 3 theme × micro/standard/full, ảnh `lib:` / khung từ clip `src:<clip>@<giây>` |
 | C09 | Detail Spotlight — khoanh / chỉ / phóng to chi tiết | `detail-spotlight/` | ✅ v1.0 — 3 theme × micro/standard/full (kính lúp), x,y từ `vs.py edit frame` |
 | C08 | Evidence Frame — bằng chứng thật đóng khung | `evidence-frame/` | ✅ v1.0 — 3 theme × micro/standard/full, ảnh hoặc CLIP thật phát trong khung (build ProofPainter) |
-| C06 C07 C10 C11 C12 | Problem→Solution · Number Impact · Timeline · Quote · Brand Outro | — | ⏳ |
+| C06 | Problem → Solution — vấn đề → chuyển ý → giải pháp | `problem-solution/` | ✅ v1.0 — 3 theme × micro/standard/full (standard/full phủ khung, mốc chuyển `switch_at`) |
+| C07 | Number Impact — số đếm lên / từ → đến / biểu đồ | `number-impact/` | ✅ v1.0 — 3 theme × micro/standard/full (micro/standard đè footage, có thể SAU người; full biểu đồ) |
+| C10 | Timeline / Process — các bước / mốc nối nhau theo lời | `timeline/` | ✅ v1.0 — 3 theme × micro/standard/full (micro = thanh tiến độ giữ chữ động — ghi đè `captions`/`hide_logo` theo preset) |
+| C11 | Quote / Insight — câu nói đắt thành thẻ riêng | `quote/` | ✅ v1.0 — 3 theme × micro/standard/full (full + ảnh thật) |
+| C12 | Brand Outro | — | ⛔ bỏ (Sếp 06/11: outro / intro đã có sẵn) |
 | G01–G12 / P01–P10 | riêng GDP / PHALEDO (đề xuất) | — | ⏳ đợt 2 |

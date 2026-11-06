@@ -1,0 +1,65 @@
+{
+ "id": "timeline",
+ "code": "C10",
+ "name": "Timeline / Process — các bước / mốc nối nhau theo lời",
+ "version": "1.0.0",
+ "motion_id": "scene-timeline",
+ "status": "ready",
+ "purpose": "Quy trình nhiều bước hoặc hành trình theo thời gian: mỗi mốc hiện ĐÚNG lúc lời nhắc tới, đường nối chạy từ mốc trước sang mốc mới, mốc đang nói nổi bật, mốc đã qua mờ đi (full: được tick). standard/full = thẻ phủ khung timeline dọc; micro = thanh tiến độ ngang gọn trên footage ('2/4 · Bóc lớp keo') chạy cùng chữ động suốt đoạn hướng dẫn.",
+ "use_when": [
+  "Hướng dẫn lắp / dùng có thứ tự ('lau sạch → bóc keo → ép 30 giây → treo đồ') — mỗi bước được nói ra",
+  "Hành trình / lịch sử theo mốc thời gian ('2019 mở shop… 2022 ra PHALEDO…') — mốc đúng nguồn",
+  "Đoạn demo dài người làm từng bước trước máy → micro (thanh tiến độ, không che người)"
+ ],
+ "avoid_when": [
+  "Chỉ 1–2 bước (dùng Keyword Burst C01 / Count & Reveal C04)",
+  "Các ý KHÔNG có thứ tự (danh sách lợi ích) → Count & Reveal (C04) hoặc Pinned Title (C03)",
+  "Bước / mốc không có trong lời / nguồn (không thêm tuyên bố, không bịa thời gian)"
+ ],
+ "presets": {
+  "micro": {"dur": [2.0, 40.0], "default": 8, "covers": false, "captions": "keep", "hide_logo": true,
+            "note": "thanh tiến độ ngang ở tầm trên (12% khung) + chip 'bước 2/4 · nhãn' theo lời — đè footage, chữ động vẫn chạy bên dưới; chỉ khi ép preset='micro'"},
+  "standard": {"dur": [3.0, 12.0], "default": 5, "covers": true, "note": "thẻ phủ khung: (tiêu đề) + timeline dọc, nhãn 1 dòng"},
+  "full": {"dur": [4.0, 14.0], "default": 7, "covers": true, "note": "như standard + ghi chú / mốc thời gian từng bước + tick mốc đã qua"}
+ },
+ "preset_auto": "content",
+ "preset_rule": "không ép preset: bước có ghi chú → full · còn lại standard (micro chỉ khi ép preset='micro')",
+ "items": {"max": 6, "term_max": 18, "note_max": 16, "lead": 0.15, "tail": 0.9, "required": true, "micro": true,
+           "note": "items=[(cụm lời | giây, 'Nhãn bước'[, 'mốc thời gian / ghi chú']), …] — theo đúng thứ tự lời; mốc hiện sớm 0,15s; 5–6 bước thì chữ tự thu 10–20%"},
+ "themes": {
+  "gdp_red": {"brand": "GIADUNGPLUS", "trans": "flash", "bg": ["default", "red"],
+              "look": "kraft nâu; tem đỏ đánh số đập xuống (12 hình/giây), đường bút dạ đỏ vẽ tay nối mốc, nhãn băng giấy xé, mốc thời gian trên băng đen, mốc đang nói tô vạch vàng, full: tick xanh góc tem"},
+  "phaledo_dark": {"brand": "PHALEDO", "trans": "cut",
+                   "look": "nền đen + ánh sáng khúc xạ; nét mảnh champagne nối các nút tròn mảnh, nút đang nói có vòng lan, nút đã qua tô đặc (full: tick trong nút), mốc thời gian IN HOA giãn chữ"},
+  "phaledo_warm": {"brand": "PHALEDO", "trans": "cut",
+                   "look": "trang sổ tay; vòng tròn số vẽ tay nối bằng nét bút màu đất, ghi chú bút dưới nhãn, full: số đổi thành tick xanh rêu khi qua bước"}
+ },
+ "theme_by_brand": {"GIADUNGPLUS": "gdp_red", "PHALEDO": "phaledo_dark", "*": "gdp_red"},
+ "params": {
+  "title": {"max_chars": 24, "note": "tiêu đề thẻ ('4 bước dán móc', 'Hành trình PHALEDO') — standard/full; micro bỏ qua"},
+  "bg": {"note": "gdp_red: default (kraft) | red"},
+  "theme": {"note": "bỏ trống = theo shop của job"},
+  "preset": {"note": "bỏ trống = theo nội dung: có ghi chú → full, không → standard; 'micro' = thanh tiến độ trên footage"}
+ },
+ "sfx": {
+  "gdp_red": [{"at": "enter", "file": "scene/paper_whoosh.wav", "gain_db": -20, "presets": ["standard", "full"]},
+              {"at": "item", "file": "impactSoft_medium_001.ogg", "gain_db": -21}],
+  "phaledo_dark": [{"at": "enter", "file": "scene/soft_swell.wav", "gain_db": -23, "presets": ["standard", "full"]},
+                   {"at": "item", "file": "scene/glass_ting.wav", "gain_db": -27}],
+  "phaledo_warm": [{"at": "enter", "file": "scene/page_slide.wav", "gain_db": -21, "presets": ["standard", "full"]},
+                   {"at": "item", "file": "scene/pencil_scribble.wav", "gain_db": -24}]
+ },
+ "qa": ["Motion Engine: tất định (Chrome vẽ CPU), khung cuối trong suốt; 'viền TỐI' ở micro = bóng mềm cố ý",
+        "Template: nhãn tự thu vừa khung; qa.warn 'mốc sát nhau' khi 6 bước có ghi chú không đủ chỗ (bớt mốc / bỏ ghi chú); qa.overflow khi tràn đáy 80%",
+        "Nội dung: bước / mốc đúng lời, đúng thứ tự"],
+ "sample": {"GIADUNGPLUS": {"title": "4 bước dán móc", "dur": 6.0,
+                            "items": "[{\"t\":0.6,\"x\":\"Lau sạch tường\",\"n\":\"30 giây\"},{\"t\":1.8,\"x\":\"Bóc lớp keo\",\"n\":\"5 giây\"},{\"t\":3.0,\"x\":\"Ép thật chặt\",\"n\":\"30 giây\"},{\"t\":4.2,\"x\":\"Treo đồ\",\"n\":\"sau 2 giờ\"}]"},
+            "PHALEDO": {"title": "Pha trà đúng cách", "dur": 6.0,
+                        "items": "[{\"t\":0.6,\"x\":\"Tráng ấm nóng\",\"n\":\"10 giây\"},{\"t\":1.8,\"x\":\"Cho trà vào\",\"n\":\"5 gram\"},{\"t\":3.0,\"x\":\"Rót nước 90°C\",\"n\":\"200 ml\"},{\"t\":4.2,\"x\":\"Hãm trà\",\"n\":\"3 phút\"}]"}},
+ "examples": [
+  "c.graphic('scene-timeline', at='đầu tiên', until='treo đồ', title='4 bước dán móc', items=[('lau sạch', 'Lau sạch tường'), ('bóc', 'Bóc lớp keo'), ('ép', 'Ép thật chặt'), ('treo', 'Treo đồ')])",
+  "c.graphic('scene-timeline', at='đầu tiên', until='hai tiếng', items=[('lau sạch', 'Lau sạch tường', '30 giây'), ('ép', 'Ép thật chặt', '30 giây'), ('hai tiếng', 'Treo đồ', 'sau 2 giờ')])   # full: có mốc thời gian",
+  "c.graphic('scene-timeline', at='bước một', until='xong rồi', preset='micro', items=[('bước một', 'Lau tường'), ('bước hai', 'Bóc keo'), ('bước ba', 'Ép chặt')])   # thanh tiến độ trên footage"
+ ],
+ "previews": "previews/<theme>-<preset>.jpg + previews/_board.jpg"
+}

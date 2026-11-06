@@ -96,11 +96,17 @@ def sfx_events(prof: dict, g: dict) -> list[tuple[Path, float, float]]:
             out += [(f, float(s.get("gain_db", -24)), round(g["t0"] + float(it["t"]), 3)) for it in its
                     if f.exists() and g["t0"] + float(it["t"]) < g["t1"]]
             continue
-        if s["at"] in ("win", "figure"):   # lúc chốt (A vs B win_t) / số liệu đập vào (Evidence figure_t)
-            pt = g["params"].get(f"{s['at']}_t")
-            if (s["at"] == "win" and pt is None) or (s["at"] == "figure" and not g["params"].get("figure")):
-                continue
-            off = float(pt) if pt is not None else float(land or 0.57) + 0.5
+        pt = g["params"].get(f"{s['at']}_t")   # mốc theo tham số giờ (switch_t, win_t, figure_t) hoặc trang tự báo (qa)
+        if pt is None:
+            pt = (g.get("text_qa") or {}).get(f"{s['at']}_t")
+        if s["at"] == "figure" and not g["params"].get("figure"):
+            continue
+        if s["at"] not in ("enter", "land", "word", "item") and pt is not None:
+            off = float(pt)
+        elif s["at"] == "win":   # A vs B không chốt → không tiếng
+            continue
+        elif s["at"] == "figure":
+            off = float(land or 0.57) + 0.5
         elif s["at"] == "enter":
             off = 0.0
         elif s["at"] == "land" and land is not None:

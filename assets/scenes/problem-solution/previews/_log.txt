@@ -1,0 +1,10 @@
+✓ gdp_red       micro     4.03s 121 khung · khung đầu α0 · khung cuối α0 · 11s
+✓ gdp_red       standard  4.03s 121 khung · khung đầu α255 · khung cuối α0 · 128s
+✓ gdp_red       full      4.03s 121 khung · khung đầu α255 · khung cuối α0 · 134s
+✓ phaledo_dark  micro     4.03s 121 khung · khung đầu α0 · khung cuối α0 · 12s · ⚠ viền TỐI quanh hình (halo 124.8) — ghép lên nền sáng sẽ thấy viền đen
+✓ phaledo_dark  standard  4.03s 121 khung · khung đầu α255 · khung cuối α0 · 126s
+✓ phaledo_dark  full      4.03s 121 khung · khung đầu α255 · khung cuối α0 · 129s
+✓ phaledo_warm  micro     4.03s 121 khung · khung đầu α0 · khung cuối α0 · 11s · ⚠ viền TỐI quanh hình (halo 214.9) — ghép lên nền sáng sẽ thấy viền đen
+✓ phaledo_warm  standard  4.03s 121 khung · khung đầu α255 · khung cuối α0 · 145s
+✓ phaledo_warm  full      4.03s 121 khung · khung đầu α255 · khung cuối α0 · 144s
+→ C:\Users\Admin\gdp-video-studio\assets\scenes\problem-solution\previews

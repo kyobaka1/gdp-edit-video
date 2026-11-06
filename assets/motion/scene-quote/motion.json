@@ -1,0 +1,75 @@
+{
+  "id": "scene-quote",
+  "source": {
+    "kind": "html",
+    "entry": "src/quote.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\quote\\src\\quote.html"
+  },
+  "version": 1,
+  "name": "Scene C11 Quote / Insight",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "quote"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "scene",
+    "trích dẫn",
+    "câu nói",
+    "insight",
+    "lời khách",
+    "ghi nhớ",
+    "câu chốt"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 3.5,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "thẻ vào",
+      "start": 0,
+      "end": 0.45
+    },
+    {
+      "name": "chữ hiện từng từ",
+      "start": 0.36000000000000004,
+      "end": 0.36000000000000004
+    },
+    {
+      "name": "đứng đọc",
+      "start": 0.36000000000000004,
+      "end": 3.1166666666666667
+    },
+    {
+      "name": "ra",
+      "start": 3.1166666666666667,
+      "end": 3.5
+    }
+  ],
+  "params": {
+    "theme": "gdp_red",
+    "preset": "standard",
+    "quote": "Câu nói *quan trọng*",
+    "by": "",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "opaque": true,
+  "scene": "quote",
+  "notes": "Scene Library C11 Quote / Insight v1.0 — hồ sơ assets/scenes/quote/scene.json. Nguồn assets/scenes/quote/src (Claude viết 06/11). Câu nói đắt thành thẻ riêng: ngoặc kép, chữ hiện từng từ, *cụm khoá* nổi màu + gạch chân; standard/full phủ khung (full + ảnh), micro đè footage vùng phụ đề. Dùng: c.graphic('scene-quote', quote='… *cụm khoá* …', by=…)."
+}

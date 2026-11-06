@@ -1,0 +1,73 @@
+{
+ "id": "number-impact",
+ "code": "C07",
+ "name": "Number Impact — số lớn đếm lên, từ A đến B, biểu đồ",
+ "version": "1.0.0",
+ "motion_id": "scene-number-impact",
+ "status": "ready",
+ "purpose": "Con số TO tự đếm lên đúng nhịp lời — 1 số ('15 kg', '342.992.500đ') hoặc cặp TỪ → ĐẾN ('từ 1,5tr' → 'lên hơn 10tr', mẫu M3 hai bên đầu người nói); full = thẻ phủ khung biểu đồ 2 cột mọc lên + mức tăng tự tính (×6,7 / +30%). Giữ cách viết số Việt khi đếm.",
+ "use_when": [
+  "Lời có con số đắt (chịu lực, doanh thu, thời gian, % tiết kiệm) — số đúng như lời / nguồn",
+  "Lời so sánh trước–sau bằng số ('từ 1,5 triệu lên 10 triệu', 'giảm từ 30 phút còn 5 phút') → cặp từ → đến",
+  "Muốn nhấn mạnh mức thay đổi bằng hình (full: biểu đồ)"
+ ],
+ "avoid_when": [
+  "Số không có trong lời / nguồn, hoặc làm tròn đẹp hơn thực tế (không thêm tuyên bố)",
+  "Số kỹ thuật dài khó đọc (mã SKU, số điện thoại)",
+  "Hai số khác đơn vị (không đếm từ số này sang số kia, không tính mức tăng)"
+ ],
+ "presets": {
+  "micro": {"dur": [0.9, 1.6], "default": 1.4, "covers": false, "hides": ["from_value", "from_label", "to_label"], "note": "1 số bật lên + đếm, đè footage (có lead: nhãn nhỏ trên số)"},
+  "standard": {"dur": [1.4, 4.2], "default": 2.6, "covers": false, "note": "1 số có nhãn, hoặc cặp TỪ (nhỏ, trái) → ĐẾN (to, phải) + mũi tên — đè footage, có thể SAU người"},
+  "full": {"dur": [2.4, 8.0], "default": 4, "covers": true, "note": "thẻ phủ khung: tiêu đề + biểu đồ 2 cột mọc lên + số + mức tăng (tem / viên / khoanh)"}
+ },
+ "preset_auto": [[1.6, "micro"], [4.2, "standard"], [99, "full"]],
+ "lead_in": {"micro": 0.1, "standard": 0.15, "full": 0.0, "note": "hiện sớm hơn lời — không sớm hơn lúc từ liền trước nói xong"},
+ "default_dur": 2.6,
+ "hold_after": 0.6,
+ "time_params": {"to_at": "to_t"},
+ "behind": {"default": "auto", "min_person": 0.03, "max_occlusion": 0.35, "max_occlusion_peak": 0.5, "target_occlusion": 0.2, "top_limit": 0.10, "y_band": [0.14, 0.42],
+            "note": "chỉ bản đè footage (micro/standard): số to có thể nằm sau đầu như mẫu M3 '10tr'; nhãn nhỏ ('từ', 'lên hơn') luôn trước"},
+ "themes": {
+  "gdp_red": {"brand": "GIADUNGPLUS", "trans": "flash", "bg": ["default", "red"],
+              "look": "số UTM Avo trắng → nhạt dần + bóng mềm (số đích vàng), đếm rồi khựng; mũi tên vàng vẽ tay; full: cột giấy be / vàng trên kraft, tem đỏ ghi mức tăng"},
+  "phaledo_dark": {"brand": "PHALEDO", "trans": "cut", "bg": ["default"],
+                   "look": "số Averta Light lớn đếm mượt, mũi tên mảnh champagne; full: cột kính mảnh viền champagne, viên mức tăng"},
+  "phaledo_warm": {"brand": "PHALEDO", "trans": "cut", "bg": ["default"],
+                   "look": "số kem ấm trượt lên + đếm, mũi tên cong bút chì; full: cột tô màu đất trên trang sổ, mức tăng được khoanh tay"}
+ },
+ "theme_by_brand": {"GIADUNGPLUS": "gdp_red", "PHALEDO": "phaledo_dark", "*": "gdp_red"},
+ "params": {
+  "value": {"max_chars": 16, "note": "1 số ('15 kg', '342.992.500đ', '+30%') — đúng như lời"},
+  "label": {"max_chars": 24, "note": "nhãn nhỏ trên số (micro/standard) / tiêu đề biểu đồ (full)"},
+  "from_value": {"max_chars": 12, "note": "số TỪ ('1,5tr') — có thì thành cặp từ → đến"},
+  "to_value": {"max_chars": 12, "note": "số ĐẾN ('10tr') — cùng đơn vị với from_value thì đếm tiếp từ số cũ + tính mức tăng"},
+  "from_label": {"max_chars": 14, "note": "'từ' / 'Tháng 1'"},
+  "to_label": {"max_chars": 14, "note": "'lên hơn' / 'Tháng 9'"},
+  "to_at": {"note": "cụm lời nói SỐ ĐẾN → giây số đến vào (bỏ trống = 40% thời lượng)"},
+  "change": {"note": "auto (×6,7 / +30% tự tính) | chữ tự ghi | none"},
+  "y": {"note": "tâm số (tỉ lệ khung) — BỎ TRỐNG để máy tự đặt (sau / trước người)"},
+  "behind": {"note": "auto | True | False (chỉ micro/standard)"},
+  "bg": {"note": "full gdp_red: default (kraft) | red"},
+  "theme": {"note": "bỏ trống = theo shop của job"},
+  "preset": {"note": "bỏ trống = theo thời lượng: < 1,6s micro · < 4,2s standard · còn lại full (biểu đồ)"}
+ },
+ "sfx": {
+  "gdp_red": [{"at": "enter", "file": "scene/word_whoosh.wav", "gain_db": -19}, {"at": "to", "file": "impactSoft_medium_004.ogg", "gain_db": -16}],
+  "phaledo_dark": [{"at": "enter", "file": "scene/air_shimmer.wav", "gain_db": -23}, {"at": "to", "file": "scene/glass_ting.wav", "gain_db": -21}],
+  "phaledo_warm": [{"at": "enter", "file": "click_003.ogg", "gain_db": -21}, {"at": "to", "file": "scene/pencil_scribble.wav", "gain_db": -21}]
+ },
+ "land_at": {"gdp_red": {"micro": 0.6, "standard": 0.6, "full": 0.7}, "phaledo_dark": {"micro": 0.6, "standard": 0.6, "full": 0.7},
+             "phaledo_warm": {"micro": 0.6, "standard": 0.6, "full": 0.7}},
+ "qa": ["Motion Engine: tất định (Chrome vẽ CPU), khung cuối trong suốt; 'viền TỐI' = bóng mềm cố ý",
+        "Template: số co theo GIÁ TRỊ CUỐI (đếm không xô bề ngang); qa.warn khi chữ không đọc được thành số (hiện nguyên, không đếm)",
+        "Nội dung: số đúng lời / nguồn; mức tăng chỉ tự tính khi 2 số cùng đơn vị"],
+ "sample": {"GIADUNGPLUS": {"from_value": "1,5tr", "to_value": "10tr", "from_label": "từ", "to_label": "lên hơn", "label": "Doanh thu mỗi ngày", "dur": 3.0},
+            "PHALEDO": {"from_value": "30 phút", "to_value": "5 phút", "from_label": "trước", "to_label": "giờ chỉ", "label": "Thời gian dọn bếp", "dur": 3.0}},
+ "examples": [
+  "c.graphic('scene-number-impact', at='mười lăm ký', value='15 kg', label='chịu lực')   # 1 số",
+  "c.graphic('scene-number-impact', at='từ một rưỡi', until='mười triệu', from_value='1,5tr', from_label='từ', to_value='10tr', to_label='lên hơn', to_at='mười triệu')",
+  "c.graphic('scene-number-impact', at='doanh thu', dur=4, from_value='1,5tr', to_value='10tr', from_label='Tháng 1', to_label='Tháng 9', label='Doanh thu mỗi ngày', to_at='mười triệu')   # full: biểu đồ"
+ ],
+ "previews": "previews/<theme>-<preset>.jpg + previews/_board.jpg"
+}

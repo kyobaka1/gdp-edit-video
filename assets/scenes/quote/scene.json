@@ -1,0 +1,69 @@
+{
+ "id": "quote",
+ "code": "C11",
+ "name": "Quote / Insight — câu nói quan trọng thành thẻ riêng",
+ "version": "1.0.0",
+ "motion_id": "scene-quote",
+ "status": "ready",
+ "purpose": "Câu nói đắt (của người nói trong video, của khách thật, hay câu chốt insight) tách ra thành MỘT THẺ RIÊNG: ngoặc kép to, chữ hiện từng từ, *cụm khoá* nổi màu + gạch chân tự vẽ, người nói / nguồn bên dưới. GDP = giấy note vàng dán băng keo trên kraft; Dark = chữ mảnh hiện từ mờ → nét, kiểu tạp chí; Warm = ghi trên trang sổ tay, gạch chân bút.",
+ "use_when": [
+  "Người nói chốt 1 câu đáng nhớ / insight ('đồ tốt là đồ dùng mỗi ngày không phải nghĩ') → nhấn bằng thẻ riêng",
+  "Trích lời khách thật (đánh giá có thật, đúng nguyên văn) / lời chuyên gia có nguồn",
+  "Mở đầu bằng câu hỏi / câu hook mạnh, hoặc câu kết trước CTA"
+ ],
+ "avoid_when": [
+  "Lời khách / đánh giá KHÔNG có thật hoặc bị sửa ý (không bịa lời chứng thực, không thêm tuyên bố sản phẩm)",
+  "Câu dài > 20 từ (thẻ thu chữ + cảnh báo 'đứng đọc ngắn') — cắt còn ý chính",
+  "Chỉ 1–3 từ khoá → Keyword Burst (C01)"
+ ],
+ "presets": {
+  "micro": {"dur": [1.2, 4.0], "default": 2.5, "covers": false, "hides": ["photo", "eyebrow"],
+            "note": "thẻ gọn đè footage ở vùng phụ đề (y 0,66 khung) — chữ động tạm nhường trong lúc thẻ hiện"},
+  "standard": {"dur": [1.8, 8.0], "default": 3.5, "covers": true, "hides": ["photo"], "note": "thẻ phủ khung: ngoặc kép + câu + người nói (+ nhãn nhỏ eyebrow)"},
+  "full": {"dur": [3.0, 9.0], "default": 5, "covers": true, "note": "như standard + ảnh (người nói / bối cảnh / sản phẩm THẬT) phía trên thẻ"}
+ },
+ "preset_auto": [[1.8, "micro"], [99, "standard"]],
+ "preset_rule": "không ép preset: < 1,8s micro · còn lại standard; có photo → tự nâng full (≥ 3s)",
+ "lead_in": {"micro": 0.1, "standard": 0.0, "full": 0.0, "note": "micro hiện sớm hơn lời một chút — không sớm hơn lúc từ liền trước nói xong"},
+ "themes": {
+  "gdp_red": {"brand": "GIADUNGPLUS", "trans": "flash", "bg": ["default", "red"],
+              "look": "giấy note vàng rơi xuống kraft (12 hình/giây) + băng keo dán, ngoặc kép đỏ to, chữ UTM Avo hiện từng từ, cụm khoá đỏ + vạch bút dạ đỏ quét dưới, người nói trên băng giấy đen; ảnh in viền trắng dán băng keo"},
+  "phaledo_dark": {"brand": "PHALEDO", "trans": "cut",
+                   "look": "nền đen + ánh sáng khúc xạ; ngoặc kép Georgia champagne, chữ Averta Light hiện từng từ (mờ → nét), cụm khoá đậm champagne + gạch mảnh, dòng kẻ champagne mở ra trước tên IN HOA giãn chữ"},
+  "phaledo_warm": {"brand": "PHALEDO", "trans": "cut",
+                   "look": "trang sổ tay trượt lên + washi, ngoặc kép nâu đất, chữ hiện từng từ, cụm khoá đậm nâu đỏ + nét bút gạch chân, nhành lá khô góc trang; ảnh polaroid kem"}
+ },
+ "theme_by_brand": {"GIADUNGPLUS": "gdp_red", "PHALEDO": "phaledo_dark", "*": "gdp_red"},
+ "params": {
+  "quote": {"required": true, "max_chars": 110, "note": "câu NGUYÊN VĂN (lời người nói / khách thật / nguồn); `*cụm khoá*` = nổi màu + gạch chân. Đẹp nhất 6–16 từ"},
+  "by": {"max_chars": 32, "note": "người nói / nguồn ('Chị Hoa · Hà Nội', 'Đánh giá 5★ Shopee', 'PHALEDO') — đúng thật"},
+  "eyebrow": {"max_chars": 18, "note": "nhãn nhỏ trên thẻ ('Ghi nhớ', 'Khách nói', 'Insight') — standard/full"},
+  "photo": {"note": "full: src:<clip>@<giây> | lib:<id> — ảnh THẬT người nói / bối cảnh / sản phẩm"},
+  "y": {"note": "micro: tâm thẻ (tỉ lệ khung, mặc định 0,66 — vùng phụ đề)"},
+  "bg": {"note": "gdp_red: default (kraft) | red"},
+  "theme": {"note": "bỏ trống = theo shop của job"},
+  "preset": {"note": "bỏ trống = theo thời lượng (< 1,8s micro, còn lại standard; có photo → full)"}
+ },
+ "sfx": {
+  "gdp_red": [{"at": "enter", "file": "scene/paper_whoosh.wav", "gain_db": -20},
+              {"at": "land", "file": "impactSoft_medium_001.ogg", "gain_db": -19, "presets": ["standard", "full"]}],
+  "phaledo_dark": [{"at": "enter", "file": "scene/soft_swell.wav", "gain_db": -23}],
+  "phaledo_warm": [{"at": "enter", "file": "scene/page_slide.wav", "gain_db": -21},
+                   {"at": "land", "file": "scene/pencil_scribble.wav", "gain_db": -24, "presets": ["standard", "full"]}]
+ },
+ "land_at": {"gdp_red": {"micro": 0.25, "standard": 0.33, "full": 0.33}, "phaledo_dark": {"micro": 0.3, "standard": 0.5, "full": 0.5},
+             "phaledo_warm": {"micro": 0.25, "standard": 0.45, "full": 0.45}},
+ "qa": ["Motion Engine: tất định (Chrome vẽ CPU), khung cuối trong suốt; 'viền TỐI' ở micro = bóng mềm cố ý",
+        "Template: câu tự thu chữ vừa thẻ (qa.overflow khi thu 50% vẫn tràn → rút câu); qa.warn 'đứng đọc ngắn' khi thời gian đọc < 0,08s/từ",
+        "Nội dung: câu nguyên văn, người nói / nguồn có thật; ảnh full là ảnh thật"],
+ "sample": {"GIADUNGPLUS": {"quote": "Đồ gia dụng tốt là đồ *dùng mỗi ngày không phải nghĩ*", "by": "GIADUNGPLUS", "eyebrow": "Ghi nhớ",
+                            "photo": "goc-bep-bua", "dur": 4.0},
+            "PHALEDO": {"quote": "Căn bếp đẹp bắt đầu từ *những thứ nhỏ được chọn kỹ*", "by": "PHALEDO", "eyebrow": "Insight",
+                        "photo": "goc-bep-bua", "dur": 4.0}},
+ "examples": [
+  "c.graphic('scene-quote', at='đồ tốt', until='phải nghĩ', quote='Đồ tốt là đồ *dùng mỗi ngày không phải nghĩ*', by='Anh Vương · GIADUNGPLUS')",
+  "c.graphic('scene-quote', at='chị khách', dur=4.5, quote='Dán xong treo nồi *vẫn chắc sau 1 năm*', by='Đánh giá Shopee', eyebrow='Khách nói', photo='src:c07@2.0')   # full: ảnh thật",
+  "c.graphic('scene-quote', at='nhớ nhé', dur=1.6, quote='*Lau khô* trước khi dán')   # micro đè footage"
+ ],
+ "previews": "previews/<theme>-<preset>.jpg + previews/_board.jpg"
+}

@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Problem Solution</title>
+<!-- Scene Library · C06 Problem → Solution v1.0 (Claude viết 06/11/2026) — assets/scenes/problem-solution/scene.json.
+     2 pha: VẤN ĐỀ được đánh dấu (dấu SAI / gạch) → đúng lúc chuyển ý (switch_t) chuyển sang GIẢI PHÁP (dấu ĐÚNG / tick).
+     GDP: giấy đỏ bị XÉ ĐÔI lộ giấy kraft + mảng vàng · Dark: vệt sáng quét mở giải pháp · Warm: lật trang sổ.
+     standard/full phủ khung (2–5s), micro = 2 dòng chữ đè footage (dòng vấn đề bị gạch → dòng giải pháp ✓).
+     Hợp đồng Motion Engine: window.setTime(giây) vẽ ĐỒNG BỘ, không Internet, KHÔNG will-change.
+     Query: theme · preset · dur · problem · solution · problem_note · solution_note · photo_problem · photo_solution
+     (tên asset | file:/// | none) · stamp_problem · stamp_solution · switch_t (giây) · seed. -->
+<style>
+  @font-face { font-family: "GdpBold"; src: url("fonts/UTM_AvoBold.ttf"); }
+  @font-face { font-family: "GdpReg"; src: url("fonts/UTM_Avo.ttf"); }
+  @font-face { font-family: "PhBold"; src: url("fonts/Averta-Bold.otf"); }
+  @font-face { font-family: "PhReg"; src: url("fonts/Averta-Regular.otf"); }
+  @font-face { font-family: "PhLight"; src: url("fonts/Averta-Light.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  #root { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .layer { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; transform-origin: 50% 50%; }
+  .abs { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; white-space: nowrap; box-sizing: border-box; }
+  .full { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; }
+  .ph { position: absolute; overflow: hidden; box-sizing: border-box; }
+  .ph > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .stamp { position: absolute; left: 0; top: 0; white-space: nowrap; box-sizing: border-box; text-transform: uppercase; }
+  svg { position: absolute; left: 0; top: 0; overflow: visible; }
+</style>
+<script src="assets.js"></script>
+<script src="themes.js"></script>
+</head>
+<body>
+<div id="stage"><div id="root"></div></div>
+<script>
+(function () {
+  const W = 1080, H = 1920, FPS = 30;
+  const Q = new URLSearchParams(location.search);
+  const TH_ID = Q.get("theme") || "gdp_red";
+  const T = window.SCENE_THEMES[TH_ID] || window.SCENE_THEMES.gdp_red;
+  const C = T.color, A = window.KIT_ASSETS, E = T.engine;
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const prog = (t, a, b) => b <= a ? (t >= b ? 1 : 0) : clamp((t - a) / (b - a));
+  const outBack = (x, s = 1.5) => 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2);
+  const outCubic = x => 1 - Math.pow(1 - x, 3);
+  const inCubic = x => x * x * x;
+  const inOut = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  const stop12 = t => Math.floor(t * 12 + 1e-6) / 12;
+  const SEED = parseInt(Q.get("seed") || "1", 10) || 1;
+  function rng(n) { let a = (SEED * 7919 + n * 104729) >>> 0;
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+  const PRESETS = { micro: { min: 1.4, def: 2.4 }, standard: { min: 2.0, def: 3.5 }, full: { min: 3.0, def: 5 } };
+  const PRESET = PRESETS[Q.get("preset")] ? Q.get("preset") : "standard";
+  const D = Math.max(PRESETS[PRESET].min, parseFloat(Q.get("dur") || PRESETS[PRESET].def) || PRESETS[PRESET].def);
+  const MICRO = PRESET === "micro", FULL = PRESET === "full";
+  const up = s => (s || "").toLocaleUpperCase("vi").trim();
+  const PROB = (E === "glass" ? up(Q.get("problem")) : (Q.get("problem") || "").trim()) || "VẤN ĐỀ";
+  const SOL = (E === "glass" ? up(Q.get("solution")) : (Q.get("solution") || "").trim()) || "GIẢI PHÁP";
+  const PN = MICRO ? "" : (Q.get("problem_note") || "").trim(), SN = MICRO ? "" : (Q.get("solution_note") || "").trim();
+  const SP = up(Q.get("stamp_problem") || (E === "paper" ? "SAI" : "VẤN ĐỀ")), SS = up(Q.get("stamp_solution") || (E === "paper" ? "ĐÚNG" : "GIẢI PHÁP"));
+  const DE = D - 1 / FPS, EX = MICRO ? 0.25 : 0.35, HIN = MICRO ? 0.3 : 0.5;
+  const SW = clamp(parseFloat(Q.get("switch_t") || (D * 0.45)) || D * 0.45, HIN + 0.35, Math.max(HIN + 0.35, DE - EX - 0.7));
+  const TR = E === "glass" ? 0.55 : E === "journal" ? 0.45 : 0.4;   // thời gian chuyển pha
+  const QA = { theme: TH_ID, preset: PRESET, dur: D, overflow: [], warn: [], fontPx: {} };
+  const root = document.getElementById("root");
+  const imgs = [];
+  function node(tag, cls, parent) { const e = document.createElement(tag); if (cls) e.className = cls; (parent || root).appendChild(e); return e; }
+  function image(src, parent, cls) { const im = node("img", cls || "", parent); im.src = src; imgs.push(im); return im; }
+  function asset(key, w, parent) { const a = A[key], im = image(a.src, parent, "abs"); im.style.width = w + "px"; im.style.height = (w * a.h / a.w) + "px"; return im; }
+  function place(el, x, y) { el.style.left = Math.round(x) + "px"; el.style.top = Math.round(y) + "px"; }
+  function rect(el) { const r = el.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; }
+  function fitFont(el, px, maxW, minK) { let k = 1; el.style.fontSize = px + "px";
+    while (el.offsetWidth > maxW && k > minK) { k -= 0.04; el.style.fontSize = Math.round(px * k) + "px"; } return el.offsetWidth <= maxW + 1; }
+  const photoSrc = p => !p || p === "none" ? null : p.startsWith("file:") ? p : (A[p] ? A[p].src : null);
+  const CX = 486;
+  const svgNS = "http://www.w3.org/2000/svg";
+  function svgIn(parent) { const s = document.createElementNS(svgNS, "svg"); s.setAttribute("width", W); s.setAttribute("height", H); parent.appendChild(s); return s; }
+  function path(svg, d, color, w, op) { const p = document.createElementNS(svgNS, "path"); p.setAttribute("d", d);
+    Object.assign(p.style, { fill: "none", stroke: color, strokeWidth: w + "px", strokeLinecap: "round", strokeLinejoin: "round", opacity: op ?? 1 });
+    svg.appendChild(p); p.dataset.len = p.getTotalLength(); p.style.strokeDasharray = p.dataset.len; p.style.strokeDashoffset = p.dataset.len; return p; }
+  function draw(p, k) { if (!p) return; p.style.strokeDashoffset = ((1 - k) * p.dataset.len).toFixed(1); p.style.visibility = k > 0 ? "visible" : "hidden"; }
+  function stampEl(parent, text, color, good) {
+    const s = node("div", "stamp", parent); s.textContent = text;
+    Object.assign(s.style, { fontFamily: T.fonts.stamp, color, fontSize: T.px.stamp + "px", letterSpacing: E === "glass" ? ".3em" : ".04em" });
+    if (E === "paper") Object.assign(s.style, { border: `6px double ${color}`, padding: "10px 26px 12px", borderRadius: "10px", opacity: ".92" });
+    else if (E === "glass") Object.assign(s.style, { padding: "10px 24px 11px calc(24px + .3em)", border: `1px solid ${color}`, borderRadius: "999px", background: C.pill });
+    else Object.assign(s.style, { padding: "8px 22px", border: `3px solid ${color}`, borderRadius: "6px", opacity: ".9" });
+    return s;
+  }
+
+  // ═════════ 1 pha (vấn đề / giải pháp): nền + dấu + nhãn + ảnh + ghi chú ═════════
+  function buildPhase(kind) {   // kind: "p" | "s"
+    const L = node("div", "layer");
+    const parts = { L };
+    if (!MICRO) {
+      parts.bg = image(A[T.bg[kind === "p" ? "problem" : "solution"]].src, L, "full");
+      if (E === "glass") { const v = node("div", "full", L); v.style.background = "radial-gradient(ellipse 80% 60% at 50% 42%, rgba(0,0,0,0) 30%, rgba(0,0,0,.62) 100%)";
+        if (kind === "s") { parts.light = image(A[T.light].src, L, "full"); parts.light.style.mixBlendMode = "screen"; } }
+      if (E === "journal") { const v = node("div", "full", L); v.style.background = "radial-gradient(ellipse 85% 70% at 50% 45%, rgba(0,0,0,0) 45%, rgba(70,45,20,.28) 100%)";
+        parts.page = asset(T.page, 900, L); parts.page.style.filter = "drop-shadow(0 14px 18px rgba(60,40,20,.3))"; }
+      if (E === "paper" && kind === "s") { parts.mang = asset("mang-giay-vang-xe", 860, L); parts.mang.style.filter = "drop-shadow(0 10px 10px rgba(0,0,0,.35))"; }
+      const ph = photoSrc(Q.get(kind === "p" ? "photo_problem" : "photo_solution"));
+      if (ph) { parts.media = node("div", "ph", L);
+        Object.assign(parts.media.style, E === "glass" ? { border: `1px solid ${C.line}` } : { border: `16px solid ${C.print}`, boxShadow: "0 12px 20px rgba(0,0,0,.35)" });
+        parts.img = image(ph, parts.media); if (kind === "p") parts.img.style.filter = E === "glass" ? "grayscale(.85) brightness(.75)" : "saturate(.6)"; }
+    }
+    parts.lab = node("div", "abs", L); parts.lab.textContent = kind === "p" ? PROB : SOL;
+    Object.assign(parts.lab.style, { fontFamily: T.fonts.label, color: kind === "p" ? C.pLabel : C.sLabel, letterSpacing: E === "glass" ? ".04em" : "0",
+      textShadow: E === "paper" && kind === "p" ? "0 3px 8px rgba(0,0,0,.35)" : E === "glass" ? "0 2px 14px rgba(0,0,0,.6)" : "none" });
+    if (MICRO) Object.assign(parts.lab.style, E === "paper" ? { background: kind === "p" ? "#7a1010" : "#f4efe6", color: kind === "p" ? "#ffe9d6" : "#2b1b12",
+        padding: "14px 34px 16px", borderRadius: "4px", boxShadow: "0 6px 12px rgba(0,0,0,.35)" }
+      : E === "glass" ? { background: C.pill, border: `1px solid ${kind === "p" ? C.bad : C.good}`, padding: "12px 28px", borderRadius: "14px" }
+      : { background: C.tag, padding: "12px 28px", borderRadius: "6px", boxShadow: "0 8px 12px rgba(50,28,12,.3)" });
+    const note = kind === "p" ? PN : SN;
+    if (note) { parts.note = node("div", "abs", L); parts.note.textContent = note;
+      Object.assign(parts.note.style, { fontFamily: T.fonts.note, color: kind === "p" ? C.pNote : C.sNote, fontSize: T.px.note + "px" }); }
+    if (!MICRO) parts.stamp = stampEl(L, kind === "p" ? SP : SS, kind === "p" ? (E === "paper" ? C.badStamp : C.bad) : C.good, kind === "s");
+    parts.svg = svgIn(L);
+    return parts;
+  }
+  const S = buildPhase("s");   // giải pháp nằm DƯỚI
+  let P = buildPhase("p"), P2 = null;
+  // GDP: tờ vấn đề có 2 nửa (xé đôi) — mỗi nửa 1 bản sao cắt theo đường xé răng cưa, bọc ngoài để bóng đổ theo mép xé
+  let wrapA = null, wrapB = null;
+  if (E === "paper" && !MICRO) {
+    P2 = buildPhase("p");
+    wrapA = node("div", "layer"); wrapB = node("div", "layer");
+    wrapA.appendChild(P.L); wrapB.appendChild(P2.L);
+    wrapA.style.filter = wrapB.style.filter = "drop-shadow(0 12px 14px rgba(0,0,0,.45))";
+    const r = rng(3), pts = []; const n = 22;
+    for (let i = 0; i <= n; i++) pts.push([i / n * W, H * (0.47 + 0.08 * (i / n - 0.5) * -1) + (r() - 0.5) * 46]);   // chéo nhẹ, răng cưa
+    const edge = pts.map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(", ");
+    const edgeRev = [...pts].reverse().map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(", ");
+    P.L.style.clipPath = `polygon(0px 0px, ${W}px 0px, ${edgeRev})`;
+    P2.L.style.clipPath = `polygon(${edge}, ${W}px ${H}px, 0px ${H}px)`;
+  }
+  // chỉ để biết nhãn nào là của pha nào khi đặt chỗ
+  const phases = [S, P, ...(P2 ? [P2] : [])];
+  if (E === "glass" && !MICRO) root.appendChild(S.L);   // Dark: giải pháp nằm TRÊN, vệt sáng mở dần (clip-path)
+  let crossP = [], tick = null, circle = null, band = null;
+
+  function layout() {
+    phases.forEach((X, i) => {
+      const kind = X === S ? "s" : "p";
+      if (MICRO) {
+        fitFont(X.lab, T.px.micro, 700, 0.6);
+        const y = kind === "p" ? 0.17 * H : 0.17 * H + X.lab.offsetHeight + 26;
+        place(X.lab, CX - X.lab.offsetWidth / 2, y); X.labBox = rect(X.lab);
+        return;
+      }
+      const hasPh = !!X.media;
+      fitFont(X.lab, hasPh ? T.px.label : Math.round(T.px.label * 1.15), 820, 0.5);
+      const top = 0.2 * H;
+      let y = top + (E === "glass" ? X.stamp.offsetHeight + 30 : 40);
+      if (hasPh) {
+        place(X.lab, CX - X.lab.offsetWidth / 2, y); y += X.lab.offsetHeight + 34;
+        const pw = 640, phh = Math.min(640, 0.70 * H - y);
+        Object.assign(X.media.style, { left: (CX - pw / 2) + "px", top: y + "px", width: pw + "px", height: phh + "px" });
+        y += phh + 30;
+      } else {
+        y = Math.max(y, 0.36 * H - X.lab.offsetHeight / 2);
+        place(X.lab, CX - X.lab.offsetWidth / 2, y); y += X.lab.offsetHeight + 30;
+      }
+      if (X.note) { fitFont(X.note, T.px.note, 800, 0.6); place(X.note, CX - X.note.offsetWidth / 2, y); }
+      const lb = rect(X.lab), sw = X.stamp.offsetWidth, sh = X.stamp.offsetHeight;
+      if (E === "glass") place(X.stamp, CX - sw / 2, lb.y - sh - 22);                       // Dark: viên nhỏ trên nhãn
+      else if (lb.x + lb.w + sw * 0.7 < 0.86 * W) place(X.stamp, lb.x + lb.w - sw * 0.3, lb.y - sh * 0.75);   // đè góc phải-trên nhãn
+      else place(X.stamp, CX - sw / 2, lb.y - sh - 10);
+      if (X.page) place(X.page, CX - 450, 0.13 * H);
+      if (X.mang) place(X.mang, CX - 430, 0.16 * H);
+      X.labBox = rect(X.lab);
+      QA.fontPx[kind] = parseFloat(X.lab.style.fontSize);
+      if (X.labBox.x < 0.06 * W - 6 || X.labBox.x + X.labBox.w > 0.84 * W + 6) QA.warn.push(`nhãn ${kind === "p" ? "vấn đề" : "giải pháp"} sát mép`);
+    });
+    // đánh dấu VẤN ĐỀ: gạch ngang nhãn (bút) — trên mọi bản của pha vấn đề
+    [P, ...(P2 ? [P2] : [])].forEach(X => { const b = X.labBox, r = rng(9), yy = b.y + b.h * 0.55;
+      crossP.push(path(X.svg, `M ${b.x - 14} ${yy + (r() - 0.5) * 8} Q ${b.x + b.w / 2} ${yy - 10 + (r() - 0.5) * 10} ${b.x + b.w + 14} ${yy + (r() - 0.5) * 8}`,
+        C.cross, MICRO ? 6 : E === "glass" ? 3 : 9, E === "glass" ? 0.9 : 0.95)); });
+    // dấu GIẢI PHÁP: tick (Dark/Warm/micro) + khoanh (Warm)
+    const sb = S.labBox;
+    if (E !== "paper" || MICRO) tick = path(S.svg, `M ${sb.x + sb.w + 26} ${sb.y + sb.h * 0.5} L ${sb.x + sb.w + 44} ${sb.y + sb.h * 0.72} L ${sb.x + sb.w + 82} ${sb.y + sb.h * 0.18}`,
+      C.good, MICRO ? 7 : E === "glass" ? 3 : 8);
+    if (E === "journal" && !MICRO) { const cx = sb.x + sb.w / 2, cy = sb.y + sb.h / 2, rx = sb.w * 0.62, ry = sb.h * 0.95; let d = "";
+      for (let k = 0; k <= 40; k++) { const a = -1.9 + k / 40 * Math.PI * 2.1; d += (k ? " L " : "M ") + (cx + rx * Math.cos(a)).toFixed(1) + " " + (cy + ry * Math.sin(a)).toFixed(1); }
+      circle = path(S.svg, d, C.good, 6); }
+    if (E === "glass" && !MICRO) { band = node("div", "abs"); Object.assign(band.style, { width: "260px", height: H + "px",
+      background: "linear-gradient(90deg, rgba(255,247,234,0) 0%, rgba(255,247,234,.55) 50%, rgba(255,247,234,0) 100%)", mixBlendMode: "screen" }); }
+    const parts = [S.labBox, P.labBox, ...(MICRO ? [] : [rect(S.stamp), rect(P.stamp)]), ...[S.media, P.media].filter(Boolean).map(rect)];
+    const x0 = Math.min(...parts.map(p => p.x)), y0 = Math.min(...parts.map(p => p.y)), x1 = Math.max(...parts.map(p => p.x + p.w)), y1 = Math.max(...parts.map(p => p.y + p.h));
+    QA.area = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }; QA.box = S.labBox;
+    if (y1 > 0.77 * H || y0 < 0.10 * H) QA.warn.push(`ra ngoài vùng an toàn TikTok (y ${y0}–${y1})`);
+    QA.land = HIN; QA.switch_t = +SW.toFixed(3); QA.full_at = +Math.min(DE - EX - 0.05, SW + TR + 0.45).toFixed(3);
+  }
+
+  function setTime(t0) {
+    const t = clamp(t0, 0, D), kx = inCubic(prog(t, DE - EX, DE));
+    // pha VẤN ĐỀ vào
+    const kin = E === "paper" ? prog(stop12(t), 0, HIN * 0.8) : outCubic(prog(t, 0, HIN));
+    [P, ...(P2 ? [P2] : [])].forEach(X => {
+      X.lab.style.opacity = MICRO ? Math.min(1, kin * 2).toFixed(4) : 1;
+      X.lab.style.transform = MICRO ? `translateY(${((1 - kin) * -16).toFixed(1)}px)` : E === "paper" ? `translateY(${((1 - outBack(kin, 1.3)) * -60).toFixed(1)}px) rotate(-1.5deg)` : "none";
+      if (X.stamp) { const ks = prog(stop12(Math.max(0, t - 0.3)), 0, 0.2); X.stamp.style.opacity = t >= 0.3 ? 1 : 0;
+        X.stamp.style.transform = `translateY(${((1 - (E === "paper" ? outBack(ks, 1.6) : outCubic(ks))) * -50).toFixed(1)}px) rotate(${E === "glass" ? 0 : -14}deg)`; }
+      if (X.media) X.media.style.transform = E === "glass" ? "none" : "rotate(-1.5deg)";
+    });
+    crossP.forEach(p => draw(p, inOut(prog(t, SW - 0.4, SW - 0.08))));   // đánh dấu vấn đề ngay trước khi chuyển
+    // CHUYỂN PHA
+    const kt = prog(t, SW, SW + TR);
+    if (MICRO) {
+      P.L.style.opacity = (1 - 0.45 * inOut(kt)).toFixed(4);
+      const ks = outBack(prog(t, SW, SW + 0.3), 1.4); S.lab.style.opacity = t >= SW ? Math.min(1, prog(t, SW, SW + 0.12) * 1.5).toFixed(4) : 0;
+      S.lab.style.transform = `translateY(${((1 - ks) * 24).toFixed(1)}px)`; S.L.style.opacity = 1;
+      draw(tick, inOut(prog(t, SW + 0.2, SW + 0.45)));
+    } else if (E === "paper") {   // xé đôi: nửa trên bay lên-trái, nửa dưới xuống-phải (stop-motion)
+      const k = prog(stop12(Math.max(0, t - SW)), 0, TR), e = inCubic(k);
+      wrapA.style.transform = `translate(${(-160 * e).toFixed(1)}px, ${(-1300 * e).toFixed(1)}px) rotate(${(-14 * e).toFixed(2)}deg)`;
+      wrapB.style.transform = `translate(${(180 * e).toFixed(1)}px, ${(1300 * e).toFixed(1)}px) rotate(${(12 * e).toFixed(2)}deg)`;
+      wrapA.style.opacity = wrapB.style.opacity = k >= 1 ? 0 : 1;
+      const ks = prog(stop12(Math.max(0, t - SW - TR)), 0, 0.2); S.stamp.style.opacity = t >= SW + TR ? 1 : 0;
+      S.stamp.style.transform = `translateY(${((1 - outBack(ks, 1.6)) * -90).toFixed(1)}px) rotate(-14deg)`;
+      S.lab.style.transform = "rotate(-1deg)"; if (S.media) S.media.style.transform = "rotate(1.2deg)"; if (S.mang) S.mang.style.transform = "rotate(-6deg)";
+    } else if (E === "glass") {   // vệt sáng quét trái → phải mở pha giải pháp
+      const k = inOut(kt);
+      S.L.style.clipPath = `inset(0 ${((1 - k) * 100).toFixed(2)}% 0 0)`;
+      band.style.left = (lerp(-260, W, k)).toFixed(1) + "px"; band.style.opacity = kt > 0 && kt < 1 ? 1 : 0;
+      P.L.style.opacity = 1;
+      S.stamp.style.opacity = outCubic(prog(t, SW + TR * 0.6, SW + TR + 0.25)).toFixed(4); S.stamp.style.transform = "none";
+      draw(tick, inOut(prog(t, SW + TR, SW + TR + 0.35)));
+      if (S.light) { S.light.style.opacity = (0.5 * outCubic(prog(t, SW, SW + 1))).toFixed(4); S.light.style.transform = `translateY(${lerp(-40, 30, t / D).toFixed(1)}px) scale(1.1)`; }
+    } else {   // lật trang: trang vấn đề trượt sang trái + xoay, lộ trang giải pháp
+      const k = inCubic(kt);
+      P.L.style.transform = `translate(${(-1250 * k).toFixed(1)}px, ${(60 * k).toFixed(1)}px) rotate(${(-10 * k).toFixed(2)}deg)`;
+      P.L.style.opacity = k >= 1 ? 0 : 1;
+      S.stamp.style.opacity = outCubic(prog(t, SW + TR * 0.7, SW + TR + 0.25)).toFixed(4); S.stamp.style.transform = "rotate(-12deg)";
+      draw(circle, inOut(prog(t, SW + TR * 0.6, SW + TR + 0.35))); draw(tick, inOut(prog(t, SW + TR + 0.25, SW + TR + 0.5)));
+    }
+    if (!MICRO) { S.L.style.visibility = t >= SW - 1e-6 ? "visible" : "hidden"; if (E !== "glass") S.L.style.opacity = 1; }
+    else S.L.style.visibility = t >= SW - 1e-6 ? "visible" : "hidden";
+    if (!MICRO && E !== "paper" && P.bg) { const kb = outCubic(prog(t, 0, 0.3)); P.bg.style.opacity = kb; }
+    // nền vào (phủ khung)
+    if (!MICRO) { const kb = outCubic(prog(t, 0, 0.28)); (wrapA || P.L).style.opacity = E === "paper" ? (kt >= 1 ? 0 : (t >= 0 ? 1 : 0)) : (E === "journal" ? (kt >= 1 ? 0 : 1) : 1);
+      if (P.bg) P.bg.style.opacity = kb; if (P2 && P2.bg) P2.bg.style.opacity = kb; }
+    root.style.opacity = (t >= DE - 1e-6 ? 0 : 1 - kx).toFixed(4);
+    root.style.filter = kx > 0.001 ? `blur(${(8 * kx).toFixed(2)}px)` : "none";
+  }
+
+  const fams = [...new Set(Object.values(T.fonts))];
+  const ready = Promise.all([
+    ...fams.map(f => document.fonts.load(`60px "${f}"`, PROB + SOL + PN + SN + SP + SS + "Ợ")),
+    ...imgs.map(im => im.decode().catch(() => { throw new Error("thiếu ảnh " + im.src); })),
+  ]).then(() => { layout(); setTime(0); });
+
+  window.setTime = setTime;
+  window.SCENE_MOTION = { name: `Problem → Solution · ${T.label} · ${PRESET}`, duration: D, width: W, height: H, fps: FPS,
+    ready, setTime, qa: QA,
+    scenes: [{ name: "vấn đề", start: 0, end: SW }, { name: "chuyển + giải pháp", start: SW, end: DE - EX }, { name: "ra", start: DE - EX, end: D }] };
+  if (!Q.has("render")) {
+    const t0 = performance.now();
+    (function loop() { setTime(((performance.now() - t0) / 1000) % (D + 0.6)); requestAnimationFrame(loop); })();
+  }
+})();
+</script>
+</body>
+</html>

@@ -406,9 +406,16 @@ class Cut:
             if g["behind"] and "y" in p:
                 g["y_fixed"] = True   # ép y → máy không tự đặt chữ ngang đầu, chỉ đo % bị che
             g["covers"] = prof["presets"][pr].get("covers", True)
-            g["captions_keep"] = prof.get("captions") == "keep"   # tiêu đề ghim: chữ động vẫn chạy bên dưới
-            g["hide_logo"] = bool(prof.get("hide_logo"))
+            if g["covers"]:   # thẻ phủ khung: không có chuyện chữ nằm sau người
+                g["behind"] = False
+                g.pop("y_fixed", None)
+            pcfg = prof["presets"][pr]   # preset được ghi đè riêng (timeline micro = thanh tiến độ giữ chữ động)
+            g["captions_keep"] = pcfg.get("captions", prof.get("captions")) == "keep"   # tiêu đề ghim: chữ động vẫn chạy bên dưới
+            g["hide_logo"] = bool(pcfg.get("hide_logo", prof.get("hide_logo")))
             its = g.pop("items", None)
+            if not its and (prof.get("items") or {}).get("required"):
+                raise CutError(f"đồ hoạ {g['id']}: thiếu items=[(cụm lời | giây, 'Nhãn'[, 'ghi chú']), …] "
+                               f"(xem assets/scenes/{prof['id']}/scene.json)")
             if its:
                 cfg = prof.get("items") or {}
                 if len(its) > cfg.get("max", 6):
@@ -430,7 +437,7 @@ class Cut:
                         if len(it[key]) > lim:
                             warns.append(f"đồ hoạ {g['id']} nhãn con {k + 1} '{it[key]}' dài {len(it[key])} ký tự (> {lim})")
                     out.append({"t": rel, "x": it["x"], "n": it["n"], **({"s": it["s"]} if "s" in it else {})})
-                if pr == "micro":
+                if pr == "micro" and not cfg.get("micro"):
                     warns.append(f"đồ hoạ {g['id']} preset micro không hiện nhãn con")
                 p["items"] = json.dumps(out, ensure_ascii=False)
             g["min_dur"] = prof["presets"][pr]["dur"][0]

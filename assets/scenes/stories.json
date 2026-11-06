@@ -1,6 +1,6 @@
 {
  "_note": "Story Library (đề xuất ChatGPT 05/11): cấu trúc kể chuyện → chuỗi Scene Family. Claude chọn story theo dạng kịch bản, chỉ chèn family khi lời thoả use_when của family đó; family chưa ready thì thay bằng công cụ sẵn có (cap, cover, card). Timeline luôn theo GIỌNG NÓI thật, không ép lời theo animation.",
- "families_ready": ["C01", "C02", "C03", "C04", "C05", "C08", "C09"],
+ "families_ready": ["C01", "C02", "C03", "C04", "C05", "C06", "C07", "C08", "C09", "C10", "C11"],
  "stories": [
   {"id": "S01", "name": "Đặt vấn đề → Giải thích → Kết luận", "chain": ["C01", "C06", "C09", "C11"], "for": "video giáo dục sản phẩm"},
   {"id": "S02", "name": "Hiểu lầm → Sự thật → Bằng chứng", "chain": ["G12", "G07", "C08", "G03"], "for": "GDP: giải đáp, phản biện", "brand": "GIADUNGPLUS"},

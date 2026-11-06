@@ -1,0 +1,70 @@
+{
+ "id": "problem-solution",
+ "code": "C06",
+ "name": "Problem → Solution — vấn đề đánh dấu, chuyển sang giải pháp",
+ "version": "1.0.0",
+ "motion_id": "scene-problem-solution",
+ "status": "ready",
+ "purpose": "2 pha trong 1 thẻ: VẤN ĐỀ được đánh dấu (dấu SAI / gạch) → đúng lúc người nói chuyển ý ('nhưng…', 'chỉ cần…') chuyển sang GIẢI PHÁP (dấu ĐÚNG / tick). GDP = xé giấy lộ bí mật (giấy đỏ xé đôi lộ giấy vàng), Dark = vệt sáng mở giải pháp, Warm = lật trang sổ.",
+ "use_when": [
+  "Lời có cặp vấn đề → cách giải ('khoan tường thì nứt gạch… chỉ cần dán', 'hộp nhựa ám mùi… thủy tinh thì không')",
+  "Mở đầu kiểu nỗi đau → giải pháp (hook) hoặc giữa bài khi giới thiệu tính năng giải quyết vấn đề",
+  "Vấn đề / giải pháp đều nói ngắn được (≤ 3 từ nhãn + 1 dòng ghi chú)"
+ ],
+ "avoid_when": [
+  "Chê đích danh thương hiệu / sản phẩm khác (vấn đề là THÓI QUEN / CÁCH LÀM, không phải đối thủ)",
+  "Giải pháp chưa có trong lời / nguồn (không thêm tuyên bố)",
+  "So sánh 2 lựa chọn ngang hàng → A vs B (C05); chỉ 1 ý → Keyword Burst (C01)"
+ ],
+ "presets": {
+  "micro": {"dur": [1.4, 4.0], "default": 2.4, "covers": false, "hides": ["problem_note", "solution_note", "photo_problem", "photo_solution"],
+            "note": "2 dòng chữ đè footage: dòng vấn đề bị gạch → dòng giải pháp bật ra + ✓"},
+  "standard": {"dur": [2.0, 4.2], "default": 3.5, "covers": true, "note": "thẻ phủ khung 2 pha: nhãn + dấu (+ ảnh, ghi chú)"},
+  "full": {"dur": [3.0, 8.0], "default": 5, "covers": true, "note": "như standard, giữ pha giải pháp lâu hơn"}
+ },
+ "preset_auto": [[2.0, "micro"], [4.2, "standard"], [99, "full"]],
+ "time_params": {"switch_at": "switch_t"},
+ "themes": {
+  "gdp_red": {"brand": "GIADUNGPLUS", "trans": "flash",
+              "look": "giấy đỏ (vấn đề, gạch bút + dấu SAI) bị XÉ ĐÔI bay ra 2 phía, lộ giấy kraft + mảng vàng (giải pháp, dấu ĐÚNG xanh đập xuống); ảnh in viền trắng; stop-motion 12 hình/giây"},
+  "phaledo_dark": {"brand": "PHALEDO", "trans": "cut",
+                   "look": "vấn đề xám + nét gạch mảnh hồng đất; vệt sáng champagne quét trái → phải mở giải pháp sáng (ảnh màu), dấu ✓ mảnh champagne"},
+  "phaledo_warm": {"brand": "PHALEDO", "trans": "cut",
+                   "look": "trang sổ 'vấn đề' gạch bút chì nâu đỏ rồi LẬT đi, lộ trang 'giải pháp' được khoanh + tick xanh rêu vẽ tay"}
+ },
+ "theme_by_brand": {"GIADUNGPLUS": "gdp_red", "PHALEDO": "phaledo_dark", "*": "gdp_red"},
+ "params": {
+  "problem": {"required": true, "max_chars": 18, "note": "nhãn vấn đề ('Khoan tường', 'Hộp nhựa') — cách làm / thói quen, không phải đối thủ"},
+  "solution": {"required": true, "max_chars": 18, "note": "nhãn giải pháp ('Dán keo', 'Thủy tinh')"},
+  "problem_note": {"max_chars": 30, "note": "1 dòng hệ quả ('nứt gạch, bụi bẩn') — đúng lời"},
+  "solution_note": {"max_chars": 30, "note": "1 dòng lợi ích ('5 phút xong') — đúng lời / nguồn"},
+  "photo_problem": {"note": "src:<clip>@<giây> | lib:<id> (ảnh thật) — vấn đề hiện xám/nhạt"},
+  "photo_solution": {"note": "src:<clip>@<giây> | lib:<id> (ảnh thật — sản phẩm phải ảnh THẬT)"},
+  "stamp_problem": {"max_chars": 12, "note": "dấu pha vấn đề (GDP mặc định 'SAI', PHALEDO 'VẤN ĐỀ'; vd 'LƯU Ý')"},
+  "stamp_solution": {"max_chars": 12, "note": "dấu pha giải pháp (GDP 'ĐÚNG', PHALEDO 'GIẢI PHÁP'; vd 'ĐÃ KIỂM TRA')"},
+  "switch_at": {"note": "cụm lời CHUYỂN Ý ('nhưng', 'chỉ cần') → giây chuyển pha (bỏ trống = 45% thời lượng)"},
+  "theme": {"note": "bỏ trống = theo shop của job"},
+  "preset": {"note": "bỏ trống = theo thời lượng: < 2s micro · < 4,2s standard · còn lại full"}
+ },
+ "sfx": {
+  "gdp_red": [{"at": "enter", "file": "scene/paper_whoosh.wav", "gain_db": -19}, {"at": "switch", "file": "scene/paper_tear.wav", "gain_db": -16},
+              {"at": "land", "file": "impactSoft_medium_001.ogg", "gain_db": -18, "presets": ["standard", "full"]}],
+  "phaledo_dark": [{"at": "enter", "file": "scene/soft_swell.wav", "gain_db": -22}, {"at": "switch", "file": "scene/air_shimmer.wav", "gain_db": -20}],
+  "phaledo_warm": [{"at": "enter", "file": "scene/page_slide.wav", "gain_db": -20}, {"at": "switch", "file": "scene/page_slide.wav", "gain_db": -18}]
+ },
+ "land_at": {"gdp_red": {"micro": 0.3, "standard": 0.5, "full": 0.5}, "phaledo_dark": {"micro": 0.3, "standard": 0.5, "full": 0.5},
+             "phaledo_warm": {"micro": 0.3, "standard": 0.5, "full": 0.5}},
+ "qa": ["Motion Engine: tất định (Chrome vẽ CPU), khung cuối trong suốt; cảnh báo 'viền TỐI' ở micro = bóng mềm cố ý",
+        "Template: nhãn vừa khung (tự thu chữ), dấu đặt góc nhãn trong vùng an toàn",
+        "Nội dung: vấn đề là cách làm / thói quen, giải pháp đúng lời; ảnh sản phẩm là ảnh thật"],
+ "sample": {"GIADUNGPLUS": {"problem": "Khoan tường", "solution": "Dán keo", "problem_note": "nứt gạch, bụi bẩn", "solution_note": "không khoan, 5 phút xong",
+                            "photo_problem": "goc-bep-bua", "photo_solution": "van-phong-sang", "dur": 4.0},
+            "PHALEDO": {"problem": "Hộp nhựa", "solution": "Thủy tinh", "problem_note": "dễ ám mùi", "solution_note": "rửa là sạch",
+                        "photo_problem": "goc-bep-bua", "photo_solution": "van-phong-sang", "dur": 4.0}},
+ "examples": [
+  "c.graphic('scene-problem-solution', at='khoan tường', until='năm phút', problem='Khoan tường', problem_note='nứt gạch, bụi bẩn', solution='Dán keo', solution_note='5 phút xong', switch_at='chỉ cần')",
+  "c.graphic('scene-problem-solution', at='hộp nhựa', dur=1.8, problem='Hộp nhựa', solution='Thủy tinh', switch_at='thủy tinh')   # micro đè footage",
+  "c.graphic('scene-problem-solution', at='trước đây', until='gọn gàng', problem='Bừa bộn', solution='Gọn gàng', photo_problem='src:c02@1.0', photo_solution='src:c05@2.0', switch_at='bây giờ')"
+ ],
+ "previews": "previews/<theme>-<preset>.jpg + previews/_board.jpg (2 pha)"
+}

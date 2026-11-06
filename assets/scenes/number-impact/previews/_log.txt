@@ -1,0 +1,10 @@
+✓ gdp_red       micro     3.03s 91 khung · khung đầu α0 · khung cuối α0 · 12s · ⚠ viền TỐI quanh hình (halo 223.8) — ghép lên nền sáng sẽ thấy viền đen
+✓ gdp_red       standard  3.03s 91 khung · khung đầu α0 · khung cuối α0 · 12s · ⚠ viền TỐI quanh hình (halo 102.0) — ghép lên nền sáng sẽ thấy viền đen
+✓ gdp_red       full      3.03s 91 khung · khung đầu α0 · khung cuối α0 · 106s
+✓ phaledo_dark  micro     3.03s 91 khung · khung đầu α0 · khung cuối α0 · 11s · ⚠ viền TỐI quanh hình (halo 207.5) — ghép lên nền sáng sẽ thấy viền đen
+✓ phaledo_dark  standard  3.03s 91 khung · khung đầu α0 · khung cuối α0 · 11s · ⚠ viền TỐI quanh hình (halo 101.6) — ghép lên nền sáng sẽ thấy viền đen
+✓ phaledo_dark  full      3.03s 91 khung · khung đầu α0 · khung cuối α0 · 95s
+✓ phaledo_warm  micro     3.03s 91 khung · khung đầu α0 · khung cuối α0 · 12s · ⚠ viền TỐI quanh hình (halo 209.9) — ghép lên nền sáng sẽ thấy viền đen
+✓ phaledo_warm  standard  3.03s 91 khung · khung đầu α0 · khung cuối α0 · 11s · ⚠ viền TỐI quanh hình (halo 127.5) — ghép lên nền sáng sẽ thấy viền đen
+✓ phaledo_warm  full      3.03s 91 khung · khung đầu α0 · khung cuối α0 · 111s
+→ C:\Users\Admin\gdp-video-studio\assets\scenes\number-impact\previews

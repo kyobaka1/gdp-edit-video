@@ -110,4 +110,14 @@ n = noise(0.36)
 t = np.arange(len(n)) / SR
 strokes = np.clip(np.sin(2 * np.pi * 8.5 * t + 0.6) * 0.8 + 0.35, 0, 1).astype(np.float32)
 save("pencil_scribble", bandpass(n, 2200, 8000) * strokes * env(len(n), 0.08, 0.3, 1.2))
+
+# ── Problem → Solution (C06) ──
+# GDP xé giấy: chuỗi xung lạo xạo dày (sợi giấy đứt) trên nền nhiễu trung-cao, mạnh dần rồi tắt — 0,45s
+n = noise(0.45)
+t = np.arange(len(n)) / SR
+crk = np.zeros_like(n)
+idx = rng.choice(len(n), 900, replace=False)
+crk[idx] = rng.uniform(-1, 1, 900)
+body = bandpass(n, 900, 6000) * (0.55 + 0.45 * np.sin(2 * np.pi * 23 * t)).astype(np.float32)
+save("paper_tear", (bandpass(crk, 1500, 9000) * 2.5 + body) * env(len(n), 0.12, 0.45, 1.3))
 sys.exit(0)
