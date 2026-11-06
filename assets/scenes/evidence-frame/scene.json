@@ -1,0 +1,74 @@
+{
+ "id": "evidence-frame",
+ "code": "C08",
+ "name": "Evidence Frame — bằng chứng thật đóng khung",
+ "version": "1.0.0",
+ "motion_id": "scene-evidence-frame",
+ "status": "ready",
+ "purpose": "Bằng chứng THẬT (ảnh chụp màn hình doanh thu / đánh giá, cảnh thử chịu lực, trước–sau…) được đóng khung cho đáng tin: ảnh hoặc CLIP đang chạy trong khung, phóng dần tới chi tiết, số liệu đập vào đúng lúc nói, dòng ghi nguồn. Mẫu M2: quay màn hình app doanh thu 342.992.500đ đặt sau câu chuyện, trước câu chốt.",
+ "use_when": [
+  "Lời đưa ra bằng chứng ('đây là doanh thu tháng rồi', 'treo thử 15 ký vẫn không rơi', 'khách nhắn lại thế này') và CÓ ảnh/clip thật tương ứng",
+  "Sau câu chuyện / lời hứa, trước câu chốt (tư duy giữ chân #8 — Story S08: C01 → C08 → C11 → C12)",
+  "Cần người xem dừng lại nhìn kỹ 2–5s một hình đã quay (phủ khung) hoặc góc nhỏ (micro)"
+ ],
+ "avoid_when": [
+  "Ảnh AI / ảnh minh hoạ — bằng chứng PHẢI là ảnh/clip thật (luật Sếp 05/11: ảnh AI không làm bằng chứng)",
+  "Số liệu không có trong ảnh/clip hoặc lời (không bịa, không làm tròn đẹp hơn)",
+  "Thông tin riêng tư của khách trong ảnh chụp màn hình (che tên/số điện thoại trước khi dùng)",
+  "Clip bằng chứng ngắn hơn đoạn thẻ (khung cuối sẽ đứng yên) — chọn đoạn clip đủ dài"
+ ],
+ "presets": {
+  "micro": {"dur": [1.5, 8.0], "default": 3, "covers": false, "hides": ["figure", "caption"], "note": "khung nhỏ góc màn hình (picture-in-picture) đè footage + nhãn"},
+  "standard": {"dur": [2.0, 4.2], "default": 3.5, "covers": true, "note": "thẻ phủ khung: ảnh/clip đóng khung + số liệu + nguồn"},
+  "full": {"dur": [3.0, 10.0], "default": 5, "covers": true, "note": "như standard, giữ lâu hơn — phóng dần tới chi tiết rõ hơn"}
+ },
+ "preset_auto": [[2.0, "micro"], [4.2, "standard"], [99, "full"]],
+ "proof_clip": true,
+ "media_dims": true,
+ "time_params": {"figure_at": "figure_t"},
+ "themes": {
+  "gdp_red": {"brand": "GIADUNGPLUS", "trans": "flash", "bg": ["default", "red"],
+              "look": "ảnh điều tra trên bảng giấy kraft: ảnh in viền trắng đập vào, băng keo 2 góc, tem đỏ 'THẬT', số liệu trên giấy note vàng, nguồn trên giấy xé; stop-motion"},
+  "phaledo_dark": {"brand": "PHALEDO", "trans": "cut", "bg": ["default"],
+                   "look": "ảnh và số liệu tinh gọn trên nền than + ánh sáng: khung mảnh champagne + dấu cắt góc, ảnh mở dần, số lớn nét mảnh dưới nét kẻ, nguồn chữ mảnh"},
+  "phaledo_warm": {"brand": "PHALEDO", "trans": "cut", "bg": ["default"],
+                   "look": "ảnh dán sổ trên giấy be: 4 góc giấy giữ ảnh + washi, rơi nhẹ, số liệu trên thẻ giấy kem, nguồn chữ mảnh"}
+ },
+ "theme_by_brand": {"GIADUNGPLUS": "gdp_red", "PHALEDO": "phaledo_dark", "*": "gdp_red"},
+ "params": {
+  "title": {"max_chars": 24, "note": "'Doanh thu thật', 'Treo thử 15 kg', 'Khách nhắn lại'"},
+  "photo": {"note": "ảnh bằng chứng: src:<clip>@<giây> (khung từ clip) | lib:<id> (ảnh THẬT nhập `vs.py lib import --engine photo`)"},
+  "clip": {"note": "'<clip>@<giây bắt đầu>' — CLIP thật phát trong khung (build ProofPainter); ưu tiên hơn photo"},
+  "zoom": {"note": "phóng dần tới điểm (1 = không; 1,2–1,6 đẹp) — zx, zy = điểm trong ảnh/clip (0–1)"},
+  "figure": {"max_chars": 16, "note": "số liệu đúng như trong bằng chứng ('342.992.500đ', '15 kg')"},
+  "figure_label": {"max_chars": 26, "note": "nhãn số ('doanh thu tháng 8')"},
+  "figure_at": {"note": "cụm lời / giây số liệu đập vào (bỏ trống = ngay sau khi khung đứng yên)"},
+  "caption": {"max_chars": 40, "note": "dòng NGUỒN cho đáng tin ('Ảnh chụp màn hình app bán hàng 08/2026')"},
+  "side": {"note": "micro: left | right (góc khung nhỏ)"},
+  "bg": {"note": "gdp_red: default (kraft) | red"},
+  "theme": {"note": "bỏ trống = theo shop của job"},
+  "preset": {"note": "bỏ trống = theo thời lượng: < 2s micro · < 4,2s standard · còn lại full"}
+ },
+ "sfx": {
+  "gdp_red": [{"at": "enter", "file": "scene/paper_whoosh.wav", "gain_db": -18}, {"at": "land", "file": "impactSoft_medium_001.ogg", "gain_db": -17},
+              {"at": "figure", "file": "impactSoft_medium_004.ogg", "gain_db": -17}],
+  "phaledo_dark": [{"at": "enter", "file": "scene/soft_swell.wav", "gain_db": -21}, {"at": "figure", "file": "scene/glass_ting.wav", "gain_db": -21}],
+  "phaledo_warm": [{"at": "enter", "file": "scene/page_slide.wav", "gain_db": -19}, {"at": "figure", "file": "click_003.ogg", "gain_db": -20}]
+ },
+ "land_at": {"gdp_red": {"micro": 0.37, "standard": 0.57, "full": 0.57}, "phaledo_dark": {"micro": 0.37, "standard": 0.57, "full": 0.57},
+             "phaledo_warm": {"micro": 0.37, "standard": 0.57, "full": 0.57}},
+ "qa": ["Motion Engine: tất định (Chrome vẽ CPU), khung cuối trong suốt; chế độ clip: ô cửa sổ trong suốt sau lúc khung đứng yên",
+        "Template: ảnh/clip vừa khung đúng tỉ lệ, số liệu + nguồn không đè nhau, trong vùng an toàn TikTok",
+        "Dựng: clip thật phát đúng ô (ProofPainter), phủ khung → lớp cảnh sau nằm sẵn dưới đoạn tan; CapCut ghép clip vào khung ở 1080",
+        "Nội dung: bằng chứng là ảnh/clip THẬT, số liệu đúng như trong bằng chứng, che thông tin riêng tư"],
+ "sample": {"GIADUNGPLUS": {"title": "Doanh thu thật", "photo": "goc-bep-bua", "figure": "342.992.500đ", "figure_label": "doanh thu tháng 8",
+                            "caption": "Ảnh chụp màn hình app bán hàng", "zoom": 1.3, "zx": 0.6, "zy": 0.4, "dur": 4.0},
+            "PHALEDO": {"title": "Khách nhắn lại", "photo": "goc-bep-bua", "figure": "5★", "figure_label": "đánh giá sau 3 tháng",
+                        "caption": "Ảnh chụp màn hình đánh giá Shopee", "zoom": 1.3, "zx": 0.6, "zy": 0.4, "dur": 4.0}},
+ "examples": [
+  "c.graphic('scene-evidence-frame', at='đây là doanh thu', until='một tháng', title='Doanh thu thật', clip='c09@3.0', zoom=1.4, zx=0.5, zy=0.35, figure='342.992.500đ', figure_label='doanh thu tháng 8', figure_at='ba trăm bốn mươi', caption='Quay màn hình app bán hàng 08/2026')",
+  "c.graphic('scene-evidence-frame', at='treo thử', until='không rơi', title='Treo thử 15 kg', clip='c04@1.0', figure='15 kg')",
+  "c.graphic('scene-evidence-frame', at='khách nhắn', dur=1.8, title='Khách nhắn lại', photo='src:c12@0.5', side='right')   # micro góc màn hình"
+ ],
+ "previews": "previews/<theme>-<preset>.jpg + previews/_board.jpg"
+}

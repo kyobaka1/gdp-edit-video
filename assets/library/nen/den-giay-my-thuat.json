@@ -1,0 +1,20 @@
+{
+ "engine": "codex",
+ "model": "gpt-5.6-luna",
+ "kind": "ai",
+ "prompt": "Một tờ giấy mỹ thuật màu đen than (gần #161616) phủ kín toàn bộ khung ảnh, thớ sợi giấy rất mịn, ánh sáng mềm từ góc trên bên trái tạo vùng sáng nhẹ, chụp phẳng từ trên xuống. Không có vật thể nào.\nPhong cách chung của bộ: ảnh studio cao cấp tông tối, nền than gần đen (#161616), ánh sáng dịu ấm màu champagne, chi tiết tinh tế, sạch, tối giản; tuyệt đối không chữ, số, logo, không có sản phẩm, hũ, chai, ly",
+ "size": "doc",
+ "alpha": false,
+ "refs": [],
+ "thread": "01a1ab85-f11a-7152-8191-1b824de56cdc",
+ "created": "2026-11-05 18:44",
+ "variants": [
+  {
+   "file": "den-giay-my-thuat.png",
+   "w": 1024,
+   "h": 1536,
+   "mode": "RGB"
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

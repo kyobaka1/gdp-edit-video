@@ -1,0 +1,15 @@
+{
+ "engine": "codex",
+ "kind": "ai",
+ "prompt": "Mũi tên cắt từ giấy thủ công vàng nghệ, mép rách xơ, chụp từ trên xuống, nền trong suốt",
+ "alpha": true,
+ "created": "2026-11-05 17:11",
+ "variants": [
+  {
+   "file": "mui-ten-vang.png",
+   "w": 1254,
+   "h": 1254
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

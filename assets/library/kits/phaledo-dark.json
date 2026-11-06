@@ -1,0 +1,12 @@
+{
+ "id": "phaledo-dark",
+ "title": "PHALEDO Dark Glass Editorial — vật liệu nền",
+ "purpose": "Theme `phaledo_dark` của Scene Library (Chapter Card và các family sau): nền than mỹ thuật + ánh sáng khúc xạ trừu tượng. Ánh sáng quét, đường chỉ mảnh, khung ảnh làm bằng CSS (không cần ảnh). KHÔNG có ảnh sản phẩm — sản phẩm phải là ảnh/footage THẬT truyền vào tham số photo.",
+ "style": "ảnh studio cao cấp tông tối, nền than gần đen (#161616), ánh sáng dịu ấm màu champagne, chi tiết tinh tế, sạch, tối giản; tuyệt đối không chữ, số, logo, không có sản phẩm, hũ, chai, ly",
+ "assets": [
+  {"id": "nen/den-giay-my-thuat", "kind": "nen", "alpha": false, "size": "doc", "title": "Nền giấy mỹ thuật đen than",
+   "prompt": "Một tờ giấy mỹ thuật màu đen than (gần #161616) phủ kín toàn bộ khung ảnh, thớ sợi giấy rất mịn, ánh sáng mềm từ góc trên bên trái tạo vùng sáng nhẹ, chụp phẳng từ trên xuống. Không có vật thể nào.", "tags": ["den", "phaledo", "giay"]},
+  {"id": "phaledo-dark/anh-sang-khuc-xa", "kind": "nen", "alpha": false, "size": "doc", "title": "Ánh sáng khúc xạ trừu tượng (dùng blend screen)",
+   "prompt": "Vệt ánh sáng khúc xạ qua thủy tinh (caustics) màu champagne ấm và trắng ngà, dạng các gợn sáng mềm uốn lượn, trên nền ĐEN TUYỆT ĐỐI, trừu tượng, không nhìn thấy vật thể thủy tinh nào. Phần lớn khung là đen, ánh sáng tập trung ở nửa trên.", "tags": ["anh-sang", "phaledo", "khuc-xa"]}
+ ]
+}

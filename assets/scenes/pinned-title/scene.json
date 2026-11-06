@@ -1,0 +1,77 @@
+{
+ "id": "pinned-title",
+ "code": "C03",
+ "name": "Pinned Title — tiêu đề ghim + nhãn con theo lời",
+ "version": "1.0.0",
+ "motion_id": "scene-pinned-title",
+ "status": "ready",
+ "purpose": "Biển chỉ đường cả chương: tiêu đề ('Bước 2 · S-T-P', 'Marketing Mix 7Ps') ghim ở tầm đầu 5–20s trong lúc người nói giảng; mỗi khi nhắc tới một ý thì nhãn con của ý đó hiện ra, mục đang nói nổi bật, mục đã qua mờ đi → người xem luôn biết đang ở đâu (mẫu M3 16s). Chữ động vẫn chạy bên dưới.",
+ "use_when": [
+  "Một chương / bước giảng dài > 6s có các ý con được nêu lần lượt ('thứ nhất… thứ hai…', 'S là…, T là…, P là…', 'P1 sản phẩm, P2 giá…')",
+  "Đã có Chapter Card mở chương (C02) → ngay sau đó ghim tiêu đề chương để giữ mạch (Story S07)",
+  "Cảnh người nói đứng yên, ít đổi cảnh trong chương (tiêu đề ghim xuyên các lần cắt cũng được)"
+ ],
+ "avoid_when": [
+  "Đoạn < 5s hoặc chỉ 1 ý — dùng Keyword Burst (C01) / cap()",
+  "Chương có nhiều cảnh minh hoạ phủ kín liên tục (tiêu đề ghim trên cảnh không liên quan) — dùng micro (chip ghim góc) hoặc bỏ",
+  "Ý con không được nói ra (nhãn con phải khớp lời, không thêm tuyên bố)",
+  "Cùng lúc với Keyword Burst / đồ hoạ khác ở tầm đầu (chồng chữ)"
+ ],
+ "presets": {
+  "micro": {"dur": [2.0, 40.0], "default": 6, "covers": false, "hides": ["items"], "note": "chip ghim gọn ở góc trên ('BƯỚC 2 · S-T-P'), không nhãn con — chiếm ít chỗ suốt chương"},
+  "standard": {"dur": [3.0, 40.0], "default": 10, "covers": false, "note": "tiêu đề + nhãn con 1 dòng (không ghi chú)"},
+  "full": {"dur": [4.0, 40.0], "default": 12, "covers": false, "note": "tiêu đề + nhãn con 2 dòng (thuật ngữ đậm + ghi chú mảnh, như 'Targeting / chọn lấy 1 nhóm')"}
+ },
+ "preset_auto": "content",
+ "preset_rule": "không ép preset: nhãn con có ghi chú → full · có nhãn con → standard · không nhãn con → standard (micro chỉ khi ép preset='micro')",
+ "captions": "keep",
+ "hide_logo": true,
+ "items": {"max": 6, "term_max": 22, "note_max": 30, "lead": 0.15,
+           "note": "items=[(cụm lời | giây, 'Nhãn', 'ghi chú'), …] — nhãn hiện sớm 0,15s so với lúc nói cụm đó; theo đúng thứ tự lời"},
+ "behind": {"default": "auto", "min_person": 0.03, "max_occlusion": 0.3, "max_occlusion_peak": 0.45, "target_occlusion": 0.15,
+            "top_limit": 0.10, "y_band": [0.13, 0.30], "front_band": [0.13, 0.34], "every": 2.5, "auto_layout": true,
+            "note": "auto: đo người nhiều lúc trong chương (mỗi 2,5s). Bố cục tự chọn: người đứng giữa → nhãn con 2 bên đầu (sides), người lệch → cột phía trống (list), không người → list trái. Tiêu đề to có thể nằm SAU đầu (che ~15%, ≤ 30%); nhãn con, dòng nhỏ, dấu nặng KHÔNG bao giờ bị khoét (qa.keep, qa.dots) và không được đè vùng đầu."},
+ "themes": {
+  "gdp_red": {"brand": "GIADUNGPLUS", "trans": "cut",
+              "look": "thẻ giấy be (nhãn xé) + kẹp giấy ghim, dòng nhỏ trên băng giấy đen; nhãn con là băng giấy dán + tem đỏ đánh số, mục đang nói có vệt bút dạ vàng; nhịp stop-motion 12 hình/giây"},
+  "phaledo_dark": {"brand": "PHALEDO", "trans": "cut",
+                   "look": "tiêu đề Averta IN HOA trồi lên trong mặt nạ + ánh sáng quét, nét mảnh champagne; dòng nhỏ và nhãn con là viên kính tối viền champagne, mục đang nói sáng viền"},
+  "phaledo_warm": {"brand": "PHALEDO", "trans": "cut",
+                   "look": "mẩu trang sổ tay + washi; nhãn con là thẻ giấy kem rơi nhẹ, mục đang nói gạch chân tự vẽ, mục đã qua được tick xanh rêu"}
+ },
+ "theme_by_brand": {"GIADUNGPLUS": "gdp_red", "PHALEDO": "phaledo_dark", "*": "gdp_red"},
+ "params": {
+  "title": {"required": true, "max_chars": 22, "note": "tên chương / khái niệm, IN HOA tự động; ngắn là đẹp ('S-T-P', '7Ps', 'CHẤT LIỆU')"},
+  "eyebrow": {"max_chars": 16, "note": "dòng nhỏ trên tiêu đề: 'Bước 2', 'Bước 2/6', 'Chương 02'"},
+  "items": {"note": "[(cụm lời | giây, nhãn ≤ 22, ghi chú ≤ 30), …] tối đa 6 — cutlib đổi thành JSON {t, x, n} cho trang"},
+  "layout": {"note": "auto (mặc định, theo vị trí người) | list | sides"},
+  "side": {"note": "list: left | right (cột nhãn con)"},
+  "numbered": {"note": "đánh số nhãn con (mặc định: list có số, sides không)"},
+  "y": {"note": "tâm tiêu đề (tỉ lệ khung); BỎ TRỐNG = máy tự đặt (sau/trước người)"},
+  "behind": {"note": "auto | True | False — tham số dựng"},
+  "theme": {"note": "bỏ trống = theo shop của job"},
+  "preset": {"note": "bỏ trống = theo nội dung (preset_rule)"}
+ },
+ "sfx": {
+  "gdp_red": [{"at": "enter", "file": "scene/paper_whoosh.wav", "gain_db": -20}, {"at": "land", "file": "click_003.ogg", "gain_db": -19},
+              {"at": "item", "file": "click2.ogg", "gain_db": -24}],
+  "phaledo_dark": [{"at": "enter", "file": "scene/soft_swell.wav", "gain_db": -23}, {"at": "item", "file": "scene/air_shimmer.wav", "gain_db": -27}],
+  "phaledo_warm": [{"at": "enter", "file": "scene/page_slide.wav", "gain_db": -21}, {"at": "item", "file": "scene/pencil_scribble.wav", "gain_db": -25}]
+ },
+ "land_at": {"gdp_red": {"micro": 0.2, "standard": 0.4, "full": 0.4}, "phaledo_dark": {"micro": 0.3, "standard": 0.6, "full": 0.6},
+             "phaledo_warm": {"micro": 0.3, "standard": 0.45, "full": 0.45}},
+ "qa": ["Motion Engine: tất định (Chrome vẽ CPU), nền trong suốt, khung cuối trong suốt; cảnh báo 'viền TỐI' = bóng mềm cố ý cho chữ đọc được trên nền sáng, bỏ qua",
+        "Template: tiêu đề vừa bề ngang, nhãn con không xuống quá 50% khung (cảnh báo) / 62% (lỗi), trong vùng an toàn TikTok",
+        "Dựng: chữ động KHÔNG tắt và tự né vùng tiêu đề ghim; logo tạm ẩn; tiêu đề sau người ≤ 30% bị che, nhãn con không đè vùng đầu",
+        "Lời: mỗi nhãn con có cụm lời tương ứng (hiện sớm 0,15s)"],
+ "sample": {"GIADUNGPLUS": {"title": "S-T-P", "eyebrow": "Bước 2",
+                            "items": "[{\"t\": 1.2, \"x\": \"Segmentation\", \"n\": \"phân nhóm thị trường\"}, {\"t\": 2.4, \"x\": \"Targeting\", \"n\": \"chọn lấy 1 nhóm\"}, {\"t\": 3.6, \"x\": \"Positioning\", \"n\": \"định vị thương hiệu\"}]", "dur": 6},
+            "PHALEDO": {"title": "Chất liệu", "eyebrow": "Chương 02",
+                        "items": "[{\"t\": 1.2, \"x\": \"Thủy tinh\", \"n\": \"không ám mùi\"}, {\"t\": 2.4, \"x\": \"Gỗ sồi\", \"n\": \"nắp kín hơi\"}, {\"t\": 3.6, \"x\": \"Inox 304\", \"n\": \"khung chịu lực\"}]", "dur": 6}},
+ "examples": [
+  "c.graphic('scene-pinned-title', at='Bước hai', until='định vị', title='S-T-P', eyebrow='Bước 2/6', items=[('phân nhóm', 'Segmentation', 'phân nhóm thị trường'), ('chọn lấy', 'Targeting', 'chọn lấy 1 nhóm'), ('định vị', 'Positioning', 'định vị thương hiệu')])",
+  "c.graphic('scene-pinned-title', at='Bước ba', until='bằng chứng', title='Marketing Mix 7Ps', eyebrow='Bước 3', items=[('sản phẩm', 'P1: Sản phẩm'), ('giá', 'P2: Giá')])",
+  "c.graphic('scene-pinned-title', at=12.0, dur=18, title='S-T-P', eyebrow='Bước 2', preset='micro')"
+ ],
+ "previews": "previews/<theme>-<preset>.jpg + previews/_board.jpg (footage thật)"
+}

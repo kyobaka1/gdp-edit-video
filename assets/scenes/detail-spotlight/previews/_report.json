@@ -1,0 +1,102 @@
+[
+ {
+  "theme": "gdp_red",
+  "preset": "full",
+  "ok": true,
+  "duration": 3.2333,
+  "frames": 97,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "gdp_red",
+  "preset": "micro",
+  "ok": true,
+  "duration": 3.2333,
+  "frames": 97,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "gdp_red",
+  "preset": "standard",
+  "ok": true,
+  "duration": 3.2333,
+  "frames": 97,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "phaledo_dark",
+  "preset": "full",
+  "ok": true,
+  "duration": 3.2333,
+  "frames": 97,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 124.4) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "phaledo_dark",
+  "preset": "micro",
+  "ok": true,
+  "duration": 3.2333,
+  "frames": 97,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "phaledo_dark",
+  "preset": "standard",
+  "ok": true,
+  "duration": 3.2333,
+  "frames": 97,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 199.9) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "phaledo_warm",
+  "preset": "full",
+  "ok": true,
+  "duration": 3.2333,
+  "frames": 97,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 123.8) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "phaledo_warm",
+  "preset": "micro",
+  "ok": true,
+  "duration": 3.2333,
+  "frames": 97,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 130.3) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "phaledo_warm",
+  "preset": "standard",
+  "ok": true,
+  "duration": 3.2333,
+  "frames": 97,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 229.0) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ }
+]

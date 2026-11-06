@@ -1,0 +1,15 @@
+{
+ "engine": "codex",
+ "kind": "ai",
+ "prompt": "Văn phòng hiện đại buổi sáng, nắng xiên qua cửa kính, người làm việc ở xa hơi mờ, laptop + ly cà phê, tông ấm, không chữ",
+ "alpha": false,
+ "created": "2026-11-05 17:11",
+ "variants": [
+  {
+   "file": "van-phong-sang.png",
+   "w": 1024,
+   "h": 1536
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

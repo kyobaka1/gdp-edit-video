@@ -1,0 +1,20 @@
+{
+ "engine": "codex",
+ "model": "gpt-5.6-luna",
+ "kind": "ai",
+ "prompt": "Ảnh chụp chân thực từ trên xuống: hạt cà phê rang, một ít hạt điều và hạt sen trên khăn linen màu kem, một muỗng gỗ, mặt bàn gỗ sồi, ánh sáng tự nhiên ấm buổi sáng. Không có hũ, lọ, chai, ly, không có chữ.\nPhong cách chung của bộ: ảnh chụp phẳng từ trên xuống, ánh sáng tự nhiên buổi sáng ấm áp, tông be kem, nâu gỗ sồi, xanh ô liu nhạt, cảm giác sổ tay nhà bếp thủ công tinh tế; tuyệt đối không chữ, số, logo, không có hũ, lọ, chai, ly thủy tinh",
+ "size": "doc",
+ "alpha": false,
+ "refs": [],
+ "thread": "01a1ab88-4b2e-7f92-a7e6-2da22207c8af",
+ "created": "2026-11-05 18:47",
+ "variants": [
+  {
+   "file": "anh-nguyen-lieu-am.png",
+   "w": 1024,
+   "h": 1536,
+   "mode": "RGB"
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

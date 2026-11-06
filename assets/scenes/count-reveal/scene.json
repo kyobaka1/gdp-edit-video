@@ -1,0 +1,67 @@
+{
+ "id": "count-reveal",
+ "code": "C04",
+ "name": "Count & Reveal — đếm và lật từng mục",
+ "version": "1.0.0",
+ "motion_id": "scene-count-reveal",
+ "status": "ready",
+ "purpose": "'3 lý do / 3 bước / 3 điều cần nhớ': số đếm TO + từng mục bật ra ĐÚNG LÚC lời nói tới, cuối cùng đọng lại thành bảng tổng kết người xem chụp màn hình được. Thẻ ngắn 2–6s chiếm trọn chú ý (standard/full phủ khung); micro = chip đếm đè footage.",
+ "use_when": [
+  "Lời liệt kê có số ('có 3 lý do…', 'chỉ cần 3 bước…', 'nhớ 3 điều…') và nói các ý liền nhau trong 2–6s",
+  "Tổng kết cuối bài nhiều bước (Story S07: C02 → C03 → C04) hoặc sau so sánh A vs B (S03)",
+  "Muốn người xem chụp màn hình / lưu video (bảng tóm tắt rõ ràng)"
+ ],
+ "avoid_when": [
+  "Các ý cách nhau > 2s hoặc kéo dài cả chương — dùng Pinned Title (C03)",
+  "Chỉ 1 ý / 1 con số — dùng Keyword Burst (C01)",
+  "Đoạn đang có bằng chứng / cảnh sản phẩm quan trọng (bản phủ khung sẽ che) — dùng micro",
+  "Mục không được nói ra (nhãn phải khớp lời, không thêm tuyên bố)"
+ ],
+ "presets": {
+  "micro": {"dur": [1.5, 6.0], "default": 3, "covers": false, "note": "chip đếm gọn đè footage (dòng nhỏ + các mục 1 dòng), không nền"},
+  "standard": {"dur": [2.0, 4.2], "default": 4, "covers": true, "note": "thẻ phủ khung: tiêu đề + số đếm + các mục 1 dòng"},
+  "full": {"dur": [3.0, 10.0], "default": 6, "covers": true, "note": "thẻ phủ khung: mục 2 dòng (thuật ngữ + ghi chú), nhịp chậm hơn"}
+ },
+ "preset_auto": [[2.0, "micro"], [4.2, "standard"], [99, "full"]],
+ "items": {"max": 5, "term_max": 26, "note_max": 34, "lead": 0.15, "tail": 0.75,
+           "note": "items=[(cụm lời | giây, 'Mục', 'ghi chú'), …] 2–5 mục theo thứ tự lời; mục hiện sớm 0,15s so với lúc nói"},
+ "themes": {
+  "gdp_red": {"brand": "GIADUNGPLUS", "trans": "flash", "bg": ["default", "kraft"],
+              "look": "checklist giấy trên nền giấy đỏ: tiêu đề trên nhãn giấy xé, tem đỏ số đếm to, mỗi mục một tờ giấy xé đập vào từ hai phía + tem số, mục mới nhất tô bút dạ vàng; stop-motion 12 hình/giây"},
+  "phaledo_dark": {"brand": "PHALEDO", "trans": "cut", "bg": ["default"],
+                   "look": "ba mục editorial trên nền than + ánh sáng khúc xạ: số mảnh 01/02/03 champagne, dòng trồi lên + nét kẻ mảnh tự vẽ, số đếm khổng lồ mảnh làm hình chìm"},
+  "phaledo_warm": {"brand": "PHALEDO", "trans": "cut", "bg": ["default"],
+                   "look": "trang sổ tay trượt lên, ô trống có sẵn (thấy ngay có mấy mục), mỗi mục được tick tay rồi hiện chữ; số đếm khoanh tròn vẽ tay"}
+ },
+ "theme_by_brand": {"GIADUNGPLUS": "gdp_red", "PHALEDO": "phaledo_dark", "*": "gdp_red"},
+ "params": {
+  "title": {"max_chars": 26, "note": "'3 lý do nên dùng', 'Lắp đúng cách' — IN HOA tự động, dài tự 2 dòng"},
+  "eyebrow": {"max_chars": 16, "note": "dòng nhỏ: 'Mẹo nhanh', 'Tổng kết', 'Bước 4'"},
+  "items": {"note": "[(cụm lời | giây, mục ≤ 26, ghi chú ≤ 34), …] 2–5 mục"},
+  "count": {"note": "số hiện to (mặc định = số mục); '' = không hiện"},
+  "bg": {"note": "gdp_red: default | kraft"},
+  "theme": {"note": "bỏ trống = theo shop của job"},
+  "preset": {"note": "bỏ trống = theo thời lượng: < 2s micro · < 4,2s standard · còn lại full (mục có ghi chú)"}
+ },
+ "sfx": {
+  "gdp_red": [{"at": "enter", "file": "scene/paper_whoosh.wav", "gain_db": -18}, {"at": "item", "file": "impactSoft_medium_004.ogg", "gain_db": -19}],
+  "phaledo_dark": [{"at": "enter", "file": "scene/soft_swell.wav", "gain_db": -21}, {"at": "item", "file": "scene/glass_ting.wav", "gain_db": -25}],
+  "phaledo_warm": [{"at": "enter", "file": "scene/page_slide.wav", "gain_db": -19}, {"at": "item", "file": "scene/pencil_scribble.wav", "gain_db": -22}]
+ },
+ "land_at": {"gdp_red": {"micro": 0.3, "standard": 0.4, "full": 0.4}, "phaledo_dark": {"micro": 0.3, "standard": 0.6, "full": 0.6},
+             "phaledo_warm": {"micro": 0.3, "standard": 0.45, "full": 0.45}},
+ "qa": ["Motion Engine: tất định (Chrome vẽ CPU), khung cuối trong suốt; cảnh báo 'viền TỐI' ở micro = bóng mềm cố ý, bỏ qua",
+        "Template: tiêu đề / mục vừa khung (tự thu chữ, tiêu đề dài 2 dòng), các mục trong 74% khung",
+        "Dựng: phủ khung → lớp cảnh sau nằm sẵn dưới đoạn ra, chữ động tắt, logo ẩn; micro giữ logo",
+        "Lời: mỗi mục có cụm lời tương ứng (hiện sớm 0,15s)"],
+ "sample": {"GIADUNGPLUS": {"title": "Lắp đúng cách", "eyebrow": "Mẹo nhanh",
+                            "items": "[{\"t\": 1.0, \"x\": \"Lau sạch tường\", \"n\": \"khô ráo, không bụi\"}, {\"t\": 2.0, \"x\": \"Dán miếng keo\", \"n\": \"ấn giữ 30 giây\"}, {\"t\": 3.0, \"x\": \"Treo đồ sau 24 giờ\", \"n\": \"chịu lực tối đa\"}]", "dur": 4.2},
+            "PHALEDO": {"title": "Vì sao chọn", "eyebrow": "Chương 02",
+                        "items": "[{\"t\": 1.0, \"x\": \"Thủy tinh dày\", \"n\": \"không ám mùi\"}, {\"t\": 2.0, \"x\": \"Nắp gỗ sồi\", \"n\": \"kín hơi\"}, {\"t\": 3.0, \"x\": \"Dễ vệ sinh\", \"n\": \"rửa máy được\"}]", "dur": 4.2}},
+ "examples": [
+  "c.graphic('scene-count-reveal', at='có ba lý do', until='dễ vệ sinh', title='3 lý do nên dùng', items=[('thủy tinh', 'Thủy tinh dày'), ('nắp gỗ', 'Nắp gỗ sồi'), ('dễ vệ sinh', 'Dễ vệ sinh')])",
+  "c.graphic('scene-count-reveal', at='Tóm lại', until='24 giờ', title='Lắp đúng cách', eyebrow='Tổng kết', items=[('lau sạch', 'Lau sạch tường', 'khô ráo, không bụi'), ('dán', 'Dán miếng keo', 'ấn giữ 30 giây'), ('24 giờ', 'Treo đồ sau 24 giờ')])",
+  "c.graphic('scene-count-reveal', at='một là', dur=1.8, eyebrow='Mẹo nhanh', items=[('một là', 'Lau sạch'), ('hai là', 'Dán keo')])   # micro"
+ ],
+ "previews": "previews/<theme>-<preset>.jpg + previews/_board.jpg"
+}

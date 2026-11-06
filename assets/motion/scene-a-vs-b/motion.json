@@ -1,0 +1,78 @@
+{
+  "id": "scene-a-vs-b",
+  "source": {
+    "kind": "html",
+    "entry": "src/a-vs-b.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\a-vs-b\\src\\a-vs-b.html"
+  },
+  "version": 1,
+  "name": "Scene C05 A vs B",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "a_vs_b"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "scene",
+    "so sánh",
+    "hai phe",
+    "trước sau",
+    "chốt",
+    "editorial",
+    "journal"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 3.5,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "hai phe vào",
+      "start": 0,
+      "end": 0.6
+    },
+    {
+      "name": "so sánh + chốt",
+      "start": 0.6,
+      "end": 3.066666666666667
+    },
+    {
+      "name": "ra",
+      "start": 3.066666666666667,
+      "end": 3.5
+    }
+  ],
+  "params": {
+    "theme": "gdp_red",
+    "preset": "standard",
+    "title": "",
+    "a": "A",
+    "b": "B",
+    "photo_a": "none",
+    "photo_b": "none",
+    "items": "[]",
+    "winner": "",
+    "layout": "sides",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "opaque": true,
+  "z": "top",
+  "variants": {},
+  "scene": "a-vs-b",
+  "notes": "Scene Library C05 A vs B v1.0 — hồ sơ assets/scenes/a-vs-b/scene.json. Nguồn assets/scenes/a-vs-b/src (Claude viết 06/11). Hai phe (nhãn + ảnh thật / khung từ clip + ý con theo lời) + VS + chốt phe thắng; standard/full phủ khung, micro đè footage. Dùng: c.graphic('scene-a-vs-b', a=…, b=…, photo_a='src:c03@2.0', items=[(…, 'a', …)], winner='b', win_at=…)."
+}

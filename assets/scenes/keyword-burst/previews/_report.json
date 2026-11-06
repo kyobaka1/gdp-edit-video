@@ -1,0 +1,106 @@
+[
+ {
+  "theme": "gdp_red",
+  "preset": "full",
+  "ok": true,
+  "duration": 2.0333,
+  "frames": 61,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 188.0) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "gdp_red",
+  "preset": "micro",
+  "ok": true,
+  "duration": 0.7333,
+  "frames": 22,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 198.9) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "gdp_red",
+  "preset": "standard",
+  "ok": true,
+  "duration": 1.2333,
+  "frames": 37,
+  "first_alpha": 255,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 188.3) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "phaledo_dark",
+  "preset": "full",
+  "ok": true,
+  "duration": 2.0333,
+  "frames": 61,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 227.1) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "phaledo_dark",
+  "preset": "micro",
+  "ok": true,
+  "duration": 0.7333,
+  "frames": 22,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 235.0) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "phaledo_dark",
+  "preset": "standard",
+  "ok": true,
+  "duration": 1.2333,
+  "frames": 37,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 225.9) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "phaledo_warm",
+  "preset": "full",
+  "ok": true,
+  "duration": 2.0333,
+  "frames": 61,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "phaledo_warm",
+  "preset": "micro",
+  "ok": true,
+  "duration": 0.7333,
+  "frames": 22,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 178.6) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "phaledo_warm",
+  "preset": "standard",
+  "ok": true,
+  "duration": 1.2333,
+  "frames": 37,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ }
+]

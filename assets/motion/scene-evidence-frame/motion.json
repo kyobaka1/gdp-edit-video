@@ -1,0 +1,75 @@
+{
+  "id": "scene-evidence-frame",
+  "source": {
+    "kind": "html",
+    "entry": "src/evidence-frame.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\evidence-frame\\src\\evidence-frame.html"
+  },
+  "version": 1,
+  "name": "Scene C08 Evidence Frame",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "evidence_frame"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "scene",
+    "bằng chứng",
+    "ảnh thật",
+    "clip thật",
+    "số liệu",
+    "doanh thu",
+    "editorial",
+    "journal"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 3.5,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "khung vào",
+      "start": 0,
+      "end": 0.55
+    },
+    {
+      "name": "bằng chứng + số liệu",
+      "start": 0.55,
+      "end": 3.1166666666666667
+    },
+    {
+      "name": "ra",
+      "start": 3.1166666666666667,
+      "end": 3.5
+    }
+  ],
+  "params": {
+    "theme": "gdp_red",
+    "preset": "standard",
+    "title": "",
+    "photo": "none",
+    "figure": "",
+    "caption": "",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "opaque": true,
+  "z": "top",
+  "variants": {},
+  "scene": "evidence-frame",
+  "notes": "Scene Library C08 Evidence Frame v1.0 — hồ sơ assets/scenes/evidence-frame/scene.json. Nguồn assets/scenes/evidence-frame/src (Claude viết 06/11). Ảnh/CLIP thật đóng khung (clip: trang chừa ô trong suốt, build ProofPainter phát clip vào), số liệu + nguồn. Dùng: c.graphic('scene-evidence-frame', clip='c06@0.3' | photo='src:…', figure=…, caption=…)."
+}

@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>A vs B</title>
+<!-- Scene Library · C05 A vs B v1.0 (Claude viết 06/11/2026) — assets/scenes/a-vs-b/scene.json.
+     Hai phương án đối lập: mỗi phe nhãn + ảnh (ảnh thư viện THẬT / khung cắt từ clip đã quay) + ý con hiện đúng lúc nói,
+     'VS' ở giữa; đúng lúc người nói chốt (win_t) phe thắng được đóng dấu ✓, phe thua xám đi. standard/full phủ khung
+     (thẻ 2–5s); micro = băng "A VS B" gọn đè footage.
+     Hợp đồng Motion Engine: window.setTime(giây) vẽ ĐỒNG BỘ, không Internet, KHÔNG will-change.
+     Query: theme · preset (micro|standard|full) · dur · title · a · b (nhãn 2 phe) · photo_a · photo_b (tên asset |
+     file:///… | none) · items (JSON [{t, s: 'a'|'b', x, n}]) · winner ('a'|'b'|'') · win_t (giây từ lúc vào) ·
+     layout (sides|split) · bg · seed. -->
+<style>
+  @font-face { font-family: "GdpBold"; src: url("fonts/UTM_AvoBold.ttf"); }
+  @font-face { font-family: "GdpReg"; src: url("fonts/UTM_Avo.ttf"); }
+  @font-face { font-family: "PhBold"; src: url("fonts/Averta-Bold.otf"); }
+  @font-face { font-family: "PhReg"; src: url("fonts/Averta-Regular.otf"); }
+  @font-face { font-family: "PhLight"; src: url("fonts/Averta-Light.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  #root { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; transform-origin: 50% 45%; }
+  .abs { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; white-space: nowrap; box-sizing: border-box; }
+  .full { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; transform-origin: 50% 50%; }
+  .bgimg { background-size: 100% 100%; background-repeat: no-repeat; }
+  .ph { position: absolute; overflow: hidden; box-sizing: border-box; }
+  .ph > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ctr { display: flex; align-items: center; justify-content: center; }
+  svg { position: absolute; left: 0; top: 0; overflow: visible; }
+</style>
+<script src="assets.js"></script>
+<script src="themes.js"></script>
+</head>
+<body>
+<div id="stage"><div id="root"></div></div>
+<script>
+(function () {
+  const W = 1080, H = 1920, FPS = 30;
+  const Q = new URLSearchParams(location.search);
+  const TH_ID = Q.get("theme") || "gdp_red";
+  const T = window.SCENE_THEMES[TH_ID] || window.SCENE_THEMES.gdp_red;
+  const C = T.color, A = window.KIT_ASSETS, E = T.engine;
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const prog = (t, a, b) => b <= a ? (t >= b ? 1 : 0) : clamp((t - a) / (b - a));
+  const outBack = (x, s = 1.5) => 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2);
+  const outCubic = x => 1 - Math.pow(1 - x, 3);
+  const inCubic = x => x * x * x;
+  const inOut = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  const stop12 = t => Math.floor(t * 12 + 1e-6) / 12;
+
+  const PRESETS = { micro: { min: 1.2, def: 2.5 }, standard: { min: 2.0, def: 3.5 }, full: { min: 3.0, def: 5 } };
+  const PRESET = PRESETS[Q.get("preset")] ? Q.get("preset") : "standard";
+  const D = Math.max(PRESETS[PRESET].min, parseFloat(Q.get("dur") || PRESETS[PRESET].def) || PRESETS[PRESET].def);
+  const MICRO = PRESET === "micro", FULL = PRESET === "full";
+  const up = s => (s || "").toLocaleUpperCase("vi").trim();
+  const TITLE = up(Q.get("title")), LA = up(Q.get("a") || "A"), LB = up(Q.get("b") || "B");
+  const LAYOUT = Q.get("layout") === "split" ? "split" : "sides";
+  const WIN = ["a", "b"].includes(Q.get("winner")) ? Q.get("winner") : "";
+  const SEED = parseInt(Q.get("seed") || "1", 10) || 1;
+  const BGK = (T.bg || {})[Q.get("bg") || "default"] || (T.bg || {}).default;
+  const DE = D - 1 / FPS, EX = MICRO ? 0.25 : 0.4, HIN = MICRO ? 0.35 : 0.6;
+  const WT = WIN ? clamp(parseFloat(Q.get("win_t") || (DE - EX - 0.9)) || 0, HIN, Math.max(HIN, DE - EX - 0.45)) : null;
+  const QA = { theme: TH_ID, preset: PRESET, dur: D, overflow: [], warn: [], fontPx: {} };
+  let ITEMS = [];
+  try { ITEMS = JSON.parse(Q.get("items") || "[]"); } catch (e) { QA.overflow.push("items JSON lỗi"); }
+  ITEMS = MICRO ? [] : (Array.isArray(ITEMS) ? ITEMS : []).filter(it => it && it.x && ["a", "b"].includes(it.s))
+    .map(it => ({ t: clamp(+it.t || HIN, HIN, Math.max(HIN, DE - EX - 0.35)), s: it.s, x: String(it.x).trim(), n: FULL && it.n ? String(it.n).trim() : "" }))
+    .sort((a, b) => a.t - b.t);
+  const root = document.getElementById("root");
+  const imgs = [];
+  function node(tag, cls, parent) { const e = document.createElement(tag); if (cls) e.className = cls; (parent || root).appendChild(e); return e; }
+  function bgi(el, key) { const a = A[key]; const im = new Image(); im.src = a.src; imgs.push(im); el.style.backgroundImage = `url(${a.src})`; el.classList.add("bgimg"); return el; }
+  function image(src, parent, cls) { const im = node("img", cls || "", parent); im.src = src; imgs.push(im); return im; }
+  function asset(key, w, parent) { const a = A[key], im = image(a.src, parent, "abs"); im.style.width = w + "px"; im.style.height = (w * a.h / a.w) + "px"; return im; }
+  function place(el, x, y) { el.style.left = Math.round(x) + "px"; el.style.top = Math.round(y) + "px"; }
+  function rect(el) { const r = el.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; }
+  function fitFont(el, px, maxW, minK) { let k = 1; el.style.fontSize = px + "px";
+    while (el.offsetWidth > maxW && k > minK) { k -= 0.04; el.style.fontSize = Math.round(px * k) + "px"; } return el.offsetWidth <= maxW + 1; }
+  const photoSrc = p => !p || p === "none" ? null : p.startsWith("file:") ? p : (A[p] ? A[p].src : null);
+  const PX = T.px;
+  const CX = 486;   // giữa vùng an toàn TikTok (6–84% ngang)
+
+  // ═════════ nền ═════════
+  let bg = null, vig = null, light = null;
+  if (!MICRO) {
+    bg = image(A[BGK].src, root, "full");
+    if (E === "glass") { vig = node("div", "full"); vig.style.background = "radial-gradient(ellipse 80% 60% at 50% 42%, rgba(0,0,0,0) 30%, rgba(0,0,0,.62) 100%)";
+      light = image(A[T.light].src, root, "full"); light.style.mixBlendMode = "screen"; }
+    if (E === "journal") { vig = node("div", "full"); vig.style.background = "radial-gradient(ellipse 85% 70% at 50% 45%, rgba(0,0,0,0) 45%, rgba(70,45,20,.28) 100%)"; }
+  }
+  // ═════════ tiêu đề ═════════
+  let ttl = null;
+  if (TITLE && !MICRO) {
+    ttl = node("div", "abs");
+    ttl.textContent = TITLE;
+    Object.assign(ttl.style, { fontFamily: T.fonts.title, color: E === "paper" ? C.title : C.title, letterSpacing: E === "glass" ? ".05em" : "0" });
+    if (E === "paper") { bgi(ttl, "nhan-tieu-de-trong"); Object.assign(ttl.style, { padding: "22px 52px 26px 50px", filter: "drop-shadow(0 8px 8px rgba(0,0,0,.35))" }); }
+  }
+  // ═════════ hai phe ═════════
+  const sides = ["a", "b"].map(s => {
+    const P = { s, label: s === "a" ? LA : LB, photo: photoSrc(Q.get("photo_" + s)), win: WIN === s, lose: WIN && WIN !== s };
+    P.el = node("div", "abs");          // khung chứa cả phe (để vào/ra cùng nhau)
+    P.media = null; P.img = null;
+    if (MICRO) {   // chip nhãn
+      P.lab = node("div", "abs ctr", P.el);
+      P.lab.textContent = P.label;
+      Object.assign(P.lab.style, { fontFamily: T.fonts.label, fontSize: PX.micro + "px" });
+      if (E === "paper") { bgi(P.lab, "bang-giay-den-trong"); Object.assign(P.lab.style, { color: C.label, padding: "16px 40px 18px 36px", filter: "drop-shadow(0 6px 7px rgba(0,0,0,.35))" }); }
+      else if (E === "glass") Object.assign(P.lab.style, { color: C.label, padding: "12px 30px 13px", background: C.pill, border: `1px solid ${C.line}`, borderRadius: "999px", letterSpacing: ".06em", textShadow: "0 1px 6px rgba(0,0,0,.5)" });
+      else Object.assign(P.lab.style, { color: C.label, padding: "14px 30px", background: C.tag, borderRadius: "6px", filter: "drop-shadow(0 8px 10px rgba(50,28,12,.3))" });
+      return P;
+    }
+    // ảnh / thẻ
+    if (E === "paper") {
+      P.media = node("div", "ph", P.el);
+      Object.assign(P.media.style, { background: P.photo ? "#fbfaf6" : C.card, padding: P.photo ? "16px" : "0", filter: "drop-shadow(0 10px 10px rgba(0,0,0,.4))" });
+      if (P.photo) P.img = image(P.photo, P.media);
+      P.tape = asset("bang-keo-giay", 170, P.el);
+    } else if (E === "glass") {
+      P.media = node("div", "ph", P.el);
+      Object.assign(P.media.style, { border: `1px solid ${C.line}`, background: P.photo ? "#000" : C.card });
+      if (P.photo) P.img = image(P.photo, P.media);
+    } else {
+      P.media = node("div", "ph", P.el);
+      Object.assign(P.media.style, { background: P.photo ? C.polaroid : C.tag, padding: P.photo ? "18px 18px 18px 18px" : "0", borderRadius: P.photo ? "2px" : "6px",
+        filter: "drop-shadow(0 14px 16px rgba(60,40,20,.3))" });
+      if (P.photo) P.img = image(P.photo, P.media);
+      P.tape = asset(T.washi, 190, P.el);
+    }
+    // nhãn phe
+    P.lab = node("div", "abs ctr", P.el);
+    P.lab.textContent = P.label;
+    P.big = !P.photo;   // không ảnh → nhãn TO nằm giữa thẻ (thẻ không trống trơn)
+    P.labPx = P.big ? Math.round(PX.label * 1.8) : PX.label;
+    Object.assign(P.lab.style, { fontFamily: T.fonts.label, fontSize: P.labPx + "px" });
+    if (P.big) Object.assign(P.lab.style, { color: E === "paper" ? C.title : C.label, letterSpacing: E === "glass" ? ".06em" : "0" });
+    else if (E === "paper") { bgi(P.lab, "bang-giay-den-trong"); Object.assign(P.lab.style, { color: C.label, padding: "16px 42px 18px 38px", filter: "drop-shadow(0 6px 7px rgba(0,0,0,.35))" }); }
+    else if (E === "glass") Object.assign(P.lab.style, { color: C.label, letterSpacing: ".08em", textShadow: "0 2px 10px rgba(0,0,0,.7)" });
+    else Object.assign(P.lab.style, { color: C.label });
+    // ý con của phe
+    P.points = ITEMS.filter(it => it.s === s).map(it => {
+      const el = node("div", "abs", P.el);
+      const term = node("div", "", el); term.textContent = (E === "glass" ? "— " : "") + it.x;
+      Object.assign(term.style, { fontFamily: T.fonts.point, color: C.point, fontSize: PX.point + "px", lineHeight: "1.15" });
+      let note = null;
+      if (it.n) { note = node("div", "", el); note.textContent = it.n;
+        Object.assign(note.style, { fontFamily: E === "paper" ? "GdpReg" : "PhLight", color: C.point, opacity: ".8", fontSize: Math.round(PX.point * 0.74) + "px" }); }
+      if (E === "paper") { bgi(el, "nhan-tieu-de-trong"); Object.assign(el.style, { padding: "12px 30px 14px 26px", filter: "drop-shadow(0 5px 6px rgba(0,0,0,.3))" }); }
+      else if (E === "glass") Object.assign(el.style, { padding: "6px 0", textShadow: "0 1px 8px rgba(0,0,0,.6)" });
+      else Object.assign(el.style, { padding: "10px 22px 11px", background: C.tag, borderRadius: "5px", filter: "drop-shadow(0 6px 8px rgba(50,28,12,.26))" });
+      return { ...it, el, term, note };
+    });
+    return P;
+  });
+  // VS
+  const vs = node("div", "abs ctr");
+  vs.textContent = E === "paper" ? "VS" : "vs";
+  Object.assign(vs.style, { fontFamily: T.fonts.vs, color: C.vs, fontSize: (MICRO ? Math.round(PX.vs * 0.5) : PX.vs) + "px" });
+  if (E === "paper") { bgi(vs, "tem-do-trong"); const s = MICRO ? 104 : 190; Object.assign(vs.style, { width: s + "px", height: s + "px", paddingTop: "6px",
+    filter: "drop-shadow(0 8px 8px rgba(0,0,0,.35))" }); }
+  else if (E === "glass") { const s = MICRO ? 70 : 130; Object.assign(vs.style, { width: s + "px", height: s + "px", border: `1px solid ${C.line}`, borderRadius: "50%",
+    background: "rgba(14,14,14,.7)", paddingBottom: "8px" }); }
+  else { const s = MICRO ? 74 : 140; Object.assign(vs.style, { width: s + "px", height: s + "px", paddingBottom: "6px" }); }
+  // dấu chốt (phe thắng / thua)
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("width", W); svg.setAttribute("height", H); root.appendChild(svg);
+  function path(d, color, w) { const p = document.createElementNS("http://www.w3.org/2000/svg", "path"); p.setAttribute("d", d);
+    Object.assign(p.style, { fill: "none", stroke: color, strokeWidth: w + "px", strokeLinecap: "round", strokeLinejoin: "round" }); svg.appendChild(p);
+    p.dataset.len = p.getTotalLength(); p.style.strokeDasharray = p.dataset.len; return p; }
+  let vsCircle = null, stamp = null;
+
+  function layout() {
+    const top0 = 0.135 * H;
+    let top = top0;
+    if (ttl) { fitFont(ttl, PX.title, 820, 0.6); QA.fontPx.title = parseFloat(ttl.style.fontSize);
+      place(ttl, CX - ttl.offsetWidth / 2, top); top += ttl.offsetHeight + 36; }
+    if (MICRO) {   // băng nhãn: [A] VS [B]
+      const y = 0.17 * H;
+      sides.forEach(P => fitFont(P.lab, PX.micro, 330, 0.6));
+      const vw = vs.offsetWidth, aw = sides[0].lab.offsetWidth, bw = sides[1].lab.offsetWidth;
+      const total = aw + vw + bw - 24, x0 = CX - total / 2;
+      place(sides[0].lab, x0, y + (vw - sides[0].lab.offsetHeight) / 2);
+      place(vs, x0 + aw - 12, y);
+      place(sides[1].lab, x0 + aw + vw - 24, y + (vw - sides[1].lab.offsetHeight) / 2);
+      sides.forEach(P => P.box = rect(P.lab));
+    } else if (LAYOUT === "sides") {   // 2 cột trái | phải — hợp footage dọc
+      const colW = 396, gap = 40, xs = [CX - gap / 2 - colW, CX + gap / 2], bottom = 0.75 * H;
+      sides.forEach((P, i) => {
+        const x = xs[i];
+        fitFont(P.lab, P.labPx, P.big ? colW - 50 : colW + 20, 0.45);
+        let y = top;
+        const lh = P.lab.offsetHeight;
+        const ptsH = P.points.reduce((s, p) => { fitFont(p.term, PX.point, colW - 40, 0.6); if (p.note) fitFont(p.note, Math.round(PX.point * 0.74), colW - 40, 0.6);
+          return s + p.el.offsetHeight + 12; }, 0);
+        // khung ảnh bắt đầu: Dark có nhãn chữ PHÍA TRÊN khung (chừa chỗ) · GDP băng nhãn đè mép trên · Warm nhãn ở lề dưới polaroid
+        const my = P.big ? y : E === "glass" ? y + lh + 22 : E === "journal" ? y : y + lh * 0.5;
+        const mh = P.big ? bottom - my : Math.max(360, bottom - my - (ptsH ? ptsH + 24 : 0));
+        Object.assign(P.media.style, { width: colW + "px", height: mh + "px" });
+        if (E === "journal" && P.photo) P.media.style.paddingBottom = "88px";
+        place(P.media, x, my);
+        P.rot = E === "glass" ? 0 : (i ? 2.2 : -2.2);
+        if (P.big) place(P.lab, x + (colW - P.lab.offsetWidth) / 2, my + 56);
+        else if (E === "journal") place(P.lab, x + (colW - P.lab.offsetWidth) / 2, my + mh - 74);
+        else if (E === "glass") place(P.lab, x + (colW - P.lab.offsetWidth) / 2, my - lh - 14);
+        else place(P.lab, x + (colW - P.lab.offsetWidth) / 2, my - lh * 0.55);
+        if (P.tape) { const tw = parseFloat(P.tape.style.width);   // GDP: băng keo góc dưới (băng đen nhãn ở trên) · Warm: washi trên
+          if (E === "paper") place(P.tape, x + colW - tw * 0.8, my + parseFloat(P.media.style.height) - 40); else place(P.tape, x + colW / 2 - tw / 2, my - 26); }
+        let py = my + parseFloat(P.media.style.height) + 22;
+        if (P.big) py = my + 56 + P.lab.offsetHeight + 40;   // không ảnh: ý con nằm trong thẻ, dưới nhãn to
+        P.points.forEach(p => { place(p.el, x + (P.big ? 26 : 0), py); p.box = rect(p.el); py += p.el.offsetHeight + (P.big ? 18 : 12); });
+        P.box = rect(P.media);
+        if (py > bottom + 40) QA.overflow.push(`phe ${P.s.toUpperCase()}: nhiều ý quá — tràn khung`);
+      });
+      const mid = sides[0].box.y + sides[0].box.h * 0.45;
+      place(vs, CX - vs.offsetWidth / 2, mid - vs.offsetHeight / 2);
+    } else {   // trên / dưới
+      const bottom = 0.755 * H, gap = 90, h = (bottom - top - gap) / 2, w = 820, x = CX - w / 2;
+      sides.forEach((P, i) => {
+        const y = top + i * (h + gap);
+        Object.assign(P.media.style, { width: w + "px", height: h + "px" });
+        place(P.media, x, y); P.rot = E === "glass" ? 0 : (i ? 1.2 : -1.2);
+        fitFont(P.lab, P.labPx, P.big ? w - 80 : 600, 0.5);
+        if (P.big) place(P.lab, x + 40, y + 36); else place(P.lab, x + 24, y - P.lab.offsetHeight * 0.45);
+        if (P.tape) place(P.tape, x + w - 200, y - 22);
+        let py = y + h - 24;
+        [...P.points].reverse().forEach(p => { fitFont(p.term, PX.point, w - 80, 0.6); py -= p.el.offsetHeight; place(p.el, x + 28, py); p.box = rect(p.el); py -= 10; });
+        P.box = rect(P.media);
+      });
+      place(vs, CX - vs.offsetWidth / 2, top + h + gap / 2 - vs.offsetHeight / 2);
+    }
+    // vòng tròn vẽ tay quanh 'vs' (Warm) + dấu chốt
+    const vr = rect(vs);
+    if (E === "journal") { const cx = vr.x + vr.w / 2, cy = vr.y + vr.h / 2, r = vr.w * 0.5; let d = "";
+      for (let k = 0; k <= 30; k++) { const a = -2 + k / 30 * Math.PI * 2.15; d += (k ? " L " : "M ") + (cx + r * Math.cos(a)).toFixed(1) + " " + (cy + r * 0.86 * Math.sin(a)).toFixed(1); }
+      vsCircle = path(d, C.vs, 5); }
+    if (WIN && !MICRO) {
+      const P = sides.find(p => p.win), L = sides.find(p => p.lose), b = P.box, lb = L.box;
+      if (E === "paper") {   // tem ✓ đập lên ảnh thắng + gạch chéo đỏ phe thua
+        stamp = node("div", "abs ctr"); bgi(stamp, "tem-do-trong"); stamp.textContent = "✓";
+        Object.assign(stamp.style, { width: "170px", height: "170px", fontFamily: "GdpBold", color: C.win, fontSize: "96px", filter: "drop-shadow(0 8px 8px rgba(0,0,0,.35))" });
+        place(stamp, b.x + b.w - 130, b.y + b.h * 0.55);
+        L.x1 = path(`M ${lb.x + lb.w * 0.2} ${lb.y + lb.h * 0.25} L ${lb.x + lb.w * 0.8} ${lb.y + lb.h * 0.62}`, C.lose, 16);
+        L.x2 = path(`M ${lb.x + lb.w * 0.8} ${lb.y + lb.h * 0.25} L ${lb.x + lb.w * 0.2} ${lb.y + lb.h * 0.62}`, C.lose, 16);
+      } else if (E === "glass") {
+        stamp = node("div", "abs ctr"); stamp.textContent = "✓";
+        Object.assign(stamp.style, { width: "84px", height: "84px", borderRadius: "50%", border: `2px solid ${C.win}`, color: C.win, fontFamily: "PhReg",
+          fontSize: "46px", background: "rgba(14,14,14,.75)" });
+        place(stamp, b.x + b.w - 104, b.y + 20);
+      } else {   // khoanh tròn vẽ tay quanh phe thắng + tick
+        const cx = b.x + b.w / 2, cy = b.y + b.h / 2, rx = b.w * 0.55, ry = b.h * 0.53; let d = "";
+        for (let k = 0; k <= 40; k++) { const a = -1.8 + k / 40 * Math.PI * 2.12, w = 1 + 0.03 * Math.sin(k * 1.7 + SEED);
+          d += (k ? " L " : "M ") + (cx + rx * w * Math.cos(a)).toFixed(1) + " " + (cy + ry * w * Math.sin(a)).toFixed(1); }
+        P.circle = path(d, C.win, 7);
+        P.tick = path(`M ${b.x + b.w - 90} ${b.y + 60} L ${b.x + b.w - 66} ${b.y + 88} L ${b.x + b.w - 20} ${b.y + 24}`, C.win, 10);
+      }
+    }
+    const parts = [...sides.map(P => P.box), ...sides.flatMap(P => (P.points || []).map(p => p.box)), rect(vs), ...(ttl ? [rect(ttl)] : [])].filter(Boolean);
+    const x0 = Math.min(...parts.map(p => p.x)), y0 = Math.min(...parts.map(p => p.y));
+    const x1 = Math.max(...parts.map(p => p.x + p.w)), y1 = Math.max(...parts.map(p => p.y + p.h));
+    QA.area = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    if (x0 < 0.06 * W - 10 || x1 > 0.84 * W + 10 || y0 < 0.10 * H || y1 > 0.77 * H) QA.warn.push(`ra ngoài vùng an toàn TikTok (x ${x0}–${x1}, y ${y0}–${y1})`);
+    QA.box = ttl ? rect(ttl) : QA.area; QA.items = sides.flatMap(P => (P.points || []).map(p => p.box)).filter(Boolean);
+    QA.land = HIN; QA.full_at = +Math.min(DE - EX - 0.05, Math.max(HIN + 0.2, ...ITEMS.map(it => it.t + 0.5), WT !== null ? WT + 0.6 : 0)).toFixed(3);
+    QA.items_t = ITEMS.map(it => +it.t.toFixed(3)); if (WT !== null) QA.win_t = +WT.toFixed(3);
+  }
+
+  function setTime(t0) {
+    const t = clamp(t0, 0, D), kx = inCubic(prog(t, DE - EX, DE));
+    if (!MICRO) {
+      const kb = outCubic(prog(t, 0, 0.3));
+      bg.style.opacity = kb; bg.style.transform = `scale(${(1.04 - 0.04 * t / D).toFixed(4)})`;
+      if (vig) vig.style.opacity = kb;
+      if (light) { light.style.opacity = (0.5 * outCubic(prog(t, 0.15, 1.1))).toFixed(4); light.style.transform = `translateY(${lerp(-50, 40, t / D).toFixed(1)}px) scale(1.1)`; }
+    }
+    if (ttl) { const k = E === "paper" ? prog(stop12(t), 0.05, 0.35) : outCubic(prog(t, 0.05, 0.45));
+      ttl.style.opacity = E === "paper" ? (t >= 0.05 ? 1 : 0) : k.toFixed(4);
+      ttl.style.transform = `translateY(${((1 - (E === "paper" ? outBack(k, 1.3) : k)) * -40).toFixed(1)}px)${E === "paper" ? " rotate(-1.5deg)" : ""}`; }
+    // hai phe đối đầu: A vào từ trái/trên, B từ phải/dưới
+    sides.forEach((P, i) => {
+      const a0 = (MICRO ? 0.0 : 0.1) + i * 0.12, a1 = a0 + (MICRO ? 0.25 : 0.38);
+      const dir = i ? 1 : -1, horiz = MICRO || LAYOUT === "sides";
+      let off;
+      if (E === "paper") { const k = prog(stop12(t), a0, a1); off = (1 - outBack(k, 1.3)) * 420; P.el.style.opacity = t >= a0 ? 1 : 0; }
+      else { const k = outCubic(prog(t, a0, a1)); off = (1 - k) * (E === "glass" ? 70 : 160); P.el.style.opacity = Math.min(1, prog(t, a0, a1) * 2.5).toFixed(4); }
+      const tr = horiz ? `translateX(${(dir * off).toFixed(1)}px)` : `translateY(${(dir * off).toFixed(1)}px)`;
+      P.el.style.transform = tr;
+      if (P.media) P.media.style.transform = `rotate(${P.rot || 0}deg)`;
+      if (P.tape) P.tape.style.transform = `rotate(${(i ? 6 : -5)}deg)`;
+      if (E === "glass" && P.media) { const kc = inOut(prog(t, a0, a1 + 0.2)); P.media.style.clipPath = `inset(${((1 - kc) * 100).toFixed(2)}% 0 0 0)`; }
+      if (P.img) P.img.style.transform = `scale(${(1.08 - 0.06 * outCubic(prog(t, a0, D))).toFixed(4)})`;
+      // chốt: phe thua xám + mờ, phe thắng giữ màu
+      const kw = WT !== null ? inOut(prog(t, WT, WT + 0.4)) : 0;
+      if (P.lose) { if (P.img) P.img.style.filter = kw > 0.001 ? `grayscale(${kw.toFixed(3)}) brightness(${(1 - 0.25 * kw).toFixed(3)})` : "none";
+        P.el.style.opacity = (parseFloat(P.el.style.opacity) * (1 - (E === "paper" ? 0.15 : 0.45) * kw)).toFixed(4); }
+      (P.points || []).forEach(p => {
+        const kp = prog(t, p.t, p.t + 0.3);
+        if (E === "paper") { const ks = prog(stop12(Math.max(0, t - p.t)), 0, 0.2); p.el.style.opacity = t >= p.t ? 1 : 0;
+          p.el.style.transform = `translateX(${(dir * (1 - outBack(ks, 1.4)) * 80).toFixed(1)}px) rotate(${(i ? 1.2 : -1.2)}deg)`; }
+        else { const kc = outCubic(kp); p.el.style.opacity = Math.min(1, kp * 2.5).toFixed(4); p.el.style.transform = `translateY(${((1 - kc) * 16).toFixed(1)}px)`; }
+      });
+    });
+    // VS
+    const kv0 = MICRO ? 0.18 : 0.4;
+    if (E === "paper") { const k = prog(stop12(t), kv0, kv0 + 0.2); vs.style.opacity = t >= kv0 ? 1 : 0; vs.style.transform = `translateY(${((1 - outBack(k, 1.6)) * -90).toFixed(1)}px) rotate(-8deg)`; }
+    else { const k = outCubic(prog(t, kv0, kv0 + 0.35)); vs.style.opacity = k.toFixed(4); vs.style.transform = `translateY(${((1 - k) * 18).toFixed(1)}px)`;
+      if (vsCircle) { const kc = inOut(prog(t, kv0 + 0.1, kv0 + 0.5)); vsCircle.style.strokeDashoffset = ((1 - kc) * vsCircle.dataset.len).toFixed(1); vsCircle.style.opacity = kc > 0 ? 1 : 0; } }
+    // dấu chốt
+    if (WT !== null) {
+      const ks = prog(t, WT, WT + 0.3);
+      if (MICRO) sides.forEach(P => { P.lab.style.opacity = P.lose ? (1 - 0.55 * inOut(prog(t, WT, WT + 0.35))).toFixed(4) : 1;
+        if (P.win) P.lab.style.boxShadow = ks > 0 ? `0 0 0 ${(4 * ks).toFixed(1)}px ${E === "paper" ? "rgba(241,196,15,.95)" : C.win}` : "none"; });
+      if (stamp) { if (E === "paper") { const k = prog(stop12(Math.max(0, t - WT)), 0, 0.2); stamp.style.opacity = t >= WT ? 1 : 0;
+          stamp.style.transform = `translateY(${((1 - outBack(k, 1.6)) * -120).toFixed(1)}px) rotate(12deg)`; }
+        else { stamp.style.opacity = outCubic(ks).toFixed(4); stamp.style.transform = `translateY(${((1 - outCubic(ks)) * 12).toFixed(1)}px)`; } }
+      sides.forEach(P => {
+        if (P.x1) { const k1 = inOut(prog(t, WT + 0.1, WT + 0.3)), k2 = inOut(prog(t, WT + 0.25, WT + 0.45));
+          P.x1.style.strokeDashoffset = ((1 - k1) * P.x1.dataset.len).toFixed(1); P.x1.style.opacity = k1 > 0 ? 0.92 : 0;
+          P.x2.style.strokeDashoffset = ((1 - k2) * P.x2.dataset.len).toFixed(1); P.x2.style.opacity = k2 > 0 ? 0.92 : 0; }
+        if (P.circle) { const kc = inOut(prog(t, WT, WT + 0.45)); P.circle.style.strokeDashoffset = ((1 - kc) * P.circle.dataset.len).toFixed(1); P.circle.style.opacity = kc > 0 ? 1 : 0;
+          const kt = inOut(prog(t, WT + 0.35, WT + 0.6)); P.tick.style.strokeDashoffset = ((1 - kt) * P.tick.dataset.len).toFixed(1); P.tick.style.opacity = kt > 0 ? 1 : 0; }
+        if (E === "glass" && P.win && P.media) P.media.style.borderColor = ks > 0 ? C.win : C.line, P.media.style.borderWidth = (1 + 2 * ks).toFixed(2) + "px";
+      });
+    }
+    root.style.opacity = (t >= DE - 1e-6 ? 0 : 1 - kx).toFixed(4);
+    root.style.filter = kx > 0.001 ? `blur(${(10 * kx).toFixed(2)}px)` : "none";
+    root.style.transform = E === "paper" ? `translateY(${(-24 * kx).toFixed(2)}px)` : "none";
+  }
+
+  const fams = [...new Set(Object.values(T.fonts))].concat(E === "paper" ? ["GdpReg"] : ["PhLight", "PhReg"]);
+  const sample = TITLE + LA + LB + ITEMS.map(it => it.x + it.n).join("") + "Ợ✓0123456789";
+  const ready = Promise.all([
+    ...fams.map(f => document.fonts.load(`60px "${f}"`, sample)),
+    ...imgs.map(im => im.decode().catch(() => { throw new Error("thiếu ảnh " + im.src); })),
+  ]).then(() => { layout(); setTime(0); });
+
+  window.setTime = setTime;
+  window.SCENE_MOTION = { name: `A vs B · ${T.label} · ${PRESET}`, duration: D, width: W, height: H, fps: FPS,
+    ready, setTime, qa: QA,
+    scenes: [{ name: "hai phe vào", start: 0, end: HIN }, { name: "so sánh + chốt", start: HIN, end: DE - EX }, { name: "ra", start: DE - EX, end: D }] };
+  if (!Q.has("render")) {
+    const t0 = performance.now();
+    (function loop() { setTime(((performance.now() - t0) / 1000) % (D + 0.6)); requestAnimationFrame(loop); })();
+  }
+})();
+</script>
+</body>
+</html>

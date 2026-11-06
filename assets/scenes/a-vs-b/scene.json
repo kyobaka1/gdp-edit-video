@@ -1,0 +1,76 @@
+{
+ "id": "a-vs-b",
+ "code": "C05",
+ "name": "A vs B — hai phe so sánh + chốt",
+ "version": "1.0.0",
+ "motion_id": "scene-a-vs-b",
+ "status": "ready",
+ "purpose": "Hai phương án đối lập ('nhựa hay thủy tinh', 'khoan hay dán', 'trước / sau'): mỗi phe nhãn + ảnh THẬT + ý con hiện đúng lúc nói, 'VS' ở giữa; đúng lúc người nói chốt thì phe thắng được đóng dấu ✓, phe thua xám đi. Thẻ ngắn 2–5s chiếm trọn chú ý (standard/full phủ khung); micro = băng 'A VS B' gọn đè footage.",
+ "use_when": [
+  "Lời so sánh 2 lựa chọn có kết luận ('…nhưng thủy tinh thì không ám mùi', 'thay vì khoan thì dán') — phe & ý con phải là lời đã nói",
+  "Mở đầu kiểu 'không phải A mà là B' (hook so sánh) hoặc trước phần tổng kết (Story S03: C05 → C04 → C11)",
+  "Có ảnh/khung hình THẬT của cả 2 phe (thư viện `lib:` ảnh thật, hoặc cắt khung từ clip đã quay `src:<clip>@<giây>`)"
+ ],
+ "avoid_when": [
+  "Chê sản phẩm / thương hiệu khác đích danh hoặc so sánh không có trong nguồn (không thêm tuyên bố)",
+  "Ảnh sản phẩm đang bán là ảnh AI — phải ảnh thật / khung từ video",
+  "Hơn 2 phương án — dùng Count & Reveal (C04)",
+  "Cảnh đang có bằng chứng cần xem (bản phủ khung sẽ che) — dùng micro"
+ ],
+ "presets": {
+  "micro": {"dur": [1.2, 6.0], "default": 2.5, "covers": false, "hides": ["items"], "note": "băng 'A VS B' gọn đè footage (2 chip nhãn + VS), chốt = chip thắng sáng viền, chip thua mờ"},
+  "standard": {"dur": [2.0, 4.2], "default": 3.5, "covers": true, "note": "thẻ phủ khung: 2 phe (ảnh + nhãn) + ý con 1 dòng + VS + chốt"},
+  "full": {"dur": [3.0, 10.0], "default": 5, "covers": true, "note": "thẻ phủ khung: ý con 2 dòng (ý + ghi chú), nhịp chậm hơn"}
+ },
+ "preset_auto": [[2.0, "micro"], [4.2, "standard"], [99, "full"]],
+ "items": {"sided": true, "max": 6, "term_max": 18, "note_max": 26, "lead": 0.15, "tail": 0.75,
+           "note": "items=[(cụm lời | giây, 'a'|'b', 'Ý'[, 'ghi chú']), …] ≤ 3 ý mỗi phe, theo thứ tự lời"},
+ "time_params": {"win_at": "win_t"},
+ "themes": {
+  "gdp_red": {"brand": "GIADUNGPLUS", "trans": "flash", "bg": ["default", "kraft"],
+              "look": "hai phe giấy trên nền giấy đỏ: ảnh in viền trắng nghiêng, băng giấy đen ghi nhãn, tem đỏ VS ở giữa; chốt = tem ✓ đập lên phe thắng, gạch chéo đỏ + xám phe thua; stop-motion 12 hình/giây"},
+  "phaledo_dark": {"brand": "PHALEDO", "trans": "cut", "bg": ["default"],
+                   "look": "so sánh tối giản trên nền than + ánh sáng khúc xạ: khung ảnh viền champagne mảnh mở dần, nhãn Averta giãn, 'vs' mảnh trong vòng tròn; chốt = viền phe thắng sáng + dấu ✓, phe thua mờ xám"},
+  "phaledo_warm": {"brand": "PHALEDO", "trans": "cut", "bg": ["default"],
+                   "look": "hai polaroid rơi nhẹ + washi trên giấy be, nhãn viết ở lề polaroid, 'vs' khoanh tay; chốt = khoanh tròn + tick vẽ tay phe thắng, phe thua mờ xám"}
+ },
+ "theme_by_brand": {"GIADUNGPLUS": "gdp_red", "PHALEDO": "phaledo_dark", "*": "gdp_red"},
+ "params": {
+  "a": {"required": true, "max_chars": 16, "note": "nhãn phe A (trái / trên) — IN HOA tự động"},
+  "b": {"required": true, "max_chars": 16, "note": "nhãn phe B (phải / dưới)"},
+  "title": {"max_chars": 24, "note": "câu hỏi so sánh: 'Hộp nào tốt hơn?' (tuỳ)"},
+  "photo_a": {"note": "lib:<id> (ảnh THẬT trong thư viện) | src:<clip>@<giây> (khung cắt từ clip đã quay) | none = thẻ chữ, nhãn to"},
+  "photo_b": {"note": "như photo_a"},
+  "items": {"note": "[(cụm lời | giây, 'a'|'b', 'Ý' ≤ 18[, 'ghi chú' ≤ 26]), …]"},
+  "winner": {"note": "'a' | 'b' | bỏ trống (so sánh trung lập)"},
+  "win_at": {"note": "cụm lời / giây lúc CHỐT → phe thắng ✓, phe thua xám (bỏ trống = gần cuối thẻ)"},
+  "layout": {"note": "sides (mặc định, 2 cột — hợp ảnh dọc 9:16) | split (trên / dưới — hợp ảnh ngang)"},
+  "bg": {"note": "gdp_red: default | kraft"},
+  "theme": {"note": "bỏ trống = theo shop của job"},
+  "preset": {"note": "bỏ trống = theo thời lượng: < 2s micro · < 4,2s standard · còn lại full"}
+ },
+ "sfx": {
+  "gdp_red": [{"at": "enter", "file": "scene/paper_whoosh.wav", "gain_db": -17}, {"at": "land", "file": "impactSoft_medium_001.ogg", "gain_db": -17},
+              {"at": "win", "file": "impactSoft_medium_004.ogg", "gain_db": -15}],
+  "phaledo_dark": [{"at": "enter", "file": "scene/soft_swell.wav", "gain_db": -21}, {"at": "win", "file": "scene/glass_ting.wav", "gain_db": -20}],
+  "phaledo_warm": [{"at": "enter", "file": "scene/page_slide.wav", "gain_db": -19}, {"at": "win", "file": "scene/pencil_scribble.wav", "gain_db": -20}]
+ },
+ "land_at": {"gdp_red": {"micro": 0.2, "standard": 0.42, "full": 0.42}, "phaledo_dark": {"micro": 0.25, "standard": 0.5, "full": 0.5},
+             "phaledo_warm": {"micro": 0.25, "standard": 0.5, "full": 0.5}},
+ "qa": ["Motion Engine: tất định (Chrome vẽ CPU), khung cuối trong suốt; cảnh báo 'viền TỐI' ở micro = bóng mềm cố ý, bỏ qua",
+        "Template: nhãn / ý con vừa cột (tự thu chữ), không tràn khung (qa.overflow), trong vùng an toàn TikTok",
+        "Dựng: phủ khung → lớp cảnh sau nằm sẵn dưới đoạn tan, chữ động tắt, logo ẩn; ảnh 2 phe là ảnh THẬT / khung từ clip",
+        "Lời: phe, ý con và lúc chốt đều khớp lời đã nói"],
+ "sample": {"GIADUNGPLUS": {"title": "Hộp nào tốt hơn?", "a": "Nhựa", "b": "Thủy tinh", "photo_a": "goc-bep-bua", "photo_b": "van-phong-sang",
+                            "items": "[{\"t\": 1.0, \"s\": \"a\", \"x\": \"Dễ ám mùi\", \"n\": \"hút mùi thức ăn\"}, {\"t\": 1.6, \"s\": \"b\", \"x\": \"Không ám mùi\", \"n\": \"rửa là sạch\"}]",
+                            "winner": "b", "win_t": 2.6, "dur": 4.2},
+            "PHALEDO": {"title": "Chọn chất liệu", "a": "Nhựa", "b": "Thủy tinh", "photo_a": "goc-bep-bua", "photo_b": "van-phong-sang",
+                        "items": "[{\"t\": 1.0, \"s\": \"a\", \"x\": \"Dễ ám mùi\", \"n\": \"hút mùi thức ăn\"}, {\"t\": 1.6, \"s\": \"b\", \"x\": \"Không ám mùi\", \"n\": \"rửa là sạch\"}]",
+                        "winner": "b", "win_t": 2.6, "dur": 4.2}},
+ "examples": [
+  "c.graphic('scene-a-vs-b', at='hộp nhựa', until='không ám mùi', title='Hộp nào tốt hơn?', a='Nhựa', b='Thủy tinh', photo_a='src:c04@2.0', photo_b='src:c05@1.5', items=[('ám mùi', 'a', 'Dễ ám mùi'), ('không ám', 'b', 'Không ám mùi')], winner='b', win_at='thủy tinh thì')",
+  "c.graphic('scene-a-vs-b', at='thay vì khoan', dur=1.8, a='Khoan tường', b='Dán keo', winner='b', win_at='dán')   # micro",
+  "c.graphic('scene-a-vs-b', at=0.0, until='cảnh đẹp', a='Cảnh đẹp', b='Bất ngờ nhất', photo_a='src:c02@1.0', photo_b='src:c03@13.0', winner='b', win_at='không phải là')   # hook 'không phải A mà là B'"
+ ],
+ "previews": "previews/<theme>-<preset>.jpg + previews/_board.jpg"
+}

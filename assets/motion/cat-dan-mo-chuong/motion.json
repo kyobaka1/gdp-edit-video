@@ -1,0 +1,73 @@
+{
+  "id": "cat-dan-mo-chuong",
+  "source": {
+    "kind": "html",
+    "entry": "src/cat-dan-mo-chuong.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\library\\kits\\chuong-cat-dan\\cat-dan-mo-chuong.html"
+  },
+  "version": 2,
+  "name": "Cắt dán mở chương",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "chapter_card"
+  ],
+  "enabled": true,
+  "priority": 10,
+  "tags": [
+    "cắt dán",
+    "chương",
+    "giảng giải",
+    "giấy"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 3.6,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "Giấy bay vào",
+      "start": 0,
+      "end": 0.6
+    },
+    {
+      "name": "Nhãn rơi",
+      "start": 0.5,
+      "end": 1.3
+    },
+    {
+      "name": "Đứng đọc",
+      "start": 1.3,
+      "end": 3.05
+    },
+    {
+      "name": "Rút + nhoè",
+      "start": 3.05,
+      "end": 3.6
+    }
+  ],
+  "params": {
+    "title": "BƯỚC 1: TÊN CHƯƠNG",
+    "sub": "",
+    "photo": "anh-in-bep-den-trang",
+    "bg": "giay-do-gach",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "notes": "ĐÃ THAY bằng Scene Library 'scene-chapter-card' (theme gdp_red, preset full) — giữ để job cũ render lại được. Thẻ cắt dán mở chương/bước (mẫu M2/M3). Phủ KÍN khung (opaque) 0→dur−0,28s rồi nhoè + mờ về trong suốt (lộ cảnh sau). Asset: bộ assets/library/kits/chuong-cat-dan.json. Nguồn HTML: assets/library/kits/chuong-cat-dan/ (Claude viết 05/11). Dùng trong dựng video: c.graphic('cat-dan-mo-chuong', at=…, until=…, title=…, sub=…) — dur tự theo at→until. title ≤ 18 ký tự thì 1 dòng chữ to; dài hơn tự xuống 2 dòng ('|' = ép xuống dòng).",
+  "opaque": true,
+  "z": "top",
+  "variants": {},
+  "kit": "chuong-cat-dan"
+}

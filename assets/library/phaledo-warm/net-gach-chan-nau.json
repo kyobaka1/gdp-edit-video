@@ -1,0 +1,21 @@
+{
+ "engine": "codex",
+ "model": "gpt-5.6-luna",
+ "kind": "ai",
+ "prompt": "Một nét gạch chân vẽ tay bằng bút mực nâu cà phê, một đường cong nhẹ có đuôi vuốt, nét mảnh đều, nằm ngang.\nPhong cách chung của bộ: ảnh chụp phẳng từ trên xuống, ánh sáng tự nhiên buổi sáng ấm áp, tông be kem, nâu gỗ sồi, xanh ô liu nhạt, cảm giác sổ tay nhà bếp thủ công tinh tế; tuyệt đối không chữ, số, logo, không có hũ, lọ, chai, ly thủy tinh",
+ "size": "ngang",
+ "alpha": true,
+ "refs": [],
+ "thread": "01a1ab87-c89a-7521-a037-efdb1c3ebc17",
+ "created": "2026-11-05 18:46",
+ "variants": [
+  {
+   "file": "net-gach-chan-nau.png",
+   "w": 1536,
+   "h": 1024,
+   "mode": "RGBA",
+   "clear": 0.128
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

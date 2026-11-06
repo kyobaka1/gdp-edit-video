@@ -1,0 +1,21 @@
+{
+ "engine": "codex",
+ "model": "gpt-5.6-luna",
+ "kind": "ai",
+ "prompt": "Hình người giấy cắt dán màu đen nhám, dáng đứng một tay chỉ sang ngang, viền trắng mảnh như sticker.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+ "size": "doc",
+ "alpha": true,
+ "refs": [],
+ "thread": "01a1ab33-e143-7a80-929d-399cf5f60b8d",
+ "created": "2026-11-05 17:15",
+ "variants": [
+  {
+   "file": "nguoi-giay-den-chi-tay.png",
+   "w": 1024,
+   "h": 1536,
+   "mode": "RGBA",
+   "clear": 0.686
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

@@ -1,0 +1,28 @@
+{
+ "engine": "codex",
+ "model": "gpt-5.6-luna",
+ "kind": "ai",
+ "prompt": "Một mẩu băng dính washi màu be nhạt có hoạ tiết sọc mảnh màu nâu rất nhạt, hai đầu xé răng cưa, hơi trong.\nPhong cách chung của bộ: ảnh chụp phẳng từ trên xuống, ánh sáng tự nhiên buổi sáng ấm áp, tông be kem, nâu gỗ sồi, xanh ô liu nhạt, cảm giác sổ tay nhà bếp thủ công tinh tế; tuyệt đối không chữ, số, logo, không có hũ, lọ, chai, ly thủy tinh",
+ "size": "ngang",
+ "alpha": true,
+ "refs": [],
+ "thread": "01a1ab86-7345-7621-b496-8bc48a13d0fa",
+ "created": "2026-11-05 18:46",
+ "variants": [
+  {
+   "file": "bang-washi-be.png",
+   "w": 1536,
+   "h": 1024,
+   "mode": "RGBA",
+   "clear": 0.768
+  },
+  {
+   "file": "bang-washi-be_v2.png",
+   "w": 1536,
+   "h": 1024,
+   "mode": "RGBA",
+   "clear": 0.806
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

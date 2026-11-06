@@ -1,0 +1,21 @@
+{
+ "engine": "codex",
+ "model": "gpt-5.6-luna",
+ "kind": "ai",
+ "prompt": "Một tấm ảnh in đen trắng có viền trắng như ảnh in, hơi nghiêng 4 độ: góc bếp gia đình gọn gàng với hũ gia vị xếp thẳng hàng trên kệ. Chỉ tấm ảnh, quanh viền là trong suốt.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+ "size": "doc",
+ "alpha": true,
+ "refs": [],
+ "thread": "01a1ab36-4fe1-75b0-bfdd-5abfe35ec5b5",
+ "created": "2026-11-05 17:17",
+ "variants": [
+  {
+   "file": "anh-in-bep-den-trang.png",
+   "w": 1024,
+   "h": 1536,
+   "mode": "RGBA",
+   "clear": 0.326
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

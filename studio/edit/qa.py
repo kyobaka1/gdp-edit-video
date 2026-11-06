@@ -59,6 +59,8 @@ def run(job_id: str, final: bool = False) -> dict:
     for pl in rep["placements"]:
         if pl["face_overlap"] > 0.03:
             fails.append(f"chữ {pl['id']} đè mặt {pl['face_overlap']:.0%}: {pl['markup']}")
+        if pl.get("graphic_overlap", 0) > 0.05:
+            warns.append(f"chữ {pl['id']} chồng tiêu đề ghim {pl['graphic_overlap']:.0%}: {pl['markup']} — ép y= thấp hơn")
         if pl["outside_safe"] > 0.01:
             fails.append(f"chữ {pl['id']} ra ngoài vùng an toàn {pl['outside_safe']:.0%}: {pl['markup']}")
     for b in e["captions"]:
@@ -87,6 +89,39 @@ def run(job_id: str, final: bool = False) -> dict:
         if ok and float(f.mean()) < 6:
             fails.append(f"khung đen ngoài màn chữ ở {t:.2f}s ({s['kind']} {s.get('src')})")
 
+    for g in rep.get("graphics", []):   # Scene Library: chữ trong thẻ phải vừa khung, font tiếng Việt tải được
+        tq = g.get("text_qa") or {}
+        if tq.get("overflow"):
+            fails.append(f"chữ tràn trong đồ hoạ {g['id']} {g['t0']:.2f}s ({', '.join(tq['overflow'])}) — rút gọn title/sub")
+        if tq.get("errors"):
+            fails.append(f"đồ hoạ {g['id']} {g['t0']:.2f}s lỗi trang: {'; '.join(tq['errors'])[:200]}")
+        for w in tq.get("warn") or []:
+            warns.append(f"đồ hoạ {g['id']} {g['t0']:.2f}s: {w}")
+        b = g.get("behind")
+        if b:   # chữ sau người: báo quyết định + % chữ bị che (đo thật từng khung lúc render)
+            if b.get("use"):
+                om = b.get("occlusion_max")
+                warns.append(f"đồ hoạ {g['id']} {g['t0']:.2f}s chữ SAU người — che TB {b.get('occlusion_mean') or 0:.0%}, "
+                             f"tối đa {om or 0:.0%}" + (f", tự đặt y={b['y']}" if b.get("y") is not None else ""))
+                if om is not None and om > 0.6:
+                    fails.append(f"đồ hoạ {g['id']} {g['t0']:.2f}s: người che {om:.0%} từ khoá — đổi y/side hoặc behind=False")
+            else:
+                warns.append(f"đồ hoạ {g['id']} {g['t0']:.2f}s chữ TRƯỚC người: {b.get('reason')}")
+                if (b.get("head_overlap") or 0) > 0.15:   # cận mặt: dời hết mức vẫn đè vùng đầu
+                    warns.append(f"⛔ đồ hoạ {g['id']} {g['t0']:.2f}s vẫn ĐÈ VÙNG ĐẦU {b['head_overlap']:.0%} sau khi dời — cảnh cận "
+                                 "mặt: đổi preset='micro' (chip góc) / dời sang cảnh khác / bỏ")
+    for g in e.get("graphics", []):   # đồ hoạ nhoè ra phải lộ cảnh sau, không lộ nền đen
+        for t in (g["t0"] + 0.5, g["t1"] - 0.08):
+            cap.set(cv2.CAP_PROP_POS_MSEC, t * 1000)
+            ok, f = cap.read()
+            if ok and float(f.mean()) < 6:
+                fails.append(f"khung đen ở {t:.2f}s (đồ hoạ {g['id']} {g['t0']:.2f}–{g['t1']:.2f}s): "
+                             "dưới đoạn nhoè ra không có cảnh")
+    ai = sorted({c["src"] for c in e.get("covers", []) if src.get(c["src"], {}).get("ai")})
+    if ai:  # Sếp 05/11: thiếu cảnh thì tạo ảnh AI, nhưng chỉ minh hoạ bối cảnh — không thay sản phẩm thật / bằng chứng
+        warns.append(f"dùng ảnh AI làm cảnh: {', '.join(ai)} — soát: chỉ minh hoạ bối cảnh/ý, KHÔNG phải sản phẩm "
+                     "đang bán, KHÔNG làm bằng chứng (trước–sau, doanh thu, đánh giá)")
+
     # tiếng
     lufs, peak = _loudness(video)
     target = float(e["audio"].get("voice_lufs", -14.0))
@@ -106,6 +141,16 @@ def run(job_id: str, final: bool = False) -> dict:
             continue
         f = cv2.resize(f, (270, 480))
         cv2.putText(f, f"{b['id']} {t:.1f}s", (6, 18), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
+        tiles.append(f)
+    for k, g in enumerate(rep.get("graphics", [])):   # đồ hoạ lúc chữ vừa vào đủ (soát: che mặt? sau người đẹp chưa?)
+        tq = g.get("text_qa") or {}
+        t = min(g["t1"] - 0.1, g["t0"] + (float(tq["full_at"]) + 0.3 if tq.get("full_at") else float(tq.get("land") or 0.5) + 0.12))
+        cap.set(cv2.CAP_PROP_POS_MSEC, t * 1000)
+        ok, f = cap.read()
+        if not ok:
+            continue
+        f = cv2.resize(f, (270, 480))
+        cv2.putText(f, f"g{k + 1} {t:.1f}s", (6, 18), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 200, 0), 1, cv2.LINE_AA)
         tiles.append(f)
     cap.release()
     sheet = None

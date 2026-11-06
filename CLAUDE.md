@@ -30,6 +30,13 @@ Set-Location C:\Users\Admin\gdp-video-studio; $env:PYTHONIOENCODING='utf-8'
 #   → viết jobs\<id>\cut.py (mẫu: jobs\test-vlog-bac-kinh\cut.py) → vs.py edit cut <id>
 .\.venv\Scripts\python.exe vs.py edit render <id> [--final]; .\.venv\Scripts\python.exe vs.py edit qa <id> [--final]
 .\.venv\Scripts\python.exe vs.py edit capcut <id> --wait  # bản nháp CapCut desktop cho dựng viên sửa tiếp (CapCut phải tắt)
+# Thiếu ảnh/asset → THƯ VIỆN DÙNG CHUNG assets/library/ (Sếp 05/11: xây 1 lần, dùng nhiều lần — không tạo lẻ từng video)
+.\.venv\Scripts\python.exe vs.py lib find <từ…>           # tìm trước; có thì `vs.py edit add <id> lib:<chủ-đề>/<tên> --key g01`
+.\.venv\Scripts\python.exe vs.py lib kit <bộ>             # tạo phần thiếu của BỘ asset 1 kiểu animation (Codex local → hỏng thì chatgpt.com Chrome + lib import)
+# Scene Library assets/scenes/ (cảnh dựng sẵn: theme GDP/PHALEDO × preset micro/standard/full) → c.graphic("scene-<family>", …) trong cut.py
+#   có: scene-chapter-card (C02 thẻ chương) · scene-keyword-burst (C01 từ khoá to, tự nằm SAU người — mặt nạ RVM assets/models/, chạy máy) · scene-pinned-title (C03 tiêu đề ghim cả chương + nhãn con theo lời, chữ động chạy tiếp) · scene-count-reveal (C04 đếm + lật từng mục) · scene-a-vs-b (C05 2 phe + chốt; ảnh src:<clip>@<giây> = khung cắt từ clip) · scene-detail-spotlight (C09 khoanh/chỉ/kính lúp) · scene-evidence-frame (C08 bằng chứng thật: ảnh/clip phát trong khung)
+.\.venv\Scripts\python.exe tools\scene_previews.py <family>   # render kiểm mọi theme × preset + ảnh preview
+.\.venv\Scripts\python.exe vs.py edit frame <id> <giây>     # khung RA đúng bản dựng + lưới toạ độ 0,1 (chọn x,y cho Scene)
 ```
 
 Animation thương hiệu (Sếp 23/10, Motion Director V2): skill **`gdp-video-motion`** + `assets/motion/README.md`. Job

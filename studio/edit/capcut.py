@@ -17,6 +17,7 @@ import copy
 import json
 import os
 import shutil
+import subprocess
 import time
 import uuid
 from pathlib import Path
@@ -258,6 +259,96 @@ def _block_clip(kin: Kinetic, jb: dict, b: dict, fps: float, W: int, H: int, out
             "info": {"duration": len(frames) / fps, "width": x1 - x0, "height": y1 - y0}}
 
 
+def _proof_clip(job: Path, g: dict, src: dict, W: int, H: int, dur: float, out: Path) -> None:
+    """C08 Evidence Frame có clip THẬT: ghép clip bằng chứng vào ô cửa sổ + đồ hoạ (đè lên) ở cỡ 1080 → phủ khung = MP4,
+    micro = MOV trong suốt (ô clip đục, phần khác giữ alpha đồ hoạ)."""
+    from studio.edit.build import GraphicReader, ProofPainter, _blend
+    if "bbox" not in g:
+        raise SystemExit(f"render_*.json cũ chưa ghi vị trí đồ hoạ — chạy lại `vs.py edit render {job.name}` rồi xuất CapCut")
+    pp = ProofPainter(job, src, g, W, H)
+    info = {k: g[k] for k in ("canvas", "bbox", "fps", "frames", "mov")}
+    gr = GraphicReader(info, g["t0"], W, H)
+    fps, covers = g["fps"], g.get("covers", True)
+    n = max(1, int(round(dur * fps)))
+    if covers:
+        enc = ["-c:v", "libx264", "-crf", "16", "-preset", "medium", "-pix_fmt", "yuv420p"]
+        wr = subprocess.Popen([config.FFMPEG, "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{W}x{H}",
+                               "-r", str(fps), "-i", "-", *enc, str(out)], stdin=subprocess.PIPE)
+    else:
+        wr = subprocess.Popen([config.FFMPEG, "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "bgra", "-s", f"{W}x{H}",
+                               "-r", str(fps), "-i", "-", *ALPHA["pngmov"][1], str(out)], stdin=subprocess.PIPE)
+    try:
+        for k in range(n):
+            t = g["t0"] + k / fps
+            gf = gr.at(t)
+            if covers:
+                fr = pp.paint(np.zeros((H, W, 3), np.uint8), t, fps)
+                if gf is not None:
+                    _blend(fr, gf, gr.x, gr.y)
+            else:   # đồ hoạ "over" lớp clip (alpha đúng)
+                fr = pp.paint(np.zeros((H, W, 4), np.uint8), t, fps)
+                if gf is not None:
+                    x0, y0 = max(0, gr.x), max(0, gr.y)
+                    x1, y1 = min(W, gr.x + gf.shape[1]), min(H, gr.y + gf.shape[0])
+                    gp = gf[y0 - gr.y:y1 - gr.y, x0 - gr.x:x1 - gr.x].astype(np.float32)
+                    lp = fr[y0:y1, x0:x1].astype(np.float32)
+                    ga, la = gp[..., 3:4] / 255, lp[..., 3:4] / 255
+                    oa = ga + la * (1 - ga)
+                    rgb = (gp[..., :3] * ga + lp[..., :3] * la * (1 - ga)) / np.maximum(oa, 1e-6)
+                    fr[y0:y1, x0:x1, :3] = rgb.astype(np.uint8)
+                    fr[y0:y1, x0:x1, 3] = (oa[..., 0] * 255 + 0.5).astype(np.uint8)
+            wr.stdin.write(np.ascontiguousarray(fr).tobytes())
+    finally:
+        wr.stdin.close()
+        wr.wait()
+        gr.close()
+        pp.close()
+
+
+def _overlay_clip(job: Path, g: dict, W: int, H: int, dur: float, out: Path) -> None:
+    """Đồ hoạ đè footage → clip trong suốt ĐỦ khung W×H: clip cache đã cắt sát chữ (bbox) nên phải đặt lại đúng chỗ
+    (trước 05/11 kéo giãn cả clip ra W×H → méo). Chữ sau người: khoét theo mặt nạ người đã lưu lúc render
+    (render/behind_*.npz, cỡ bản render) phóng lên cỡ 1080 — chữ vẫn nét vì lấy từ clip gốc."""
+    from studio.edit.build import graphic_box
+    if "bbox" not in g:
+        raise SystemExit(f"render_*.json cũ chưa ghi vị trí đồ hoạ — chạy lại `vs.py edit render {job.name}` rồi xuất CapCut")
+    info = {"canvas": g["canvas"], "bbox": g["bbox"]}
+    x, y, w, h = graphic_box(info, W, H)
+    mf = (g.get("behind") or {}).get("masks")
+    mf = job / "render" / mf if mf else None
+    if not mf or not mf.exists():
+        media.run([config.FFMPEG, "-y", "-v", "error", "-i", g["mov"], "-t", f"{dur:.3f}", "-vf",
+                   f"scale={w}:{h}:flags=bicubic,format=rgba,pad={W}:{H}:{x}:{y}:color=black@0", *ALPHA["pngmov"][1],
+                   str(out)])
+        return
+    z = np.load(mf)
+    idx, mk = list(z["idx"]), z["m"]
+    n = max(1, int(round(dur * g["fps"])))
+    rd = subprocess.Popen([config.FFMPEG, "-v", "error", "-i", g["mov"], "-vf", f"scale={w}:{h}:flags=bicubic,format=rgba",
+                           "-frames:v", str(n), "-f", "rawvideo", "-"], stdout=subprocess.PIPE)
+    wr = subprocess.Popen([config.FFMPEG, "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgba", "-s", f"{W}x{H}",
+                           "-r", str(g["fps"]), "-i", "-", *ALPHA["pngmov"][1], str(out)], stdin=subprocess.PIPE)
+    canvas = np.zeros((H, W, 4), np.uint8)
+    try:
+        for k in range(n):
+            buf = rd.stdout.read(w * h * 4)
+            if len(buf) < w * h * 4:
+                break
+            fr = np.frombuffer(buf, np.uint8).reshape(h, w, 4).copy()
+            j = min(range(len(idx)), key=lambda i: abs(idx[i] - k))
+            m = cv2.resize(mk[j], (w, h), interpolation=cv2.INTER_LINEAR).astype(np.float32) / 255.0
+            fr[:, :, 3] = (fr[:, :, 3] * (1 - m) + 0.5).astype(np.uint8)
+            canvas[:] = 0
+            x0, y0, x1, y1 = max(0, x), max(0, y), min(W, x + w), min(H, y + h)
+            canvas[y0:y1, x0:x1] = fr[y0 - y:y1 - y, x0 - x:x1 - x]
+            wr.stdin.write(canvas.tobytes())
+    finally:
+        wr.stdin.close()
+        wr.wait()
+        rd.kill()
+        rd.wait()
+
+
 def export(job_id: str, name: str | None = None, until: float | None = None, formats: list[str] | None = None,
            text_lines: list[str] | None = None) -> dict:
     job = project.job_path(job_id)
@@ -301,6 +392,34 @@ def export(job_id: str, name: str | None = None, until: float | None = None, for
         dr.video("main", path, si, s["s0"], dur, s["t0"], speed=float(s.get("speed", 1.0)), scale=z, tx=tx, ty=ty)
         files.append(path)
 
+    # 1b) đồ hoạ phủ khung (c.graphic — thẻ cắt dán…): clip cache ProRes 4444 nặng (~90MB/giây) → bản MP4 phần PHỦ KÍN
+    #     (bỏ 0,28s nhoè về trong suốt cuối animation); dựng viên tự thêm chuyển cảnh CapCut lúc ra nếu muốn
+    graphic_clips = []
+    for gi, g in enumerate(rep.get("graphics", [])):
+        if g["t0"] >= T:
+            break
+        if g.get("proof_clip"):   # C08 có clip thật: ghép clip vào khung ở cỡ 1080
+            cov = g.get("covers", True)
+            dur = max(0.5, min(g["t1"] - (0.28 if cov else 0), T) - g["t0"])
+            mp4 = out / f"graphic{gi + 1:02d}_{g['id']}.{'mp4' if cov else 'mov'}"
+            _proof_clip(job, g, src, W, H, dur, mp4)
+        elif g.get("covers", True):
+            dur = max(0.5, min(g["t1"] - 0.28, T) - g["t0"])
+            mp4 = out / f"graphic{gi + 1:02d}_{g['id']}.mp4"
+            media.run([config.FFMPEG, "-y", "-v", "error", "-i", g["mov"], "-t", f"{dur:.3f}", "-vf",
+                       f"scale={W}:{H}:flags=bicubic,format=yuv420p", "-c:v", "libx264", "-crf", "16", "-preset", "medium",
+                       "-an", str(mp4)])
+        else:   # micro / từ khoá: đè lên footage → giữ trong suốt (PNG-trong-MOV, CapCut đọc được — đo 05/11)
+            dur = max(0.3, min(g["t1"], T) - g["t0"])
+            mp4 = out / f"graphic{gi + 1:02d}_{g['id']}.mov"
+            _overlay_clip(job, g, W, H, dur, mp4)
+        dr.video("graphics", mp4, {"duration": dur, "width": W, "height": H}, 0.0, dur, g["t0"], overlay=True,
+                 render_index=50 + gi)
+        files.append(mp4)
+        graphic_clips.append({"id": g["id"], "file": mp4.name, "t0": g["t0"], "dur": round(dur, 3),
+                              "title": g["params"].get("title") or g["params"].get("word"),
+                              "behind": bool((g.get("behind") or {}).get("masks"))})
+
     # 2) lớp đè: mỗi khối chữ một clip alpha. Đo 05/11 trên CapCut 9.8 (Sếp xuất thử): PNG-trong-MOV + ProRes 4444
     #    giữ nền trong suốt, WebM VP9 ra KHUNG ĐEN → mặc định pngmov (nhẹ nhất ~3MB/khối).
     from studio.edit.build import _js_blocks
@@ -323,7 +442,7 @@ def export(job_id: str, name: str | None = None, until: float | None = None, for
                 lanes.append(0.0)
             lanes[lane] = at + dur
             dr.video(f"captions{lane}", c["path"], c["info"], 0.0, dur, at, scale=1 / fit,
-                     tx=(cx - W / 2) / (W / 2), ty=-(cy - H / 2) / (H / 2), overlay=True, render_index=k + 1)
+                     tx=(cx - W / 2) / (W / 2), ty=-(cy - H / 2) / (H / 2), overlay=True, render_index=100 + k)
             files.append(c["path"])
             clips.append({"id": b["id"], "format": fmt, "file": c["path"].name, "markup": b["markup"], "track": lane})
 
@@ -361,7 +480,7 @@ def export(job_id: str, name: str | None = None, until: float | None = None, for
     dr.audio("voice", voice, e["duration"], 0.0, T, 0.0)
 
     folder = dr.save(T, files)
-    res = {"draft": str(folder), "name": name, "duration": T, "clips": clips,
+    res = {"draft": str(folder), "name": name, "duration": T, "clips": clips, "graphics": graphic_clips,
            "tracks": {k: len(v["segments"]) for k, v in dr.tracks.items()}}
     (out / "export.json").write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
     return res

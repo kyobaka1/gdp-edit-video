@@ -1,0 +1,62 @@
+{
+ "id": "chapter-card",
+ "code": "C02",
+ "name": "Chapter Card — thẻ mở chương",
+ "version": "1.0.0",
+ "motion_id": "scene-chapter-card",
+ "status": "ready",
+ "purpose": "Mở một chương / bước / ý lớn mới: tên chương to, dòng phụ một câu, (tuỳ) chữ đầu thẻ 'BƯỚC 2' / 'CHƯƠNG 02' và 1 ảnh. Thay vai trò thẻ cắt dán của mẫu M2/M3.",
+ "use_when": [
+  "Lời THẬT SỰ chuyển sang chương/bước/ý lớn mới ('Bước thứ 5…', 'Ở bước 2…', 'Đó chính là C3', 'Ngày 3…')",
+  "Bài nhiều bước đã báo trước lộ trình (Story S07) — mỗi bước một thẻ",
+  "Cần một nhịp nghỉ thị giác sau đoạn người nói dài (>10s) đúng chỗ đổi ý"
+ ],
+ "avoid_when": [
+  "Chỉ là câu nối trong cùng một ý — dùng cap() chữ động thay vì thẻ",
+  "Giây 0–3 của video (hook phải là nội dung / người nói, không mở bằng thẻ) — trừ thẻ series sau hook",
+  "Hai thẻ cách nhau < 8s (trừ micro) — nhàm, mất nhịp",
+  "Đoạn đang có bằng chứng / cảnh sản phẩm quan trọng (thẻ phủ kín sẽ che)"
+ ],
+ "presets": {
+  "micro": {"dur": [0.6, 1.6], "default": 0.8, "covers": false, "note": "nhãn chữ đập vào TRÊN footage (không phủ khung) — chuyển ý nhanh"},
+  "standard": {"dur": [1.4, 2.8], "default": 1.8, "covers": true, "note": "thẻ nội dung gọn, ít miếng trang trí"},
+  "full": {"dur": [2.4, 8.0], "default": 3.6, "covers": true, "note": "mở chương đầy đủ: vào – đứng đọc – ra"}
+ },
+ "preset_auto": [[1.6, "micro"], [2.8, "standard"], [99, "full"]],
+ "themes": {
+  "gdp_red": {"brand": "GIADUNGPLUS", "trans": "flash", "photo_default": "anh-in-bep-den-trang", "bg": ["default", "kraft"],
+              "look": "giấy đỏ gạch, mảng vàng xé, ảnh in, người/tay giấy, nhãn be + băng giấy đen; UTM Avo"},
+  "phaledo_dark": {"brand": "PHALEDO", "trans": "cut", "photo_default": "none", "bg": ["default"],
+                   "look": "nền giấy than + ánh sáng khúc xạ champagne, nét mảnh, chữ hiện theo dòng + ánh sáng quét; Averta"},
+  "phaledo_warm": {"brand": "PHALEDO", "trans": "cut", "photo_default": "anh-nguyen-lieu-am", "bg": ["default"],
+                   "look": "giấy be, trang sổ tay trượt vào, polaroid, washi, lá khô, hạt cà phê, nét gạch chân tự vẽ; Averta"}
+ },
+ "theme_by_brand": {"GIADUNGPLUS": "gdp_red", "PHALEDO": "phaledo_dark", "*": "gdp_red"},
+ "params": {
+  "title": {"required": true, "max_chars": 28, "note": "GDP: ≤18 ký tự = 1 dòng chữ to; PHALEDO: ≤5 từ/dòng, tối đa 2 dòng (shop.json); '|' ép xuống dòng"},
+  "sub": {"max_chars": 34, "note": "1 câu ngắn, factual"},
+  "eyebrow": {"max_chars": 14, "note": "'BƯỚC 2', 'CHƯƠNG 02' — GDP viết lên tờ note vàng, PHALEDO chữ giãn rộng nhỏ trên tiêu đề (micro không hiện)"},
+  "photo": {"note": "tên asset trong bộ | 'lib:<id>' ảnh thư viện (THẬT với sản phẩm: `vs.py lib import --engine photo`) | 'none'"},
+  "bg": {"note": "khoá nền trong theme (gdp_red: default | kraft)"},
+  "seed": {"note": "tự = số thứ tự thẻ trong video → mỗi thẻ bố cục giấy khác (gdp_red)"},
+  "theme": {"note": "bỏ trống = theo shop của job (c.logo / c.theme)"},
+  "preset": {"note": "bỏ trống = theo thời lượng at→until (preset_auto)"}
+ },
+ "sfx": {
+  "gdp_red": [{"at": "enter", "file": "scene/paper_whoosh.wav", "gain_db": -17}, {"at": "land", "file": "impactSoft_medium_001.ogg", "gain_db": -15}],
+  "phaledo_dark": [{"at": "enter", "file": "scene/soft_swell.wav", "gain_db": -20}, {"at": "land", "file": "scene/glass_ting.wav", "gain_db": -21}],
+  "phaledo_warm": [{"at": "enter", "file": "scene/page_slide.wav", "gain_db": -19}, {"at": "land", "file": "click_003.ogg", "gain_db": -20}]
+ },
+ "land_at": {"gdp_red": {"micro": 0.2, "standard": 0.5, "full": 0.9}, "phaledo_dark": {"micro": 0.25, "standard": 0.55, "full": 0.95},
+             "phaledo_warm": {"micro": 0.3, "standard": 0.55, "full": 0.85}},
+ "qa": ["Motion Engine: tất định (vẽ lại cùng t giống hệt — so màu đã nhân độ đục), khung cuối trong suốt, có alpha; cảnh báo 'viền TỐI' ở micro = bóng đổ giấy / dải tối thiết kế, bỏ qua",
+        "Template: chữ không tràn (SCENE_MOTION.qa.overflow rỗng), font tiếng Việt tải được",
+        "Dựng: lớp kế tiếp nằm sẵn dưới đoạn ra (không lộ khung đen), chữ động tắt khi thẻ phủ khung, logo ẩn",
+        "Chữ nằm trong vùng an toàn TikTok (tiêu đề y≈0,19H GDP / 0,45H PHALEDO)"],
+ "examples": [
+  "c.graphic('scene-chapter-card', at='Bước thứ năm', until='triển khai', title='Bước 5: Triển khai', sub='Đưa kế hoạch ra làm thật', eyebrow='Bước 5')",
+  "c.graphic('scene-chapter-card', at='Đầu tiên', until='nguyên liệu', title='Thủy tinh và gỗ sồi', sub='Chất liệu an toàn cho căn bếp', theme='phaledo_dark', photo='lib:san-pham/<ảnh thật>')",
+  "c.graphic('scene-chapter-card', at=12.4, dur=0.8, title='Mẹo nhỏ', preset='micro')"
+ ],
+ "previews": "previews/<theme>-<preset>.jpg (6 mốc trên 3 nền: tối / sáng / footage giả)"
+}

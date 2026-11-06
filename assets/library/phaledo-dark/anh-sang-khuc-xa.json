@@ -1,0 +1,20 @@
+{
+ "engine": "codex",
+ "model": "gpt-5.6-luna",
+ "kind": "ai",
+ "prompt": "Vệt ánh sáng khúc xạ qua thủy tinh (caustics) màu champagne ấm và trắng ngà, dạng các gợn sáng mềm uốn lượn, trên nền ĐEN TUYỆT ĐỐI, trừu tượng, không nhìn thấy vật thể thủy tinh nào. Phần lớn khung là đen, ánh sáng tập trung ở nửa trên.\nPhong cách chung của bộ: ảnh studio cao cấp tông tối, nền than gần đen (#161616), ánh sáng dịu ấm màu champagne, chi tiết tinh tế, sạch, tối giản; tuyệt đối không chữ, số, logo, không có sản phẩm, hũ, chai, ly",
+ "size": "doc",
+ "alpha": false,
+ "refs": [],
+ "thread": "01a1ab85-f082-79b1-b512-3ed246916018",
+ "created": "2026-11-05 18:44",
+ "variants": [
+  {
+   "file": "anh-sang-khuc-xa.png",
+   "w": 1024,
+   "h": 1536,
+   "mode": "RGB"
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

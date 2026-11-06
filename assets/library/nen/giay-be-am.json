@@ -1,0 +1,20 @@
+{
+ "engine": "codex",
+ "model": "gpt-5.6-luna",
+ "kind": "ai",
+ "prompt": "Một tờ giấy làm tay màu be kem ấm phủ kín toàn bộ khung ảnh, thớ giấy có sợi và vài đốm nhỏ tự nhiên, ánh sáng mềm đều, chụp phẳng từ trên xuống. Không có vật thể nào.\nPhong cách chung của bộ: ảnh chụp phẳng từ trên xuống, ánh sáng tự nhiên buổi sáng ấm áp, tông be kem, nâu gỗ sồi, xanh ô liu nhạt, cảm giác sổ tay nhà bếp thủ công tinh tế; tuyệt đối không chữ, số, logo, không có hũ, lọ, chai, ly thủy tinh",
+ "size": "doc",
+ "alpha": false,
+ "refs": [],
+ "thread": "01a1ab86-7335-7653-b560-f503a6aee6ab",
+ "created": "2026-11-05 18:45",
+ "variants": [
+  {
+   "file": "giay-be-am.png",
+   "w": 1024,
+   "h": 1536,
+   "mode": "RGB"
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

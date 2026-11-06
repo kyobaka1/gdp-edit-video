@@ -1,0 +1,67 @@
+{
+ "id": "detail-spotlight",
+ "code": "C09",
+ "name": "Detail Spotlight — khoanh / chỉ / phóng to chi tiết",
+ "version": "1.0.0",
+ "motion_id": "scene-detail-spotlight",
+ "status": "ready",
+ "purpose": "Chỉ đúng MỘT chi tiết trên footage đang chạy (móc inox, khớp nối, lớp chống trượt…): khoanh tròn + mũi tên / đường chỉ dẫn tới nhãn, phần còn lại tối nhẹ; bản full có kính lúp phóng to vùng đó. Đè footage, 1–3s — người xem nhìn đúng chỗ người nói đang nhắc.",
+ "use_when": [
+  "Lời nhắc tới một chi tiết NHÌN THẤY ĐƯỢC trong cảnh ('cái móc này bằng inox', 'chỗ khớp này xoay được', 'lớp đế chống trượt')",
+  "Cảnh sản phẩm / thao tác đứng tương đối yên trong 1–3s (vòng khoanh đứng cố định, không bám theo vật đang chạy)",
+  "Chi tiết nhỏ khó thấy trên màn hình điện thoại → bản full có kính lúp"
+ ],
+ "avoid_when": [
+  "Chi tiết không có trong khung hình / máy quay đang lia mạnh (vòng khoanh sẽ trượt khỏi vật)",
+  "Khoanh mặt người",
+  "Nhãn thêm thông số không có trong lời / nguồn (không thêm tuyên bố)",
+  "Ngay lúc cắt cảnh (đoạn chỉ phải nằm trọn trong 1 cảnh)"
+ ],
+ "presets": {
+  "micro": {"dur": [0.8, 1.6], "default": 1.2, "covers": false, "hides": ["label", "note"], "note": "khoanh + mũi tên (GDP/Warm) / vùng sáng + vòng lan (Dark), không nhãn"},
+  "standard": {"dur": [1.4, 3.0], "default": 2.2, "covers": false, "note": "khoanh + mũi tên / đường chỉ dẫn tới nhãn (+ ghi chú)"},
+  "full": {"dur": [2.4, 5.0], "default": 3.2, "covers": false, "note": "khoanh + KÍNH LÚP phóng to vùng đó (build cắt khung RA giữa đoạn) + nhãn dưới kính"}
+ },
+ "preset_auto": [[1.4, "micro"], [2.4, "standard"], [99, "full"]],
+ "loupe": {"presets": ["full"], "note": "build.py plan_loupe: khung RA ở giữa đoạn (đúng zoom/tâm khung + chỉnh màu) → tham số loupe; zoom = độ phóng (mặc định 2,2)"},
+ "themes": {
+  "gdp_red": {"brand": "GIADUNGPLUS", "trans": "cut",
+              "look": "khoanh bút dạ đỏ 2 vòng + mũi tên vẽ tay, nhãn băng giấy đen + ghi chú giấy xé (stop-motion), kính lúp viền giấy trắng, ngoài vòng tối nhẹ"},
+  "phaledo_dark": {"brand": "PHALEDO", "trans": "cut",
+                   "look": "vùng sáng (ngoài tối 45%), vòng mảnh champagne + vòng lan + chấm tâm, đường chỉ dẫn mảnh tới nhãn chữ giãn trong viên kính tối, kính lúp viền champagne"},
+  "phaledo_warm": {"brand": "PHALEDO", "trans": "cut",
+                   "look": "khoanh bút chì nâu cam 2 nét + mũi tên cong vẽ tay, nhãn thẻ giấy kem có washi, kính lúp viền giấy kem"}
+ },
+ "theme_by_brand": {"GIADUNGPLUS": "gdp_red", "PHALEDO": "phaledo_dark", "*": "gdp_red"},
+ "params": {
+  "x": {"required": true, "note": "tâm vòng khoanh theo tỉ lệ BỀ NGANG khung ra (0–1) — đọc từ `vs.py edit frame <id> <giây>` (lưới 0,1)"},
+  "y": {"required": true, "note": "tâm vòng theo tỉ lệ CHIỀU CAO khung ra (0–1)"},
+  "r": {"note": "bán kính vòng / bề ngang khung (mặc định 0,09; 0,035–0,22)"},
+  "label": {"max_chars": 24, "note": "tên chi tiết đúng lời ('Móc inox 304') — micro không hiện"},
+  "note": {"max_chars": 30, "note": "ghi chú nhỏ dưới nhãn ('chịu lực 15 kg') — phải có trong lời/nguồn"},
+  "side": {"note": "auto (phía trống) | left | right — nhãn / kính lúp nằm phía nào"},
+  "zoom": {"note": "độ phóng kính lúp (full; mặc định 2,2 — nguồn 720p thì đừng quá 2,5 kẻo nhoè)"},
+  "dim": {"note": "độ tối phần ngoài vòng (0–0,7; mặc định theo theme)"},
+  "theme": {"note": "bỏ trống = theo shop của job"},
+  "preset": {"note": "bỏ trống = theo thời lượng: < 1,4s micro · < 2,4s standard · còn lại full (kính lúp)"}
+ },
+ "sfx": {
+  "gdp_red": [{"at": "enter", "file": "scene/pencil_scribble.wav", "gain_db": -21}, {"at": "land", "file": "click_003.ogg", "gain_db": -21, "presets": ["standard", "full"]}],
+  "phaledo_dark": [{"at": "enter", "file": "scene/air_shimmer.wav", "gain_db": -24}],
+  "phaledo_warm": [{"at": "enter", "file": "scene/pencil_scribble.wav", "gain_db": -22}]
+ },
+ "land_at": {"gdp_red": {"micro": 0.45, "standard": 0.8, "full": 1.0}, "phaledo_dark": {"micro": 0.45, "standard": 0.8, "full": 1.0},
+             "phaledo_warm": {"micro": 0.45, "standard": 0.8, "full": 1.0}},
+ "qa": ["Motion Engine: tất định (Chrome vẽ CPU), nền trong suốt, khung cuối trong suốt",
+        "Template: nhãn trong vùng an toàn TikTok (tự kẹp), điểm chỉ ngoài vùng an toàn → cảnh báo",
+        "Dựng: đoạn chỉ nằm trọn trong 1 cảnh; full có ảnh kính lúp (thiếu → cảnh báo); soát ô 'g' trong qa_*.jpg: vòng có trúng chi tiết không",
+        "Lời: nhãn / ghi chú đúng lời đã nói"],
+ "sample": {"GIADUNGPLUS": {"x": 0.62, "y": 0.5, "r": 0.1, "label": "Móc inox 304", "note": "chịu lực 15 kg", "loupe": "goc-bep-bua", "dur": 3.2},
+            "PHALEDO": {"x": 0.62, "y": 0.5, "r": 0.1, "label": "Nắp gỗ sồi", "note": "kín hơi", "loupe": "goc-bep-bua", "dur": 3.2}},
+ "examples": [
+  "c.graphic('scene-detail-spotlight', at='cái móc này', until='inox', x=0.62, y=0.48, label='Móc inox 304')   # standard",
+  "c.graphic('scene-detail-spotlight', at='khớp này', dur=1.0, x=0.40, y=0.55)   # micro: chỉ khoanh",
+  "c.graphic('scene-detail-spotlight', at='có cả', until='nhà hàng', x=0.68, y=0.565, r=0.11, label='Múa truyền thống', note='ngay giữa nhà hàng')   # full + kính lúp"
+ ],
+ "previews": "previews/<theme>-<preset>.jpg + previews/_board.jpg (khung thật)"
+}

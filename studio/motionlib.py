@@ -223,7 +223,9 @@ class HtmlPage:
     def __enter__(self):
         from playwright.sync_api import sync_playwright
         self._pw = sync_playwright().start()
-        self._browser = self._pw.chromium.launch(channel="chrome", headless=True)
+        # --disable-gpu: vẽ bằng CPU. Đo 05/11: Chrome vẽ GPU (RTX 4060) cho miếng giấy xoay có bóng đổ lệch tới 67 mức
+        # khi vẽ lại cùng t (tuỳ khung trước đó) → kiểm tất định trượt; vẽ CPU lệch ≤ 2, tốc độ gần như cũ.
+        self._browser = self._pw.chromium.launch(channel="chrome", headless=True, args=["--disable-gpu"])
         w, h = self.canvas
         self.page = self._browser.new_page(viewport={"width": int(w), "height": int(h)}, device_scale_factor=1)
 
@@ -290,11 +292,20 @@ def _frames_html(a: dict, spec: dict, out: Path) -> dict:
         # logo lăn ra (gdp-roll-smile) còn mẩu ở mép khung cuối → overlay tắt đột ngột
         n = max(1, round(float(dur) * fps)) + 1
         for i in range(n):
-            (out / f"{i:05d}.png").write_bytes(pg.frame(min(i / fps, float(dur))))
+            fp = out / f"{i:05d}.png"
+            fp.write_bytes(pg.frame(min(i / fps, float(dur))))
+            if a.get("opaque"):  # khung phủ kín → Chrome trả PNG RGB (bỏ alpha) → thêm alpha đặc cho chuỗi đồng nhất
+                im = Image.open(fp)
+                if im.mode != "RGBA":
+                    im.convert("RGBA").save(fp)
         mid = n // 2  # tái lập: vẽ lại 1 khung giữa phải ra y hệt (setTime vẽ đồng bộ, không phụ thuộc giờ thật)
         again = np.asarray(Image.open(io.BytesIO(pg.frame(mid / fps))).convert("RGBA"), dtype=np.int16)
         first = np.asarray(Image.open(out / f"{mid:05d}.png").convert("RGBA"), dtype=np.int16)
-        if np.abs(again - first).max() > 8:
+        # so màu ĐÃ NHÂN độ đục (thứ thực sự hiện ra khi ghép): điểm gần trong suốt (α≈20) làm tròn RGB khác nhau
+        # vài chục mức nhưng ghép lên hình chỉ lệch <1 mức → không phải "vẽ không đồng bộ" (đo 05/11 scene-chapter-card)
+        def premul(x):
+            return np.concatenate([x[..., :3] * (x[..., 3:4] / 255.0), x[..., 3:4]], axis=-1)
+        if np.abs(premul(again) - premul(first)).max() > 8:
             raise MotionError(f"{a['id']}: vẽ lại cùng thời điểm ra khung khác — setTime không vẽ đồng bộ "
                               f"(animation chạy theo giờ thật?) → không render alpha chính xác được")
         if pg.blocked:

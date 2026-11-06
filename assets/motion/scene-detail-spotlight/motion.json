@@ -1,0 +1,74 @@
+{
+  "id": "scene-detail-spotlight",
+  "source": {
+    "kind": "html",
+    "entry": "src/detail-spotlight.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\detail-spotlight\\src\\detail-spotlight.html"
+  },
+  "version": 2,
+  "name": "Scene C09 Detail Spotlight",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "detail_spotlight"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "scene",
+    "khoanh",
+    "mũi tên",
+    "chỉ dẫn",
+    "kính lúp",
+    "chi tiết sản phẩm"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 2.2,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "khoanh",
+      "start": 0,
+      "end": 0.5
+    },
+    {
+      "name": "chỉ + nhãn",
+      "start": 0.5,
+      "end": 1.866666666666667
+    },
+    {
+      "name": "ra",
+      "start": 1.866666666666667,
+      "end": 2.2
+    }
+  ],
+  "params": {
+    "theme": "gdp_red",
+    "preset": "standard",
+    "x": 0.5,
+    "y": 0.5,
+    "r": 0.09,
+    "label": "",
+    "note": "",
+    "side": "auto",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "z": "top",
+  "variants": {},
+  "scene": "detail-spotlight",
+  "notes": "Scene Library C09 Detail Spotlight v1.0 — hồ sơ assets/scenes/detail-spotlight/scene.json. Nguồn assets/scenes/detail-spotlight/src (Claude viết 06/11). Khoanh + mũi tên/đường chỉ dẫn tới nhãn, full có kính lúp (build cắt khung RA). Toạ độ: vs.py edit frame. Dùng: c.graphic('scene-detail-spotlight', at=…, x=…, y=…, label=…)."
+}

@@ -1,0 +1,94 @@
+[
+ {
+  "theme": "gdp_red",
+  "preset": "full",
+  "ok": true,
+  "duration": 3.6333,
+  "frames": 109,
+  "first_alpha": 255,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "gdp_red",
+  "preset": "micro",
+  "ok": true,
+  "duration": 0.8333,
+  "frames": 25,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "gdp_red",
+  "preset": "standard",
+  "ok": true,
+  "duration": 1.8333,
+  "frames": 55,
+  "first_alpha": 255,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "phaledo_dark",
+  "preset": "full",
+  "ok": true,
+  "duration": 3.6333,
+  "frames": 109,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "phaledo_dark",
+  "preset": "micro",
+  "ok": true,
+  "duration": 0.8333,
+  "frames": 25,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 220.0) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "phaledo_dark",
+  "preset": "standard",
+  "ok": true,
+  "duration": 1.8333,
+  "frames": 55,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "phaledo_warm",
+  "preset": "full",
+  "ok": true,
+  "duration": 3.6333,
+  "frames": 109,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "phaledo_warm",
+  "preset": "micro",
+  "ok": true,
+  "duration": 0.8333,
+  "frames": 25,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "phaledo_warm",
+  "preset": "standard",
+  "ok": true,
+  "duration": 1.8333,
+  "frames": 55,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ }
+]

@@ -1,0 +1,21 @@
+{
+ "engine": "codex",
+ "model": "gpt-5.6-luna",
+ "kind": "ai",
+ "prompt": "Một mảng giấy màu vàng nghệ xé tay lớn, hình dạng bất định gần chữ nhật, mép rách xơ trắng.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+ "size": "vuong",
+ "alpha": true,
+ "refs": [],
+ "thread": "01a1ab33-5f31-7132-bb79-b7e81ff70e32",
+ "created": "2026-11-05 17:14",
+ "variants": [
+  {
+   "file": "mang-giay-vang-xe.png",
+   "w": 1254,
+   "h": 1254,
+   "mode": "RGBA",
+   "clear": 0.254
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

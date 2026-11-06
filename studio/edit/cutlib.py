@@ -42,11 +42,12 @@ class Cut:
         self.d = Path(cut_file).resolve().parent
         self.meta = json.loads((self.d / "meta.json").read_text(encoding="utf-8"))
         self.src = project.load_sources(self.d)
-        self.pieces, self.covers, self.cards, self.caps = [], [], [], []
+        self.pieces, self.covers, self.cards, self.caps, self.graphics = [], [], [], [], []
         self.audio_cfg = {"voice_lufs": -14.0, "music": None, "music_lufs": -30.0, "clean": True}
         self.logo_cfg = None
         self.style = "cinematic"
         self.grade_cfg = "cinematic"   # chỉnh màu như mẫu (tối viền, nén vùng sáng); None = giữ màu gốc
+        self.theme_cfg = None          # theme Scene Library cả video (None = theo shop của logo)
 
     # ───────────────────────── lời (trục thời gian chính) ─────────────────────────
     def _words(self, key: str) -> list[dict]:
@@ -123,6 +124,64 @@ class Cut:
     def card(self, at, until=None, *, dur: float | None = None, bg: str = "black", trans: str = "dip"):
         """Màn đen chữ (mở đầu / câu chốt): hình tối hẳn, chữ đứng giữa, dòng cũ tối đi khi dòng mới vào."""
         self.cards.append({"at": at, "until": until, "dur": dur, "bg": bg, "trans": trans})
+        return self
+
+    def theme(self, name: str):
+        """Theme Scene Library cho cả video (gdp_red | phaledo_dark | phaledo_warm). Không gọi = theo shop của c.logo()."""
+        self.theme_cfg = name
+        return self
+
+    def graphic(self, motion_id: str, at, until=None, *, dur: float | None = None, trans: str | None = None,
+                behind=None, **params):
+        """Đồ hoạ từ thư viện motion, đè lên hình, lời vẫn chạy. Scene Library (`scene-chapter-card`,
+        `scene-keyword-burst`…, hồ sơ assets/scenes/<family>/scene.json): theme tự theo shop (c.logo/c.theme), preset
+        micro/standard/full tự theo thời lượng at→until (không ghi until/dur = `default_dur` của hồ sơ), chuyển cảnh vào
+        theo theme, `photo="lib:<id>"` = ảnh thư viện (sản phẩm phải là ảnh THẬT). at là cụm lời → hiện sớm `lead_in`
+        giây (từ khoá). behind = chữ nằm SAU người ("auto" mặc định của family có hỗ trợ | True | False).
+        Animation thường (vd 'cat-dan-mo-chuong'): phủ khung, ≥2,2s, vào bằng loé. params = tham số animation (title, sub,
+        eyebrow, word, lead, side, y, accent, photo, bg, seed, theme, preset…); dur tự đặt; seed mặc định = số thứ tự.
+        Đồ hoạ hiện thì chữ động tắt (tiêu đề đồ hoạ thay chữ) → KHÔNG viết cap() cho lời đoạn đó."""
+        from studio import motionlib, scenes
+        a = motionlib.get(motion_id)
+        if a["problems"] or not a["enabled"]:
+            raise CutError(f"animation '{motion_id}' chưa dùng được: {'; '.join(a['problems']) or a.get('disabled_reason')}")
+        if trans is not None and trans not in TRANS:
+            raise CutError(f"Chuyển cảnh '{trans}' không có (dùng {', '.join(sorted(TRANS))})")
+        prof = scenes.for_motion(motion_id)
+        auto_hold = False
+        if until is None and dur is None and prof and prof.get("default_dur"):
+            if isinstance(at, str) and prof.get("hold_after") is not None:
+                until, auto_hold = at, True   # đứng tới hết cụm at + hold_after (từ khoá theo đúng lời, không nuốt câu sau)
+            else:
+                dur = float(prof["default_dur"])
+        if behind not in (None, "auto", True, False):
+            raise CutError(f"behind={behind!r} — dùng 'auto' | True | False")
+        if behind not in (None, False) and not (prof and prof.get("behind")):
+            raise CutError(f"'{motion_id}' không hỗ trợ chữ sau người (behind) — chỉ family có khai 'behind' trong scene.json")
+        items = params.pop("items", None)
+        if items is not None:
+            if not (prof and prof.get("items")):
+                raise CutError(f"'{motion_id}' không có nhãn con (items) — chỉ family khai 'items' trong scene.json")
+            norm_items = []
+            sided = bool(prof["items"].get("sided"))
+            for it in items:
+                it = (it,) if isinstance(it, str) else tuple(it)
+                if sided:   # A vs B: (cụm lời | giây, 'a' | 'b', 'Ý'[, 'ghi chú'])
+                    if len(it) < 3 or str(it[1]).lower() not in ("a", "b"):
+                        raise CutError(f"items: mỗi ý là (cụm lời | giây, 'a'|'b', 'Ý'[, 'ghi chú']) — sai: {it!r}")
+                    norm_items.append({"at": it[0], "s": str(it[1]).lower(), "x": str(it[2]),
+                                       "n": str(it[3]) if len(it) > 3 and it[3] else ""})
+                    continue
+                if len(it) < 2:
+                    raise CutError(f"items: mỗi mục là (cụm lời | giây, 'Nhãn'[, 'ghi chú']) — sai: {it!r}")
+                norm_items.append({"at": it[0], "x": str(it[1]), "n": str(it[2]) if len(it) > 2 and it[2] else ""})
+            items = norm_items
+        layout_auto = params.get("layout") in (None, "auto") and bool(((prof or {}).get("behind") or {}).get("auto_layout"))
+        if params.get("layout") == "auto":
+            params.pop("layout")
+        self.graphics.append({"id": motion_id, "at": at, "until": until, "dur": dur, "trans": trans, "behind": behind,
+                              "auto_hold": auto_hold, "items": items, "layout_auto": layout_auto,
+                              "params": {k: v for k, v in params.items() if v is not None}})
         return self
 
     def cap(self, markup: str, *, exit: str = "words", pos: str = "auto", y: float | None = None,
@@ -208,7 +267,9 @@ class Cut:
             lines.append({"role": role, "italic": pre.count("!") >= 2, "accent": "^" in pre, "toks": toks})
         return lines
 
-    def _captions(self, words: list[dict], cards: list[dict]) -> tuple[list[dict], list[str]]:
+    def _captions(self, words: list[dict], cards: list[dict],
+                  skip: list[tuple[float, float]] = ()) -> tuple[list[dict], list[str]]:
+        """skip = khoảng đồ hoạ phủ khung: lời trong đó không có chữ động → khối sau được nhảy qua."""
         blocks, warns, cur = [], [], 0
         keys = [norm(w["w"]) for w in words]
         for n, c in enumerate(self.caps):
@@ -224,6 +285,12 @@ class Cut:
                         continue
                     want = norm(tok["match"])
                     hit = next((i for i in range(cur, min(len(words), cur + 9)) if keys[i] == want), None)
+                    if hit is None and skip and first_idx is None:   # nhảy qua lời nằm trong đồ hoạ
+                        j = cur
+                        while j < len(words) and any(a - 0.05 <= words[j]["t0"] < b for a, b in skip):
+                            j += 1
+                        if j > cur:
+                            hit = next((i for i in range(j, min(len(words), j + 9)) if keys[i] == want), None)
                     if hit is None:
                         ctx = " ".join(w["w"] for w in words[cur:cur + 12])
                         raise CutError(f"Khối chữ {n + 1} '{c['markup']}': không khớp '{tok['match']}' với lời. "
@@ -251,8 +318,12 @@ class Cut:
                            "y": c["y"], "hold": c["hold"], "card": card is not None, "card_idx": card,
                            "first": t_first, "last_end": words[last_idx]["t1"], "markup": c["markup"]})
         # mốc bắt đầu RÚT chữ: giữ đọc `hold` giây sau từ cuối, nhưng rút xong trước khối sau vào
+        g_starts = sorted(a for a, _ in skip)
         for k, b in enumerate(blocks):
             nxt = blocks[k + 1]["first"] - 0.06 if k + 1 < len(blocks) else 1e9
+            g_next = next((a for a in g_starts if a >= b["first"] + 0.05), None)   # đồ hoạ vào giữa khối cũng tính
+            if g_next is not None:   # đồ hoạ phủ khung sắp vào → rút chữ xong trước đó
+                nxt = min(nxt, g_next - 0.02)
             nw = sum(len(ln["words"]) for ln in b["lines"])
             span = (min((nw - 1) * EXIT_WORDS[0], EXIT_WORDS[2]) + EXIT_WORDS[1] if b["exit"] == "words"
                     else 0.33 if b["exit"] == "rise" else 0.45)
@@ -263,6 +334,163 @@ class Cut:
                 end = b["last_end"] + 0.1
             b["end"] = round(max(end, b["last_end"] + 0.05), 3)
         return blocks, warns
+
+    def _src_frame(self, ref: str, g: dict) -> str:
+        """'src:<clip>@<giây>' → ảnh JPG cắt từ clip đã quay (jobs/<id>/assets/frames/) → file:/// cho trang scene."""
+        from studio import media
+        try:
+            key, sec = ref[4:].split("@")
+            sec = float(sec)
+        except ValueError:
+            raise CutError(f"đồ hoạ {g['id']}: ảnh '{ref}' — viết src:<clip>@<giây>, vd src:c03@13.0")
+        if key not in self.src or not self.src[key].get("has_video"):
+            raise CutError(f"đồ hoạ {g['id']}: ảnh '{ref}' — không có clip hình '{key}' (có: {', '.join(self.src)})")
+        out = self.d / "assets" / "frames" / f"{key}_{sec:07.2f}.jpg"
+        if not out.exists():
+            out.parent.mkdir(parents=True, exist_ok=True)
+            media.extract_frame(self.d / self.src[key]["file"], sec, out, width=1080)
+        return out.resolve().as_uri()
+
+    def _scene_setup(self, graphics: list[dict], words: list[dict], total: float) -> list[str]:
+        """Scene Library: theme (shop/c.theme), preset (thời lượng), phủ khung hay không, chuyển cảnh vào, ảnh lib:."""
+        from studio import scenes
+        warns = []
+        for g in graphics:
+            prof = scenes.for_motion(g["id"])
+            p = g["params"]
+            g["scene"] = prof["id"] if prof else None
+            if not prof:   # animation thường (thẻ cắt dán cũ): phủ khung, ≥2,2s, vào bằng loé
+                g.pop("at_phrase", None)
+                g.pop("auto_hold", None)
+                g.pop("layout_auto", None)
+                if g.pop("items", None):
+                    raise CutError(f"'{g['id']}' không có nhãn con (items)")
+                g["behind"] = False
+                g["min_dur"] = 2.2
+                g["trans"] = g["trans"] or "flash"
+                continue
+            try:
+                th = p.get("theme") or scenes.theme_for(prof, (self.logo_cfg or {}).get("shop"), self.theme_cfg)
+            except scenes.SceneError as exc:
+                raise CutError(str(exc))
+            if th not in prof["themes"]:
+                raise CutError(f"{prof['id']}: không có theme '{th}' (có: {', '.join(prof['themes'])})")
+            if g.pop("auto_hold", False):   # until = chính cụm at (+0,12s) → đổi thành + hold_after
+                g["t1"] = round(min(total, g["t1"] - 0.12 + float(prof["hold_after"])), 3)
+            if p.get("preset"):
+                pr = p["preset"]
+            elif prof.get("preset_auto") == "content":   # tiêu đề ghim: có ghi chú → full, còn lại standard
+                pr = "full" if any(it["n"] for it in g.get("items") or []) else "standard"
+            else:
+                pr = scenes.preset_for(prof, g["t1"] - g["t0"])
+            if pr not in prof["presets"]:
+                raise CutError(f"{prof['id']}: không có preset '{pr}' (có: {', '.join(prof['presets'])})")
+            hid = [k for k in prof["presets"][pr].get("hides", []) if p.get(k)]
+            if hid and not p.get("preset"):   # preset tự chọn mà giấu mất tham số đã ghi (micro không có lead) → nâng
+                d = g["t1"] - g["t0"]
+                up = next((n for n, c in prof["presets"].items() if not any(p.get(k) for k in c.get("hides", []))
+                           and c["dur"][0] <= d + (prof.get("lead_in") or {}).get(n, 0.0) + 1e-6), None)
+                if up:
+                    pr = up
+                else:
+                    warns.append(f"đồ hoạ {g['id']} {g['t0']:.2f}s preset {pr} không hiện {', '.join(hid)} (đoạn quá ngắn)")
+            p["theme"], p["preset"] = th, pr
+            lead = (prof.get("lead_in") or {}).get(pr, 0.0)
+            if lead and g.pop("at_phrase", False):   # từ khoá hiện sớm hơn lời một chút (mẫu: sớm 0,3–0,5s)…
+                prev = [w["t1"] for w in words if w["t0"] < g["t0"]]
+                # …nhưng không sớm hơn lúc từ liền trước nói xong (chữ động câu trước không bị cắt giữa chừng)
+                g["t0"] = round(max(0.0, g["t0"] - lead, min(g["t0"], prev[-1] - 0.02) if prev else 0.0), 3)
+            g.pop("at_phrase", None)
+            bh = prof.get("behind")
+            g["behind"] = (g.get("behind") if g.get("behind") is not None else bh.get("default", "auto")) if bh else False
+            if g["behind"] and "y" in p:
+                g["y_fixed"] = True   # ép y → máy không tự đặt chữ ngang đầu, chỉ đo % bị che
+            g["covers"] = prof["presets"][pr].get("covers", True)
+            g["captions_keep"] = prof.get("captions") == "keep"   # tiêu đề ghim: chữ động vẫn chạy bên dưới
+            g["hide_logo"] = bool(prof.get("hide_logo"))
+            its = g.pop("items", None)
+            if its:
+                cfg = prof.get("items") or {}
+                if len(its) > cfg.get("max", 6):
+                    raise CutError(f"đồ hoạ {g['id']}: {len(its)} nhãn con (tối đa {cfg.get('max', 6)})")
+                out, after = [], g["t0"] - 0.6
+                for k, it in enumerate(its):
+                    ta = self._when(words, it["at"], after)
+                    after = ta
+                    rel = round(max(0.6, ta - float(cfg.get("lead", 0.15)) - g["t0"]), 3)
+                    last = g["t1"] - g["t0"] - float(cfg.get("tail", 0.9))   # mục phải hiện đủ lâu trước khi thẻ tan
+                    if rel > last + 0.5:
+                        raise CutError(f"đồ hoạ {g['id']}: nhãn con {k + 1} '{it['x']}' ở {ta:.2f}s — quá sát/ngoài khoảng "
+                                       f"{g['t0']:.2f}–{g['t1']:.2f}s (kéo until ra sau hoặc bỏ mục)")
+                    if rel > last:   # thiếu ≤ 0,5s → hiện sớm hơn lời một chút (mẫu: sớm 0,3–0,5s)
+                        warns.append(f"đồ hoạ {g['id']} nhãn con {k + 1} '{it['x']}' hiện sớm {rel - last:.2f}s so với lời "
+                                     "(sát cuối thẻ)")
+                        rel = round(max(0.6, last), 3)
+                    for key, lim in (("x", cfg.get("term_max", 22)), ("n", cfg.get("note_max", 30))):
+                        if len(it[key]) > lim:
+                            warns.append(f"đồ hoạ {g['id']} nhãn con {k + 1} '{it[key]}' dài {len(it[key])} ký tự (> {lim})")
+                    out.append({"t": rel, "x": it["x"], "n": it["n"], **({"s": it["s"]} if "s" in it else {})})
+                if pr == "micro":
+                    warns.append(f"đồ hoạ {g['id']} preset micro không hiện nhãn con")
+                p["items"] = json.dumps(out, ensure_ascii=False)
+            g["min_dur"] = prof["presets"][pr]["dur"][0]
+            g["trans"] = g["trans"] or (prof["themes"][th].get("trans", "flash") if g["covers"] else "cut")
+            miss = [k for k, v in prof.get("params", {}).items() if v.get("required") and p.get(k) in (None, "")]
+            if miss:
+                raise CutError(f"đồ hoạ {g['id']}: thiếu tham số bắt buộc {', '.join(miss)} (xem assets/scenes/{prof['id']}/scene.json)")
+            for k, lim in ((k, v.get("max_chars")) for k, v in prof.get("params", {}).items()):
+                if lim and len(str(p.get(k, ""))) > lim:
+                    warns.append(f"đồ hoạ {g['id']} {k} dài {len(str(p[k]))} ký tự (> {lim}): '{p[k]}' — rút gọn")
+            for pk in [k for k in list(p) if k.startswith("photo") and not k.endswith("_v")]:
+                ref = str(p[pk])
+                if ref.startswith("src:"):
+                    p.update({pk: self._src_frame(ref, g), f"{pk}_v": ref[4:]})
+                    continue
+                if not ref.startswith("lib:"):
+                    continue
+                try:
+                    ph = scenes.photo_param(ref)
+                except Exception as exc:
+                    raise CutError(f"đồ hoạ {g['id']}: ảnh {ref} — {exc}")
+                if ph.pop("_photo_ai", False) and prof["themes"][th].get("brand") == "PHALEDO":
+                    warns.append(f"đồ hoạ {g['id']} dùng ẢNH AI {ph.get('_photo_id')} trong theme PHALEDO — chỉ được là "
+                                 "bối cảnh/nguyên liệu, KHÔNG phải sản phẩm (sản phẩm = ảnh thật)")
+                ph.pop("_photo_id", None)
+                p.update({pk: ph["photo"], f"{pk}_v": ph["photo_v"]})
+            if prof.get("proof_clip") and p.get("clip"):   # C08: clip THẬT phát trong khung (build ProofPainter)
+                ref = str(p.pop("clip"))
+                try:
+                    key, sec = ref.split("@")
+                    sec = float(sec)
+                except ValueError:
+                    raise CutError(f"đồ hoạ {g['id']}: clip '{ref}' — viết '<clip>@<giây bắt đầu>', vd 'c06@0.3'")
+                if key not in self.src or not self.src[key].get("has_video") or self.src[key].get("still"):
+                    raise CutError(f"đồ hoạ {g['id']}: clip '{key}' không phải clip hình (có: {', '.join(self.src)})")
+                p.update({"poster": self._src_frame(f"src:{key}@{sec}", g), "poster_v": ref, "live": 1,
+                          "media_w": self.src[key]["width"], "media_h": self.src[key]["height"]})
+                g["proof_clip"] = {"src": key, "s0": sec}
+                need = (g["t1"] - g["t0"]) - 0.5
+                if sec + need > self.src[key]["duration"] + 0.05:
+                    warns.append(f"đồ hoạ {g['id']}: clip {key} từ {sec:.1f}s chỉ còn {self.src[key]['duration'] - sec:.1f}s < "
+                                 f"{need:.1f}s cần → khung cuối đứng yên")
+            elif prof.get("proof_clip"):   # ảnh: ghi tỉ lệ khung cho trang dựng ô đúng hình
+                ph = str(p.get("photo", ""))
+                if ph.startswith("file:"):
+                    from urllib.parse import unquote, urlparse
+                    from PIL import Image
+                    try:
+                        with Image.open(unquote(urlparse(ph).path).lstrip("/")) as im:
+                            p["media_w"], p["media_h"] = im.size
+                    except OSError:
+                        pass
+            for src_k, dst_k in (prof.get("time_params") or {}).items():   # vd win_at (cụm lời chốt) → win_t (giây từ lúc vào)
+                if src_k in p:
+                    ta = self._when(words, p.pop(src_k), g["t0"] - 0.6)
+                    rel = round(ta - g["t0"], 3)
+                    if not 0 <= rel < g["t1"] - g["t0"]:
+                        raise CutError(f"đồ hoạ {g['id']}: {src_k} ở {ta:.2f}s nằm ngoài {g['t0']:.2f}–{g['t1']:.2f}s")
+                    p[dst_k] = rel
+        return warns
 
     def save(self) -> dict:
         if not self.pieces:
@@ -279,19 +507,60 @@ class Cut:
             t0, t1 = self._span(words, cv, after, total)
             covers.append({**cv, "t0": t0, "t1": t1})
             after = t0
+        graphics, after = [], -1.0
+        for k, g in enumerate(self.graphics):
+            t0, t1 = self._span(words, g, after, total)
+            # seed mặc định = thứ tự trong CÙNG loại đồ hoạ (thẻ chương thứ 2 = seed 2) — chèn thêm từ khoá không làm
+            # đổi bố cục / mất cache các thẻ chương đã render
+            seed = sum(1 for x in self.graphics[:k] if x["id"] == g["id"]) + 1
+            graphics.append({"id": g["id"], "t0": t0, "t1": t1, "trans": g["trans"], "params": {"seed": seed, **g["params"]},
+                             "covers": True, "behind": g.get("behind"), "at_phrase": _seconds_or_none(g["at"]) is None,
+                             "auto_hold": g.get("auto_hold", False), "items": g.get("items"),
+                             "layout_auto": g.get("layout_auto", False)})
+            after = t0
+        scene_warns = self._scene_setup(graphics, words, total)
         # khe ngắn (≤0,6s, thường là khoảng thở cuối câu) giữa 2 lớp hình đè → kéo lớp trước tới lớp sau, khỏi chớp hình nền
-        layers = sorted(cards + covers, key=lambda x: x["t0"])
+        layers = sorted(cards + covers + [g for g in graphics if g["covers"]], key=lambda x: x["t0"])
         for x, y in zip(layers, layers[1:]):
             if 0 < y["t0"] - x["t1"] <= 0.6:
                 x["t1"] = y["t0"]
-        blocks, warns = self._captions(words, cards)
+        for g in [g for g in graphics if g["covers"]]:
+            # đồ hoạ RA bằng nhoè về trong suốt (0,28s cuối) → lớp hình kế tiếp phải nằm sẵn bên dưới, không thì lộ
+            # khung nền (giọng đọc riêng = đen). Lớp kế bắt đầu ngay chỗ đồ hoạ hết → dời lên 0,3s, bỏ chuyển cảnh vào.
+            for x in covers + cards:
+                if g["t1"] - 0.05 <= x["t0"] <= g["t1"] + 0.05:
+                    x["t0"], x["trans"] = round(g["t1"] - 0.3, 3), "cut"
+                    if "src_in" in x:
+                        x["src_in"] = max(0.0, x["src_in"] - 0.3 * x.get("speed", 1.0))
+        for g in graphics:   # thời lượng animation = khoảng đã chốt (sau khi nối khe)
+            if g["t1"] - g["t0"] < g["min_dur"] - 1e-3:
+                raise CutError(f"đồ hoạ {g['id']} {g['t0']:.2f}–{g['t1']:.2f}s ngắn hơn {g['min_dur']}s"
+                               + (f" (preset {g['params'].get('preset')})" if g.get("scene") else
+                                  " (cần đủ giấy bay vào + đứng đọc)"))
+            g["params"]["dur"] = round(g["t1"] - g["t0"], 2)
+        blocks, warns = self._captions(words, cards, [(g["t0"], g["t1"]) for g in graphics if not g.get("captions_keep")])
+        for g in [g for g in graphics if g.get("captions_keep")]:   # tiêu đề ghim + đồ hoạ khác cùng lúc = chồng chữ
+            for o in graphics:
+                if o is not g and o["t0"] < g["t1"] and o["t1"] > g["t0"] and not o.get("covers"):
+                    warns.append(f"đồ hoạ {o['id']} {o['t0']:.2f}s trùng tiêu đề ghim {g['t0']:.2f}–{g['t1']:.2f}s — chồng chữ ở "
+                                 "tầm đầu; dời / bỏ")
+        warns += scene_warns
+        for b in blocks:  # mẫu: đồ hoạ hiện thì không đặt chữ động (tiêu đề đồ hoạ thay chữ)
+            for g in [g for g in graphics if not g.get("captions_keep")]:
+                g_end = g["t1"] - 0.3   # build tắt chữ động t0 → t1−0,3
+                if b["first"] >= g_end - 0.15 or b["end"] <= g["t0"]:
+                    continue   # chỉ chạm mép (khối sau vào khi đồ hoạ đang tan) — không đáng báo
+                hidden = min(b["end"], g_end) - max(b["first"], g["t0"])
+                if b["first"] >= g["t0"] - 0.05 or hidden > 0.3:
+                    warns.append(f"khối chữ {b['id']} trùng đồ hoạ {g['id']} {g['t0']:.2f}–{g['t1']:.2f}s — bỏ cap() "
+                                 f"đoạn này: {b['markup']}")
         # nguồn chỉ có tiếng (giọng đọc riêng) mà không có cảnh đè → màn đen: báo lỗi trước khi render
         holes = []
         for p in self.pieces:
             if self.src[p["src"]].get("has_video"):
                 continue
             t = p["t0"]
-            for a, b in sorted((x["t0"], x["t1"]) for x in covers + cards):
+            for a, b in sorted((x["t0"], x["t1"]) for x in covers + cards + [g for g in graphics if g["covers"]]):
                 if a > t + 0.04 and a < p["t1"]:
                     holes.append((t, min(a, p["t1"])))
                 if b > t:
@@ -303,7 +572,8 @@ class Cut:
                            + " → thêm c.cover(...) cho các khoảng này")
         edit = {"out": self.meta["out"], "style": self.style, "grade": self.grade_cfg, "duration": round(total, 3),
                 "pieces": self.pieces,
-                "covers": covers, "cards": cards, "captions": blocks, "words": words, "audio": self.audio_cfg,
+                "covers": covers, "cards": cards, "graphics": graphics, "captions": blocks, "words": words,
+                "audio": self.audio_cfg,
                 "logo": self.logo_cfg, "warnings": warns}
         (self.d / "edit.json").write_text(json.dumps(edit, ensure_ascii=False, indent=1), encoding="utf-8")
         self._report(edit)
@@ -319,6 +589,10 @@ class Cut:
             print(f"  màn  {c['t0']:6.2f}–{c['t1']:6.2f}  {c['bg']} ({c['trans']})")
         for c in e["covers"]:
             print(f"  đè   {c['t0']:6.2f}–{c['t1']:6.2f}  {c['src']} từ {c['src_in']:.2f}s ({c['trans']}→{c['trans_out']})")
+        for g in e["graphics"]:
+            print(f"  đồ hoạ {g['t0']:6.2f}–{g['t1']:6.2f}  {g['id']} " + json.dumps(
+                {k: v for k, v in g["params"].items() if k != "dur"}, ensure_ascii=False)
+                + (f"  [sau người: {g['behind']}]" if g.get("behind") else ""))
         for b in e["captions"]:
             print(f"  chữ  {b['first']:6.2f}–{b['end']:6.2f}  {b['markup']}" + ("  [màn chữ]" if b["card"] else ""))
         for w in e["warnings"]:

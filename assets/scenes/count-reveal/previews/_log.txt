@@ -1,0 +1,10 @@
+✓ gdp_red       micro     4.23s 127 khung · khung đầu α0 · khung cuối α0 · 16s · ⚠ viền TỐI quanh hình (halo 95.8) — ghép lên nền sáng sẽ thấy viền đen
+✓ gdp_red       standard  4.23s 127 khung · khung đầu α0 · khung cuối α0 · 135s
+✓ gdp_red       full      4.23s 127 khung · khung đầu α0 · khung cuối α0 · 136s
+✓ phaledo_dark  micro     4.23s 127 khung · khung đầu α0 · khung cuối α0 · 12s · ⚠ viền TỐI quanh hình (halo 219.0) — ghép lên nền sáng sẽ thấy viền đen
+✓ phaledo_dark  standard  4.23s 127 khung · khung đầu α0 · khung cuối α0 · 119s
+✓ phaledo_dark  full      4.23s 127 khung · khung đầu α0 · khung cuối α0 · 119s
+✓ phaledo_warm  micro     4.23s 127 khung · khung đầu α0 · khung cuối α0 · 12s · ⚠ viền TỐI quanh hình (halo 211.9) — ghép lên nền sáng sẽ thấy viền đen
+✓ phaledo_warm  standard  4.23s 127 khung · khung đầu α0 · khung cuối α0 · 138s
+✓ phaledo_warm  full      4.23s 127 khung · khung đầu α0 · khung cuối α0 · 138s
+→ C:\Users\Admin\gdp-video-studio\assets\scenes\count-reveal\previews

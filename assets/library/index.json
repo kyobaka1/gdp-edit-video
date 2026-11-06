@@ -1,0 +1,784 @@
+{
+ "assets": {
+  "boi-canh/goc-bep-bua": {
+   "theme": "boi-canh",
+   "kind": "canh",
+   "title": "",
+   "tags": [
+    "bep",
+    "bua",
+    "truoc"
+   ],
+   "file": "boi-canh/goc-bep-bua.png",
+   "alpha": false,
+   "size": null,
+   "prompt": "Ảnh chụp chân thực góc tủ bếp gia đình Việt Nam đang bừa bộn (chai lọ, gia vị, túi nilon lộn xộn), ánh sáng tự nhiên buổi sáng, không chữ, không người",
+   "engine": "codex",
+   "model": null,
+   "created": "2026-11-05 17:11",
+   "variants": [],
+   "dims": [
+    1024,
+    1536
+   ],
+   "kits": [],
+   "used_by": []
+  },
+  "boi-canh/van-phong-sang": {
+   "theme": "boi-canh",
+   "kind": "canh",
+   "title": "",
+   "tags": [
+    "sang",
+    "van-phong"
+   ],
+   "file": "boi-canh/van-phong-sang.png",
+   "alpha": false,
+   "size": null,
+   "prompt": "Văn phòng hiện đại buổi sáng, nắng xiên qua cửa kính, người làm việc ở xa hơi mờ, laptop + ly cà phê, tông ấm, không chữ",
+   "engine": "codex",
+   "model": null,
+   "created": "2026-11-05 17:11",
+   "variants": [],
+   "dims": [
+    1024,
+    1536
+   ],
+   "kits": [],
+   "used_by": [
+    "test-vlog-ai"
+   ]
+  },
+  "cat-dan-giay/anh-in-bep-den-trang": {
+   "theme": "cat-dan-giay",
+   "kind": "cat-dan",
+   "title": "Ảnh in đen trắng góc bếp gọn",
+   "tags": [
+    "anh-in",
+    "bep",
+    "chuong-cat-dan"
+   ],
+   "file": "cat-dan-giay/anh-in-bep-den-trang.png",
+   "alpha": true,
+   "size": "doc",
+   "prompt": "Một tấm ảnh in đen trắng có viền trắng như ảnh in, hơi nghiêng 4 độ: góc bếp gia đình gọn gàng với hũ gia vị xếp thẳng hàng trên kệ. Chỉ tấm ảnh, quanh viền là trong suốt.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:17",
+   "variants": [],
+   "dims": [
+    1024,
+    1536
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "cat-dan-giay/bang-giay-den-trong": {
+   "theme": "cat-dan-giay",
+   "kind": "cat-dan",
+   "title": "Băng giấy đen dòng phụ (trống)",
+   "tags": [
+    "chuong-cat-dan",
+    "dong-phu",
+    "nhan"
+   ],
+   "file": "cat-dan-giay/bang-giay-den-trong.png",
+   "alpha": true,
+   "size": "ngang",
+   "prompt": "Một dải băng giấy đen nhám dài nằm ngang (tỉ lệ khoảng 7:1), mép rách xơ, hơi nghiêng 3 độ, bề mặt TRỐNG để chèn chữ trắng sau.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:14",
+   "variants": [],
+   "dims": [
+    1536,
+    1024
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "cat-dan-giay/bang-keo-giay": {
+   "theme": "cat-dan-giay",
+   "kind": "cat-dan",
+   "title": "Mẩu băng keo giấy",
+   "tags": [
+    "chuong-cat-dan",
+    "keo",
+    "van-phong-pham"
+   ],
+   "file": "cat-dan-giay/bang-keo-giay.png",
+   "alpha": true,
+   "size": "ngang",
+   "prompt": "Một mẩu băng keo giấy mờ màu kem ngắn, hai đầu xé răng cưa, hơi trong.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:16",
+   "variants": [],
+   "dims": [
+    1536,
+    1024
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "cat-dan-giay/cuon-bang-dinh": {
+   "theme": "cat-dan-giay",
+   "kind": "cat-dan",
+   "title": "Cuộn băng dính giấy",
+   "tags": [
+    "chuong-cat-dan",
+    "van-phong-pham"
+   ],
+   "file": "cat-dan-giay/cuon-bang-dinh.png",
+   "alpha": true,
+   "size": "vuong",
+   "prompt": "Một cuộn băng dính giấy màu kem nhìn thẳng từ trên xuống, lõi tròn rỗng.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:16",
+   "variants": [],
+   "dims": [
+    1254,
+    1254
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "cat-dan-giay/giay-note-vang-trong": {
+   "theme": "cat-dan-giay",
+   "kind": "cat-dan",
+   "title": "Giấy note vàng (trống)",
+   "tags": [
+    "chuong-cat-dan",
+    "note"
+   ],
+   "file": "cat-dan-giay/giay-note-vang-trong.png",
+   "alpha": true,
+   "size": "vuong",
+   "prompt": "Một tờ giấy note vàng nhạt hình vuông hơi cong một góc, bề mặt TRỐNG để chèn chữ viết tay sau.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:17",
+   "variants": [],
+   "dims": [
+    1254,
+    1254
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "cat-dan-giay/giay-vo-nhau": {
+   "theme": "cat-dan-giay",
+   "kind": "cat-dan",
+   "title": "Mẩu giấy vo nhàu",
+   "tags": [
+    "chuong-cat-dan",
+    "giay"
+   ],
+   "file": "cat-dan-giay/giay-vo-nhau.png",
+   "alpha": true,
+   "size": "vuong",
+   "prompt": "Một mẩu giấy trắng bị vo nhàu thành cục tròn, nếp gấp rõ.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:17",
+   "variants": [],
+   "dims": [
+    1254,
+    1254
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "cat-dan-giay/kep-giay": {
+   "theme": "cat-dan-giay",
+   "kind": "cat-dan",
+   "title": "Kẹp giấy bạc",
+   "tags": [
+    "chuong-cat-dan",
+    "van-phong-pham"
+   ],
+   "file": "cat-dan-giay/kep-giay.png",
+   "alpha": true,
+   "size": "vuong",
+   "prompt": "Một chiếc kẹp giấy kim loại màu bạc nằm nghiêng, chụp từ trên xuống.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:15",
+   "variants": [],
+   "dims": [
+    1254,
+    1254
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "cat-dan-giay/mang-giay-vang-xe": {
+   "theme": "cat-dan-giay",
+   "kind": "cat-dan",
+   "title": "Mảng giấy vàng xé tay",
+   "tags": [
+    "chuong-cat-dan",
+    "giay",
+    "mang",
+    "vang"
+   ],
+   "file": "cat-dan-giay/mang-giay-vang-xe.png",
+   "alpha": true,
+   "size": "vuong",
+   "prompt": "Một mảng giấy màu vàng nghệ xé tay lớn, hình dạng bất định gần chữ nhật, mép rách xơ trắng.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:14",
+   "variants": [],
+   "dims": [
+    1254,
+    1254
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "cat-dan-giay/mui-ten-vang": {
+   "theme": "cat-dan-giay",
+   "kind": "cat-dan",
+   "title": "",
+   "tags": [
+    "giay",
+    "mui-ten"
+   ],
+   "file": "cat-dan-giay/mui-ten-vang.png",
+   "alpha": true,
+   "size": null,
+   "prompt": "Mũi tên cắt từ giấy thủ công vàng nghệ, mép rách xơ, chụp từ trên xuống, nền trong suốt",
+   "engine": "codex",
+   "model": null,
+   "created": "2026-11-05 17:11",
+   "variants": [],
+   "dims": [
+    1254,
+    1254
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "cat-dan-giay/mui-ten-ve-tay-do": {
+   "theme": "cat-dan-giay",
+   "kind": "cat-dan",
+   "title": "Mũi tên cong vẽ tay đỏ",
+   "tags": [
+    "chuong-cat-dan",
+    "mui-ten",
+    "ve-tay"
+   ],
+   "file": "cat-dan-giay/mui-ten-ve-tay-do.png",
+   "alpha": true,
+   "size": "ngang",
+   "prompt": "Một mũi tên cong vẽ tay bằng bút dạ màu đỏ, nét mảnh hơi run, đầu mũi tên hai nét.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:14",
+   "variants": [],
+   "dims": [
+    1536,
+    1024
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "cat-dan-giay/nguoi-giay-den-chi-tay": {
+   "theme": "cat-dan-giay",
+   "kind": "cat-dan",
+   "title": "Người giấy đen đang chỉ tay",
+   "tags": [
+    "chuong-cat-dan",
+    "nguoi"
+   ],
+   "file": "cat-dan-giay/nguoi-giay-den-chi-tay.png",
+   "alpha": true,
+   "size": "doc",
+   "prompt": "Hình người giấy cắt dán màu đen nhám, dáng đứng một tay chỉ sang ngang, viền trắng mảnh như sticker.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:15",
+   "variants": [],
+   "dims": [
+    1024,
+    1536
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "cat-dan-giay/nguoi-giay-xam": {
+   "theme": "cat-dan-giay",
+   "kind": "cat-dan",
+   "title": "Người giấy xám",
+   "tags": [
+    "chuong-cat-dan",
+    "giay",
+    "nguoi"
+   ],
+   "file": "cat-dan-giay/nguoi-giay-xam.png",
+   "alpha": true,
+   "size": "doc",
+   "prompt": "HÌNH BÓNG (silhouette) một người đứng thẳng hai tay buông, cắt từ MỘT tờ giấy xám nhạt TRƠN một màu: không mặt, không tóc chi tiết, không quần áo, không hoa văn, không màu khác; quanh mép có viền giấy trắng như sticker.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:20",
+   "variants": [],
+   "dims": [
+    1024,
+    1536
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "cat-dan-giay/nhan-tieu-de-trong": {
+   "theme": "cat-dan-giay",
+   "kind": "cat-dan",
+   "title": "Nhãn tiêu đề giấy be (trống)",
+   "tags": [
+    "chuong-cat-dan",
+    "nhan",
+    "tieu-de"
+   ],
+   "file": "cat-dan-giay/nhan-tieu-de-trong.png",
+   "alpha": true,
+   "size": "ngang",
+   "prompt": "Một dải nhãn giấy màu be cũ hình chữ nhật dài nằm ngang (tỉ lệ khoảng 5:1), mép rách xơ, hai đầu dán mẩu băng keo giấy mờ, bề mặt TRỐNG hoàn toàn để chèn chữ sau.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:13",
+   "variants": [],
+   "dims": [
+    2172,
+    724
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "cat-dan-giay/tay-giay-den-chi": {
+   "theme": "cat-dan-giay",
+   "kind": "cat-dan",
+   "title": "Bàn tay giấy đen chỉ ngón trỏ",
+   "tags": [
+    "chi",
+    "chuong-cat-dan",
+    "tay"
+   ],
+   "file": "cat-dan-giay/tay-giay-den-chi.png",
+   "alpha": true,
+   "size": "vuong",
+   "prompt": "Một bàn tay cắt từ giấy đen nhám đang chỉ bằng ngón trỏ, viền trắng mảnh như sticker.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:15",
+   "variants": [],
+   "dims": [
+    1254,
+    1254
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "cat-dan-giay/tay-giay-trang": {
+   "theme": "cat-dan-giay",
+   "kind": "cat-dan",
+   "title": "Bàn tay giấy trắng xoè",
+   "tags": [
+    "chuong-cat-dan",
+    "tay"
+   ],
+   "file": "cat-dan-giay/tay-giay-trang.png",
+   "alpha": true,
+   "size": "vuong",
+   "prompt": "Một bàn tay xoè năm ngón cắt từ MỘT tờ giấy trắng ngà TRƠN một màu (không hoa văn, không họa tiết, không màu khác), mép cắt viền xám mảnh, nhìn từ trên xuống.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:19",
+   "variants": [],
+   "dims": [
+    1254,
+    1254
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "cat-dan-giay/tem-do-trong": {
+   "theme": "cat-dan-giay",
+   "kind": "cat-dan",
+   "title": "Dấu tròn đỏ (trống)",
+   "tags": [
+    "chuong-cat-dan",
+    "dau",
+    "tem"
+   ],
+   "file": "cat-dan-giay/tem-do-trong.png",
+   "alpha": true,
+   "size": "vuong",
+   "prompt": "Một con dấu mộc tròn màu đỏ đóng trên giấy, mực loang nhẹ, phần giữa TRỐNG không chữ.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:17",
+   "variants": [],
+   "dims": [
+    1254,
+    1254
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "nen/den-giay-my-thuat": {
+   "theme": "nen",
+   "kind": "nen",
+   "title": "Nền giấy mỹ thuật đen than",
+   "tags": [
+    "den",
+    "giay",
+    "phaledo",
+    "phaledo-dark"
+   ],
+   "file": "nen/den-giay-my-thuat.png",
+   "alpha": false,
+   "size": "doc",
+   "prompt": "Một tờ giấy mỹ thuật màu đen than (gần #161616) phủ kín toàn bộ khung ảnh, thớ sợi giấy rất mịn, ánh sáng mềm từ góc trên bên trái tạo vùng sáng nhẹ, chụp phẳng từ trên xuống. Không có vật thể nào.\nPhong cách chung của bộ: ảnh studio cao cấp tông tối, nền than gần đen (#161616), ánh sáng dịu ấm màu champagne, chi tiết tinh tế, sạch, tối giản; tuyệt đối không chữ, số, logo, không có sản phẩm, hũ, chai, ly",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 18:44",
+   "variants": [],
+   "dims": [
+    1024,
+    1536
+   ],
+   "kits": [
+    "phaledo-dark"
+   ],
+   "used_by": []
+  },
+  "nen/giay-be-am": {
+   "theme": "nen",
+   "kind": "nen",
+   "title": "Nền giấy be ấm làm tay",
+   "tags": [
+    "be",
+    "giay",
+    "phaledo",
+    "phaledo-warm"
+   ],
+   "file": "nen/giay-be-am.png",
+   "alpha": false,
+   "size": "doc",
+   "prompt": "Một tờ giấy làm tay màu be kem ấm phủ kín toàn bộ khung ảnh, thớ giấy có sợi và vài đốm nhỏ tự nhiên, ánh sáng mềm đều, chụp phẳng từ trên xuống. Không có vật thể nào.\nPhong cách chung của bộ: ảnh chụp phẳng từ trên xuống, ánh sáng tự nhiên buổi sáng ấm áp, tông be kem, nâu gỗ sồi, xanh ô liu nhạt, cảm giác sổ tay nhà bếp thủ công tinh tế; tuyệt đối không chữ, số, logo, không có hũ, lọ, chai, ly thủy tinh",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 18:45",
+   "variants": [],
+   "dims": [
+    1024,
+    1536
+   ],
+   "kits": [
+    "phaledo-warm"
+   ],
+   "used_by": []
+  },
+  "nen/giay-do-gach": {
+   "theme": "nen",
+   "kind": "nen",
+   "title": "Nền giấy đỏ gạch",
+   "tags": [
+    "chuong-cat-dan",
+    "do",
+    "giay"
+   ],
+   "file": "nen/giay-do-gach.png",
+   "alpha": false,
+   "size": "doc",
+   "prompt": "Một tờ giấy thủ công màu đỏ gạch phủ kín toàn bộ khung ảnh, thớ giấy và vết nhăn nhẹ, vài đốm ố nhạt, chụp phẳng từ trên xuống, ánh sáng đều. Không có vật thể nào khác.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:14",
+   "variants": [],
+   "dims": [
+    1024,
+    1536
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "nen/giay-kraft-nau-toi": {
+   "theme": "nen",
+   "kind": "nen",
+   "title": "Nền giấy kraft nâu tối (thẻ series)",
+   "tags": [
+    "chuong-cat-dan",
+    "giay",
+    "nau",
+    "series"
+   ],
+   "file": "nen/giay-kraft-nau-toi.png",
+   "alpha": false,
+   "size": "doc",
+   "prompt": "Một tờ giấy kraft màu nâu cà phê đậm phủ kín toàn bộ khung ảnh, thớ giấy rõ, vài vết ố tròn mờ như vết ly cà phê, chụp phẳng từ trên xuống. Không có vật thể nào khác.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 17:13",
+   "variants": [],
+   "dims": [
+    1024,
+    1536
+   ],
+   "kits": [
+    "chuong-cat-dan"
+   ],
+   "used_by": []
+  },
+  "phaledo-dark/anh-sang-khuc-xa": {
+   "theme": "phaledo-dark",
+   "kind": "nen",
+   "title": "Ánh sáng khúc xạ trừu tượng (dùng blend screen)",
+   "tags": [
+    "anh-sang",
+    "khuc-xa",
+    "phaledo",
+    "phaledo-dark"
+   ],
+   "file": "phaledo-dark/anh-sang-khuc-xa.png",
+   "alpha": false,
+   "size": "doc",
+   "prompt": "Vệt ánh sáng khúc xạ qua thủy tinh (caustics) màu champagne ấm và trắng ngà, dạng các gợn sáng mềm uốn lượn, trên nền ĐEN TUYỆT ĐỐI, trừu tượng, không nhìn thấy vật thể thủy tinh nào. Phần lớn khung là đen, ánh sáng tập trung ở nửa trên.\nPhong cách chung của bộ: ảnh studio cao cấp tông tối, nền than gần đen (#161616), ánh sáng dịu ấm màu champagne, chi tiết tinh tế, sạch, tối giản; tuyệt đối không chữ, số, logo, không có sản phẩm, hũ, chai, ly",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 18:44",
+   "variants": [],
+   "dims": [
+    1024,
+    1536
+   ],
+   "kits": [
+    "phaledo-dark"
+   ],
+   "used_by": []
+  },
+  "phaledo-warm/anh-nguyen-lieu-am": {
+   "theme": "phaledo-warm",
+   "kind": "canh",
+   "title": "Ảnh nguyên liệu ấm (không sản phẩm)",
+   "tags": [
+    "am",
+    "nguyen-lieu",
+    "phaledo",
+    "phaledo-warm"
+   ],
+   "file": "phaledo-warm/anh-nguyen-lieu-am.png",
+   "alpha": false,
+   "size": "doc",
+   "prompt": "Ảnh chụp chân thực từ trên xuống: hạt cà phê rang, một ít hạt điều và hạt sen trên khăn linen màu kem, một muỗng gỗ, mặt bàn gỗ sồi, ánh sáng tự nhiên ấm buổi sáng. Không có hũ, lọ, chai, ly, không có chữ.\nPhong cách chung của bộ: ảnh chụp phẳng từ trên xuống, ánh sáng tự nhiên buổi sáng ấm áp, tông be kem, nâu gỗ sồi, xanh ô liu nhạt, cảm giác sổ tay nhà bếp thủ công tinh tế; tuyệt đối không chữ, số, logo, không có hũ, lọ, chai, ly thủy tinh",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 18:47",
+   "variants": [],
+   "dims": [
+    1024,
+    1536
+   ],
+   "kits": [
+    "phaledo-warm"
+   ],
+   "used_by": []
+  },
+  "phaledo-warm/bang-washi-be": {
+   "theme": "phaledo-warm",
+   "kind": "cat-dan",
+   "title": "Băng washi be",
+   "tags": [
+    "bang-dinh",
+    "phaledo-warm",
+    "washi"
+   ],
+   "file": "phaledo-warm/bang-washi-be.png",
+   "alpha": true,
+   "size": "ngang",
+   "prompt": "Một mẩu băng dính washi màu be nhạt có hoạ tiết sọc mảnh màu nâu rất nhạt, hai đầu xé răng cưa, hơi trong.\nPhong cách chung của bộ: ảnh chụp phẳng từ trên xuống, ánh sáng tự nhiên buổi sáng ấm áp, tông be kem, nâu gỗ sồi, xanh ô liu nhạt, cảm giác sổ tay nhà bếp thủ công tinh tế; tuyệt đối không chữ, số, logo, không có hũ, lọ, chai, ly thủy tinh",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 18:46",
+   "variants": [
+    "bang-washi-be_v2.png"
+   ],
+   "dims": [
+    1536,
+    1024
+   ],
+   "kits": [
+    "phaledo-warm"
+   ],
+   "used_by": []
+  },
+  "phaledo-warm/hat-ca-phe-rai": {
+   "theme": "phaledo-warm",
+   "kind": "cat-dan",
+   "title": "Hạt cà phê rải",
+   "tags": [
+    "ca-phe",
+    "nguyen-lieu",
+    "phaledo-warm"
+   ],
+   "file": "phaledo-warm/hat-ca-phe-rai.png",
+   "alpha": true,
+   "size": "vuong",
+   "prompt": "Một nhúm khoảng mười hai hạt cà phê rang nâu đậm rải tự nhiên thành cụm nhỏ, chụp từ trên xuống.\nPhong cách chung của bộ: ảnh chụp phẳng từ trên xuống, ánh sáng tự nhiên buổi sáng ấm áp, tông be kem, nâu gỗ sồi, xanh ô liu nhạt, cảm giác sổ tay nhà bếp thủ công tinh tế; tuyệt đối không chữ, số, logo, không có hũ, lọ, chai, ly thủy tinh",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 18:46",
+   "variants": [],
+   "dims": [
+    1254,
+    1254
+   ],
+   "kits": [
+    "phaledo-warm"
+   ],
+   "used_by": []
+  },
+  "phaledo-warm/net-gach-chan-nau": {
+   "theme": "phaledo-warm",
+   "kind": "cat-dan",
+   "title": "Nét gạch chân vẽ tay nâu",
+   "tags": [
+    "gach-chan",
+    "phaledo-warm",
+    "ve-tay"
+   ],
+   "file": "phaledo-warm/net-gach-chan-nau.png",
+   "alpha": true,
+   "size": "ngang",
+   "prompt": "Một nét gạch chân vẽ tay bằng bút mực nâu cà phê, một đường cong nhẹ có đuôi vuốt, nét mảnh đều, nằm ngang.\nPhong cách chung của bộ: ảnh chụp phẳng từ trên xuống, ánh sáng tự nhiên buổi sáng ấm áp, tông be kem, nâu gỗ sồi, xanh ô liu nhạt, cảm giác sổ tay nhà bếp thủ công tinh tế; tuyệt đối không chữ, số, logo, không có hũ, lọ, chai, ly thủy tinh",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 18:46",
+   "variants": [],
+   "dims": [
+    1536,
+    1024
+   ],
+   "kits": [
+    "phaledo-warm"
+   ],
+   "used_by": []
+  },
+  "phaledo-warm/nhanh-la-kho": {
+   "theme": "phaledo-warm",
+   "kind": "cat-dan",
+   "title": "Nhánh lá khô",
+   "tags": [
+    "la",
+    "phaledo-warm",
+    "trang-tri"
+   ],
+   "file": "phaledo-warm/nhanh-la-kho.png",
+   "alpha": true,
+   "size": "doc",
+   "prompt": "Một nhánh lá bạch đàn khô màu xanh ô liu xám nhạt, thân mảnh cong tự nhiên, chụp từ trên xuống.\nPhong cách chung của bộ: ảnh chụp phẳng từ trên xuống, ánh sáng tự nhiên buổi sáng ấm áp, tông be kem, nâu gỗ sồi, xanh ô liu nhạt, cảm giác sổ tay nhà bếp thủ công tinh tế; tuyệt đối không chữ, số, logo, không có hũ, lọ, chai, ly thủy tinh",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 18:45",
+   "variants": [],
+   "dims": [
+    1024,
+    1536
+   ],
+   "kits": [
+    "phaledo-warm"
+   ],
+   "used_by": []
+  },
+  "phaledo-warm/thia-go": {
+   "theme": "phaledo-warm",
+   "kind": "cat-dan",
+   "title": "Muỗng gỗ",
+   "tags": [
+    "dung-cu",
+    "go",
+    "phaledo-warm"
+   ],
+   "file": "phaledo-warm/thia-go.png",
+   "alpha": true,
+   "size": "doc",
+   "prompt": "Một chiếc muỗng gỗ sồi sáng màu, cán dài thẳng đứng, đầu muỗng ở trên, vân gỗ rõ, chụp từ trên xuống.\nPhong cách chung của bộ: ảnh chụp phẳng từ trên xuống, ánh sáng tự nhiên buổi sáng ấm áp, tông be kem, nâu gỗ sồi, xanh ô liu nhạt, cảm giác sổ tay nhà bếp thủ công tinh tế; tuyệt đối không chữ, số, logo, không có hũ, lọ, chai, ly thủy tinh",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 18:46",
+   "variants": [],
+   "dims": [
+    1024,
+    1536
+   ],
+   "kits": [
+    "phaledo-warm"
+   ],
+   "used_by": []
+  },
+  "phaledo-warm/trang-so-tay-trong": {
+   "theme": "phaledo-warm",
+   "kind": "cat-dan",
+   "title": "Trang sổ tay kem (trống)",
+   "tags": [
+    "phaledo-warm",
+    "so-tay",
+    "trang"
+   ],
+   "file": "phaledo-warm/trang-so-tay-trong.png",
+   "alpha": true,
+   "size": "doc",
+   "prompt": "Một trang giấy sổ tay màu kem có dòng kẻ ngang rất mờ màu nâu nhạt, mép trên có lỗ gáy xé nhẹ, một góc hơi cong, bề mặt TRỐNG hoàn toàn không chữ.\nPhong cách chung của bộ: ảnh chụp phẳng từ trên xuống, ánh sáng tự nhiên buổi sáng ấm áp, tông be kem, nâu gỗ sồi, xanh ô liu nhạt, cảm giác sổ tay nhà bếp thủ công tinh tế; tuyệt đối không chữ, số, logo, không có hũ, lọ, chai, ly thủy tinh",
+   "engine": "codex",
+   "model": "gpt-5.6-luna",
+   "created": "2026-11-05 18:46",
+   "variants": [
+    "trang-so-tay-trong_v2.png"
+   ],
+   "dims": [
+    1024,
+    1536
+   ],
+   "kits": [
+    "phaledo-warm"
+   ],
+   "used_by": []
+  }
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "engine": "codex",
+ "model": "gpt-5.6-luna",
+ "kind": "ai",
+ "prompt": "Một tờ giấy thủ công màu đỏ gạch phủ kín toàn bộ khung ảnh, thớ giấy và vết nhăn nhẹ, vài đốm ố nhạt, chụp phẳng từ trên xuống, ánh sáng đều. Không có vật thể nào khác.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+ "size": "doc",
+ "alpha": false,
+ "refs": [],
+ "thread": "01a1ab32-b955-7db0-9568-140fc836f263",
+ "created": "2026-11-05 17:14",
+ "variants": [
+  {
+   "file": "giay-do-gach.png",
+   "w": 1024,
+   "h": 1536,
+   "mode": "RGB"
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

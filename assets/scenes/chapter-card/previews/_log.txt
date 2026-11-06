@@ -1,0 +1,10 @@
+✓ gdp_red       micro     0.83s 25 khung · khung đầu α0 · khung cuối α0 · 5s
+✓ gdp_red       standard  1.83s 55 khung · khung đầu α255 · khung cuối α0 · 58s
+✓ gdp_red       full      3.63s 109 khung · khung đầu α255 · khung cuối α0 · 115s
+✓ phaledo_dark  micro     0.83s 25 khung · khung đầu α0 · khung cuối α0 · 4s · ⚠ viền TỐI quanh hình (halo 220.0) — ghép lên nền sáng sẽ thấy viền đen
+✓ phaledo_dark  standard  1.83s 55 khung · khung đầu α0 · khung cuối α0 · 54s
+✓ phaledo_dark  full      3.63s 109 khung · khung đầu α0 · khung cuối α0 · 107s
+✓ phaledo_warm  micro     0.83s 25 khung · khung đầu α0 · khung cuối α0 · 5s
+✓ phaledo_warm  standard  1.83s 55 khung · khung đầu α0 · khung cuối α0 · 57s
+✓ phaledo_warm  full      3.63s 109 khung · khung đầu α0 · khung cuối α0 · 114s
+→ C:\Users\Admin\gdp-video-studio\assets\scenes\chapter-card\previews

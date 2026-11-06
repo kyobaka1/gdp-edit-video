@@ -1,0 +1,15 @@
+{
+ "engine": "codex",
+ "kind": "ai",
+ "prompt": "Ảnh chụp chân thực góc tủ bếp gia đình Việt Nam đang bừa bộn (chai lọ, gia vị, túi nilon lộn xộn), ánh sáng tự nhiên buổi sáng, không chữ, không người",
+ "alpha": false,
+ "created": "2026-11-05 17:11",
+ "variants": [
+  {
+   "file": "goc-bep-bua.png",
+   "w": 1024,
+   "h": 1536
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

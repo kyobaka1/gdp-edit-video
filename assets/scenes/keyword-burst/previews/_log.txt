@@ -1,0 +1,10 @@
+✓ gdp_red       micro     0.73s 22 khung · khung đầu α0 · khung cuối α0 · 4s · ⚠ viền TỐI quanh hình (halo 198.9) — ghép lên nền sáng sẽ thấy viền đen
+✓ gdp_red       standard  1.23s 37 khung · khung đầu α255 · khung cuối α0 · 6s · ⚠ viền TỐI quanh hình (halo 188.3) — ghép lên nền sáng sẽ thấy viền đen
+✓ gdp_red       full      2.03s 61 khung · khung đầu α0 · khung cuối α0 · 9s · ⚠ viền TỐI quanh hình (halo 188.0) — ghép lên nền sáng sẽ thấy viền đen
+✓ phaledo_dark  micro     0.73s 22 khung · khung đầu α0 · khung cuối α0 · 3s · ⚠ viền TỐI quanh hình (halo 235.0) — ghép lên nền sáng sẽ thấy viền đen
+✓ phaledo_dark  standard  1.23s 37 khung · khung đầu α0 · khung cuối α0 · 5s · ⚠ viền TỐI quanh hình (halo 225.9) — ghép lên nền sáng sẽ thấy viền đen
+✓ phaledo_dark  full      2.03s 61 khung · khung đầu α0 · khung cuối α0 · 7s · ⚠ viền TỐI quanh hình (halo 227.1) — ghép lên nền sáng sẽ thấy viền đen
+✓ phaledo_warm  micro     0.73s 22 khung · khung đầu α0 · khung cuối α0 · 3s · ⚠ viền TỐI quanh hình (halo 178.6) — ghép lên nền sáng sẽ thấy viền đen
+✓ phaledo_warm  standard  1.23s 37 khung · khung đầu α0 · khung cuối α0 · 5s
+✓ phaledo_warm  full      2.03s 61 khung · khung đầu α0 · khung cuối α0 · 8s
+→ C:\Users\Admin\gdp-video-studio\assets\scenes\keyword-burst\previews

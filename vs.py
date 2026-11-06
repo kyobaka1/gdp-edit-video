@@ -17,6 +17,16 @@
   look <ảnh…> -q "câu hỏi"     soát mắt ảnh bằng model RẺ qua Codex/ChatGPT (không tốn Gemini) — agent dùng thay
                                vì tự mở ảnh bằng model đắt; Codex hỏng/hết usage → Gemini
   hear <file audio>            chép lại lời Việt trong audio (Gemini; hết tiền → tokenrouter gpt-audio-mini)
+  lib <việc> …                 THƯ VIỆN ASSET DÙNG CHUNG (assets/library/ — xây 1 lần, dùng nhiều video; Sếp 05/11)
+      find [từ…] [--kind K] [--theme T]       tìm asset có sẵn — LUÔN tìm trước khi tạo
+      list [--theme T]                        danh mục (+ job đã dùng)
+      gen <chủ-đề>/<tên> --prompt "…" [--kind canh|nen|cat-dan|icon] [--alpha] [--size doc|vuong|ngang] [--tag t]…
+                                              tạo qua Codex local (~60s, không tốn API); ĐÃ CÓ thì dùng lại (--force mới tạo lại)
+      kit <bộ> [--only id]…                   tạo phần còn THIẾU của bộ asset cho 1 kiểu animation (assets/library/kits/<bộ>.json)
+      sheet <chủ-đề|bộ>                       ảnh soát (nền ca-rô cho asset trong suốt)
+      import <file> <chủ-đề>/<tên> --prompt "…" [--kind K] [--engine chatgpt-web|photo]   nạp ảnh tạo trên chatgpt.com
+                                              (Codex hỏng) / ảnh Sếp đưa
+      ⛔ ảnh AI chỉ minh hoạ bối cảnh/ý — không vẽ sản phẩm đang bán thay ảnh thật, không làm bằng chứng
   motion <việc> …              thư viện animation thương hiệu (Claude Design → overlay alpha), chi tiết: assets/motion/README.md
       list [--shop S] [--role R] [--all]      danh sách (theo shop: chỉ animation đúng brand)
       scan <thư mục>                          phân loại file tải từ Claude Design (nguồn/preview/thiếu asset…), không nhập
@@ -33,7 +43,8 @@
       new <thư mục|file…> --id ID --capcut co|khong [--plan plan.md]   tạo job, chép clip vào sources/ (c01, c02…)
                                               ⚠ chưa rõ CÓ/KHÔNG dùng CapCut thì DỪNG hỏi Sếp (Sếp chốt 05/11)
       mode <id> co|khong                      đổi chế độ: co = giao bản nháp CapCut · khong = giao final.mp4
-      add <id> <file> --key vo [--text kịch_bản.txt]  thêm giọng đọc riêng / clip (có văn bản chuẩn thì tự đối chiếu)
+      add <id> <file|lib:chủ-đề/tên> --key g01 [--text kịch_bản.txt]  thêm giọng đọc riêng / clip / ảnh tĩnh
+                                              (ảnh → clip 15s cho cover; lib: = asset thư viện chung, ghi job đã dùng)
       ingest <id>                             chép lời có mốc từng từ (Whisper GPU) + ảnh lưới từng clip
       fix <id> <key> (--hear | --text file)   đối chiếu lời với Gemini / kịch bản: giữ mốc, sửa chữ
       words <id>                              in lời từng nguồn (có giây) để viết cut.py
@@ -189,6 +200,62 @@ def cmd_look(a) -> None:
                                        else "image/jpeg") for p in imgs]
         print(gemini.client().models.generate_content(model=gemini.config.GEMINI_MODEL, contents=[*parts, a.q]).text)
         print(f"[Gemini dự phòng — codex: {str(exc)[:120]}]")
+
+
+def cmd_lib(a) -> None:
+    """Thư viện asset dùng chung (studio/library.py)."""
+    from studio import codex, imagegen, library
+    act, args = a.action, a.args
+
+    def show(rows):
+        for r in rows:
+            used = f" · dùng ở {len(r.get('used_by', []))} job" if r.get("used_by") else ""
+            kits = f" · bộ {','.join(r['kits'])}" if r.get("kits") else ""
+            print(f"  {r['id']:38s} {r.get('kind', ''):8s} {'trong suốt ' if r.get('alpha') else ''}"
+                  f"{r.get('engine') or ''}{kits}{used}\n      {library.path(r['id'])}\n      {r.get('prompt', '')[:110]}")
+        print(f"{len(rows)} asset")
+    try:
+        if act in ("find", "list"):
+            show(library.find(" ".join(args), kind=a.kind, theme=a.theme))
+        elif act == "gen":
+            if not args or not a.prompt:
+                sys.exit('vs.py lib gen <chủ-đề>/<tên> --prompt "…" [--kind canh|nen|cat-dan|icon] [--alpha] [--size doc]')
+            t0 = time.time()
+            r, made = library.gen(args[0], a.prompt, kind=a.kind or "canh", alpha=a.alpha, size=a.size or "doc",
+                                  tags=a.tag or [], refs=[Path(x) for x in a.ref or []], force=a.force)
+            print(("Tạo mới" if made else "ĐÃ CÓ — dùng lại, không tạo") + f" {args[0]} ({time.time() - t0:.0f}s)")
+            show([{"id": args[0], **r}])
+        elif act == "kit":
+            if not args:
+                kits = sorted(p.stem for p in library.KITS.glob("*.json"))
+                sys.exit("vs.py lib kit <bộ> — có: " + (", ".join(kits) or "(chưa có bộ nào)"))
+            st = library.kit_status(args[0])
+            print(f"Bộ {args[0]}: có {sum(x['have'] for x in st)}/{len(st)} — tạo phần thiếu (song song 3 lượt Codex)…")
+            t0 = time.time()
+            res = library.kit_gen(args[0], only=a.only)
+            out = library.KITS / f"{args[0]}.jpg"
+            library.sheet([x["id"] for x in library.kit_status(args[0])], out)
+            print(f"Xong {time.time() - t0:.0f}s · mới {len(res['made'])} · có sẵn {len(res['kept'])} · hỏng "
+                  f"{len(res['failed'])} → ảnh soát {out}")
+            if res["failed"]:
+                print("  chạy lại `vs.py lib kit` để tạo lại phần hỏng; Codex hết usage → chatgpt.com + `vs.py lib import`")
+        elif act == "sheet":
+            ids = [x["id"] for x in library.kit_status(args[0])] if (library.KITS / f"{args[0]}.json").exists() \
+                else [r["id"] for r in library.find(theme=args[0])]
+            print(library.sheet(ids, (library.KITS if (library.KITS / f"{args[0]}.json").exists() else library.LIB / args[0]) / f"_soat_{args[0]}.jpg"))
+        elif act == "import":
+            if len(args) < 2 or not a.prompt:
+                sys.exit('vs.py lib import <file> <chủ-đề>/<tên> --prompt "…" [--kind K] [--engine chatgpt-web|photo]')
+            r = library.import_file(Path(args[0]), args[1], a.prompt, a.kind or "canh", a.tag or [],
+                                    engine=a.engine or "chatgpt-web", force=a.force)
+            show([{"id": args[1], **r}])
+        else:
+            sys.exit(f"Không có việc '{act}' (find · list · gen · kit · sheet · import)")
+    except codex.CodexUnavailable as exc:
+        sys.exit(f"Codex không tạo được ảnh: {exc}\n→ cách 2: Claude lái chatgpt.com trên Chrome (đã đăng nhập), lưu "
+                 "ảnh về rồi `vs.py lib import` (skill gdp-video-edit, mục 'Thư viện asset dùng chung')")
+    except (library.LibraryError, imagegen.ImageGenError) as exc:
+        sys.exit(str(exc))
 
 
 def cmd_hear(a) -> None:
@@ -505,13 +572,18 @@ def cmd_edit(a) -> None:
                         capcut=project.parse_mode(a.capcut))
         print(f"Tạo {d}\nChế độ: {project.MODE_TEXT[project.mode(d)]}")
         for k, s in project.load_sources(d).items():
-            print(f"  [{k}] {Path(s['origin']).name} · {s['duration']:.1f}s · {'hình+tiếng' if s.get('has_video') else 'tiếng'}")
+            print(f"  [{k}] {Path(s['origin']).name} · {s['duration']:.1f}s · {'ảnh tĩnh' if s.get('still') else 'hình+tiếng' if s.get('has_video') else 'tiếng'}")
         print(f"→ vs.py edit ingest {a.id}")
     elif act == "add":
         if len(args) < 2:
             sys.exit("vs.py edit add <id> <file> --key vo [--text kịch_bản.txt]")
-        s = project.add(args[0], Path(args[1]), a.key or "vo", Path(a.text) if a.text else None)
-        print(f"Thêm {a.key or 'vo'}: {s['duration']:.1f}s · {'hình+tiếng' if s.get('has_video') else 'tiếng'}"
+        from studio import library
+        f, aid = library.resolve(args[1])
+        s = project.add(args[0], f, a.key or "vo", Path(a.text) if a.text else None)
+        if aid:
+            library.mark_used(aid, args[0])
+            print(f"Dùng asset thư viện {aid}" + (" (ẢNH AI — chỉ minh hoạ bối cảnh)" if s.get("ai") else ""))
+        print(f"Thêm {a.key or 'vo'}: {s['duration']:.1f}s · {'ảnh tĩnh' if s.get('still') else 'hình+tiếng' if s.get('has_video') else 'tiếng'}"
               + (" · có văn bản chuẩn" if s.get("reference") else ""))
     elif act == "ingest":
         t0 = time.time()
@@ -531,6 +603,12 @@ def cmd_edit(a) -> None:
             print(f"  {c['at']:6.2f}s  '{c['asr']}' → '{c['ref']}'" + (f"  ⚠ {c['note']}" if c.get("note") else ""))
     elif act == "words":
         print(project.describe(args[0]))
+    elif act == "frame":
+        if len(args) < 2:
+            sys.exit("vs.py edit frame <id> <giây> [giây…]   (khung RA đúng như bản dựng + lưới toạ độ 0,1 — chọn x,y cho Scene)")
+        from studio.edit import build
+        for pth in build.frame_grid(args[0], [float(x) for x in args[1:]]):
+            print(pth)
     elif act == "cut":
         d = project.job_path(args[0])
         runpy.run_path(str(d / "cut.py"), run_name="__main__")
@@ -579,7 +657,7 @@ def cmd_edit(a) -> None:
             print("Đã ghi vào danh sách dự án — mở CapCut là thấy" if ok else "Hết 30 phút chờ CapCut tắt — chạy lại sau")
         print("  ⚠ CapCut tự cập nhật có thể đổi định dạng bản nháp; mở không được → báo để xuất lại theo bản mới")
     else:
-        sys.exit(f"Không có việc '{act}' (new · mode · add · ingest · fix · words · cut · render · qa · capcut)")
+        sys.exit(f"Không có việc '{act}' (new · mode · add · ingest · fix · words · frame · cut · render · qa · capcut)")
 
 
 def main() -> None:
@@ -600,6 +678,13 @@ def main() -> None:
     s = sub.add_parser("cost"); s.add_argument("id"); s.set_defaults(fn=cmd_cost)
     s = sub.add_parser("look"); s.add_argument("images", nargs="+"); s.add_argument("-q", required=True); s.set_defaults(fn=cmd_look)
     s = sub.add_parser("hear"); s.add_argument("audio"); s.set_defaults(fn=cmd_hear)
+    s = sub.add_parser("lib"); s.add_argument("action"); s.add_argument("args", nargs="*")
+    s.add_argument("--prompt"); s.add_argument("--kind", choices=["canh", "nen", "cat-dan", "icon", "khac"])
+    s.add_argument("--theme"); s.add_argument("--alpha", action="store_true")
+    s.add_argument("--size", choices=["doc", "vuong", "ngang"]); s.add_argument("--tag", action="append")
+    s.add_argument("--ref", action="append", help="ảnh tham chiếu phong cách"); s.add_argument("--force", action="store_true")
+    s.add_argument("--only", action="append", help="kit: chỉ tạo các id này"); s.add_argument("--engine")
+    s.set_defaults(fn=cmd_lib)
     s = sub.add_parser("motion"); s.add_argument("action"); s.add_argument("args", nargs="*")
     s.add_argument("--shop"); s.add_argument("--role", action="append", help="vai trò (import: lặp lại được)")
     s.add_argument("--all", action="store_true")

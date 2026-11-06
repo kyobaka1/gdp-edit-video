@@ -13,7 +13,9 @@ Set-Location C:\Users\Admin\gdp-video-studio; $env:PYTHONIOENCODING='utf-8'; .\.
 ```
 
 **Nguồn skill = `studio\.claude\skills\gdp-video-edit\`** → sửa xong chạy `tools\sync_skill.py install`.
-Mẫu gốc Sếp đưa (05/11): `example/` (video TikTok "Nguyễn Hiển - CQCP" + 9 ảnh) — số đo ở `references/mau-phan-tich.md`.
+Mẫu Sếp đưa (05/11): `example/` = 3 video TikTok cùng kênh "chuquancaphe" (Nguyễn Hiển): M1 81,8s → số đo
+`references/mau-phan-tich.md`; M2 "Mô hình 3C" + M3 "6 bước mở quán" (2,5 phút) → `references/mau-phan-tich-2.md` +
+ảnh 10 kỹ thuật `references/mau-2-ky-thuat.jpg`. Đọc mục "Kịch bản & nhịp giữ chân" dưới đây TRƯỚC khi soạn/duyệt plan.
 Job thử đủ bộ: `jobs/test-vlog-bac-kinh/cut.py` (bản lưu git: `tools/edit_cut_example.py`) — 11 clip vlog + giọng AI + 1 câu tiếng gốc, QA ĐẠT.
 
 ## Khác gì Việt hoá (gdp-video-localize)
@@ -62,6 +64,31 @@ Mỗi video PHẢI rõ một trong hai, chưa rõ thì **DỪNG, hỏi Sếp** (
    - **CÓ dùng CapCut**: `vs.py edit capcut <id> --wait` (dùng bản preview được) → báo Sếp đóng/mở lại CapCut, mở bản
      nháp "GDP <id>"; nêu rõ phần dựng viên tự làm (chuyển cảnh, màu, zoom đẩy, xuất video).
 
+## Kịch bản & nhịp giữ chân (đo 3 mẫu, 05/11 — áp khi soạn plan / viết cut.py)
+
+Hai sườn mẫu đã đo (chi tiết giây ở `mau-phan-tich-2.md`):
+- **Bài nhiều bước** (M3): câu hứa → thẻ series → số liệu chứng minh → gỡ phản đối → lộ trình N bước → mỗi bước (thẻ
+  tiêu đề bước → người nói + tiêu đề ghim dựng dần → minh hoạ) → uy tín → cú lật tự soi → hẹn tập sau → hình thương hiệu.
+- **Khái niệm + chuyện thật** (M2): hook ngược đời → thẻ series → khái niệm → đặt tên (ghim) → chuyện thật có xung
+  đột/rủi ro → lựa chọn → **bằng chứng** (quay màn hình số thật) → mở vòng → hẹn tập sau → hình thương hiệu.
+
+Luật rút ra — Claude kiểm PLAN theo danh sách này, **thiếu thì GỢI Ý cho Sếp** (không tự bịa số/tuyên bố — luật 5):
+1. **Giây 0 = nội dung**: lời bắt đầu ở 0,00s, từ khoá lớn hiện ≤0,6s. Không chào hỏi / logo mở đầu.
+2. **Câu hứa có số + thời gian** trong 10s đầu ("từ 1,5tr lên 10tr/ngày qua 9 tháng", "6 bước"), rồi chứng minh ngay.
+3. **Series**: tên series + chương/tập cố định khuôn; cuối bài "ở những tập sau…" → lý do theo dõi kênh.
+4. **Vòng mở**: nói trước có N bước/N ý → người xem chờ đủ N. Ý nặng lý thuyết → **gỡ phản đối** trước khi người xem bỏ.
+5. **Biển chỉ đường**: tiêu đề ghim "Bước k" suốt chương; mỗi chương mở bằng thẻ đồ hoạ.
+6. **Hình đổi ~2,5–3s/lần** — không nhất thiết cắt: từ khoá lớn, số liệu, nhãn con dựng dần đều tính. Người nói được
+   giữ tới 16s nếu chữ trên đó thay đều. Khoảng nghỉ giữa câu 0,35–0,5s vẫn ổn cho giọng giảng (M1 nói nhanh: 0,1–0,3s).
+7. **Bằng chứng thật** (màn hình doanh thu/đơn hàng, trước–sau, đánh giá khách) sau câu chuyện, trước câu chốt — chỉ
+   dùng số/ảnh Sếp đưa.
+8. **Cú lật tự soi** gần cuối ("bạn thường bắt đầu từ bước 4") → người xem tự đối chiếu, dễ bình luận.
+9. **Kết trên hình thương hiệu** (sản phẩm được đặt xuống / cửa hàng) + logo + hẹn tập sau; không kết bằng mặt người nói.
+10. **Tắt tiếng vẫn hiểu**: phụ đề liền suốt bài + từ khoá lớn; bật tiếng có "vút/bùm" làm nhịp (thấp hơn giọng ~20 dB).
+
+Áp cho video sản phẩm GDP: series "mẹo nhà gọn — tập N" · câu hứa có số ("12 hũ, 10 phút, tủ bếp hết bừa") · bằng chứng
+trước–sau / thử chịu lực / màn hình đánh giá thật · kết trên sản phẩm + logo shop + "tập sau: tủ lạnh".
+
 ## Xuất sang CapCut để dựng viên sửa tiếp (studio/edit/capcut.py — thử 05/11 trên CapCut 9.8.0)
 
 - Bản nháp = thư mục JSON trong `%LOCALAPPDATA%\CapCut\User Data\Projects\com.lveditor.draft\<tên>\`. CapCut quốc tế
@@ -90,6 +117,19 @@ c.say("c03", 12.4, 18.0, frame="tight", push=0.12)    # theo giây; frame wide|m
 c.say("vo", "Năm ngày", "cảnh đẹp")                     # giọng đọc riêng → BẮT BUỘC có cover/card che hình
 c.cover("c07", at="tiếp khách", until="tiện lợi cao", src_in=2.0, trans="flash", speed=0.8, push=0.05)
 c.card(at=0.0, until="16 năm")                          # màn đen chữ (mở đầu / câu chốt), tự tối dần vào/ra
+c.graphic("scene-chapter-card", at="Bước hai", until="nhóm khách", title="Bước 2: S-T-P",
+          sub="Chia nhỏ thị trường", eyebrow="Bước 2")  # Scene C02: theme theo shop, preset theo thời lượng
+c.graphic("scene-keyword-burst", at="hành trình", word="Hành trình")   # Scene C01: từ khoá to, tự nằm SAU người nếu được
+c.graphic("scene-pinned-title", at="Bước hai", until="định vị", title="S-T-P", eyebrow="Bước 2/6",
+          items=[("phân nhóm", "Segmentation", "phân nhóm thị trường"), ("định vị", "Positioning")])  # C03: ghim cả chương
+c.graphic("scene-count-reveal", at="có ba lý do", until="dễ vệ sinh", title="3 lý do nên dùng",
+          items=[("thủy tinh", "Thủy tinh dày"), ("nắp gỗ", "Nắp gỗ sồi"), ("dễ vệ sinh", "Dễ vệ sinh")])  # C04: đếm + lật
+c.graphic("scene-a-vs-b", at="hộp nhựa", until="không ám mùi", a="Nhựa", b="Thủy tinh", photo_a="src:c04@2.0",
+          photo_b="src:c05@1.5", items=[("ám mùi", "a", "Dễ ám mùi")], winner="b", win_at="thủy tinh thì")  # C05
+c.graphic("scene-detail-spotlight", at="cái móc này", until="inox", x=0.62, y=0.48, label="Móc inox 304")  # C09
+c.graphic("scene-evidence-frame", at="đây là doanh thu", until="một tháng", title="Doanh thu thật", clip="c09@3.0",
+          zoom=1.4, zx=0.5, zy=0.35, figure="342.992.500đ", figure_at="ba trăm", caption="Quay màn hình app")  # C08
+c.theme("phaledo_warm")                                  # (tuỳ) ép theme Scene Library cả video
 c.cap("!NHƯNG NHƯỢC ĐIỂM LÀ / .giá thuê của nó / rất là / ~CAO")
 c.audio(music=None)        # mẫu KHÔNG có nhạc nền rõ; có nhạc thì music_lufs −30 (dưới giọng xa)
 c.logo("giadungplus_official")   # tuỳ video: logo nhỏ góc trên-trái, dưới thanh tab TikTok; KHÔNG watermark
@@ -103,6 +143,64 @@ c.save()
   lớp đè tự nối (khỏi chớp nền). `trans` vào / `trans_out` ra: `cut` · `flash` (1–2 khung loé sáng mất màu, mẫu dùng
   quanh đồ hoạ) · `dip` (tối dần, mặc định màn chữ) · `wipe` (vạch đen quét ngang). Thiếu hình cho giọng đọc → `save` báo lỗi.
 - `ambient=0.3` giữ chút tiếng gốc cảnh minh hoạ (mặc định tắt).
+- `graphic(<id motion>, at, until|dur, **tham số)` = cảnh dựng sẵn từ **Scene Library** (`assets/scenes/`, hồ sơ
+  `scene.json` — đọc `use_when`/`avoid_when` trước khi chèn) hoặc animation motion thường; lời vẫn chạy, chữ động tự
+  tắt trong lúc đồ hoạ hiện (KHÔNG viết `cap()` cho lời đoạn đó — khối sau tự nhảy qua). Scene: **theme** tự theo shop
+  của `c.logo()` (GDP → `gdp_red`, PHALEDO → `phaledo_dark`) hoặc `c.theme()`/`theme=` · **preset** tự theo thời lượng
+  (<1,6s `micro` nhãn đè lên footage · <2,8s `standard` · còn lại `full`) · chuyển cảnh vào theo theme (GDP loé, PHALEDO
+  tự mờ vào) · thẻ phủ khung ra bằng nhoè về trong suốt (lớp kế tự dời lên nằm dưới) · tiếng hiệu ứng tự chèn (giấy vút
+  / kính ting / giấy trượt, dưới giọng). `photo="lib:<id>"` = ảnh thư viện — SẢN PHẨM phải là ảnh THẬT (`vs.py lib import
+  --engine photo`); ảnh AI trong theme PHALEDO → cảnh báo. Lần đầu mỗi bộ chữ render 0,5–2 phút (cache ProRes ở
+  `assets/motion/_cache/`, xoá thoải mái); CapCut: thẻ phủ khung = MP4, micro = MOV trong suốt, track "graphics".
+- `scene-chapter-card` (C02): `title` (GDP ≤18 ký tự = 1 dòng to; PHALEDO ≤5 từ/dòng, ≤2 dòng; `|` ép xuống dòng) ·
+  `sub` ≤34 · `eyebrow` ("Bước 2", "Chương 02") · `photo` · `bg` (gdp: default|kraft) · `seed` · `theme` · `preset`.
+  Ảnh preview 9 tổ hợp: `assets/scenes/chapter-card/previews/`. (`cat-dan-mo-chuong` = bản cũ chỉ GDP full, giữ cho job cũ.)
+- `scene-keyword-burst` (C01): một từ khoá / con số TO bật lên đúng lời, ĐÈ footage (không phủ khung, logo giữ).
+  `word` (≤16 ký tự, ≤2 từ đẹp nhất, tự IN HOA, `|` xuống dòng — PHẢI là lời đã nói hoặc rút gọn đúng lời) · `lead` dòng
+  dẫn nhỏ ("Bước 3", "từ") · `side` center|left|right · `y` (bỏ trống!) · `accent=1` màu nhấn · `behind` auto|True|False.
+  Không ghi until/dur = 1,2s; at là cụm lời → tự hiện sớm 0,1–0,45s (mẫu). Preset: <0,95s micro (không lead — có lead
+  thì tự nâng standard) · <1,7s standard · full (bóng mờ báo trước). **Chữ sau người** (mặt nạ RVM `assets/models/`,
+  chạy máy): `behind="auto"` → máy đo mặt nạ người × NÉT chữ thật lúc chữ vừa vào đủ, dời chữ dọc tìm chỗ người che
+  ~22% nét (đầu chìm sau đáy chữ, ≤ 35%); cận mặt / đầu sát mép trên → chữ TRƯỚC người và tự dời né vùng đầu; không có
+  người → giữ chỗ (QA ghi lý do + % che đo từng khung; soát ô `g` trong `qa_*.jpg`). Muốn chữ sau người chắc ăn: từ
+  NGẮN 1 dòng (≤ 2 từ), cảnh vừa người (đầu ở ~20–35% khung), ép `y=` thì máy chỉ đo. Nhịp mẫu: ~1 từ khoá / 2,5–3s trên cảnh
+  người nói, không 2 cái < 2s. CapCut: MOV trong suốt đủ khung, chữ sau người đã khoét sẵn theo mặt nạ.
+- `scene-pinned-title` (C03): tiêu đề GHIM ở tầm đầu cả một chương (5–20s, at → until) + nhãn con hiện đúng lúc nhắc tới
+  (mục đang nói nổi bật, mục đã qua mờ). `title` ≤ 22 · `eyebrow` ("Bước 2/6") · `items=[(cụm lời | giây, "Nhãn"[, "ghi
+  chú"]), …]` ≤ 6, theo thứ tự lời, nhãn = đúng ý đã nói (hiện sớm 0,15s) · `layout` auto|list|sides · `y` (bỏ trống).
+  Preset theo nội dung: có ghi chú → full (nhãn 2 dòng) · có nhãn → standard · `preset="micro"` = chip ghim góc gọn
+  ("BƯỚC 2 · S-T-P", không nhãn). **Chữ động KHÔNG tắt** (vẫn viết `cap()` cho lời chương đó) và tự né vùng tiêu đề
+  (hạ xuống ~56%); logo tạm ẩn. Máy đo người mỗi 2,5s: bố cục theo KHOẢNG TRỐNG (2 bên trống → nhãn 2 bên đầu, không
+  thì cột phía trống); tiêu đề to được nằm SAU đầu (≤ 30%), nhãn con / dòng nhỏ / dấu nặng luôn TRƯỚC và không được đè
+  đầu. QA "⛔ vẫn ĐÈ VÙNG ĐẦU" (cảnh cận mặt) → đổi `preset="micro"` / cảnh khác. Không đặt từ khoá C01 trùng lúc
+  (chồng chữ — cutlib báo). CapCut: 1 MOV trong suốt dài (~13MB/giây).
+- `scene-count-reveal` (C04): "3 lý do / 3 bước / tổng kết" — số đếm TO + từng mục bật ra đúng lúc nói, đọng lại thành
+  bảng tóm tắt. Thẻ ngắn 2–6s: < 2s `micro` (chip đếm đè footage, giữ logo) · < 4,2s `standard` phủ khung · còn lại
+  `full` phủ khung, mục có ghi chú 2 dòng. `title` ≤ 26 (dài tự 2 dòng) · `eyebrow` · `items` 2–5 (≤ 26 / ghi chú ≤ 34)
+  · `count` (mặc định số mục) · `bg`. Mục cuối nói sát cuối thẻ → tự hiện sớm ≤ 0,5s (cảnh báo), hơn nữa → lỗi, kéo
+  `until`. GDP: tờ giấy xé + tem đỏ, mục mới tô dạ vàng · Dark: 01/02/03 mảnh + nét kẻ, số đếm khổng lồ chìm phía sau ·
+  Warm: trang sổ tay, ô trống có sẵn, tick tay khi nói tới. Phủ khung → chữ động tắt, lớp cảnh sau tự dời xuống dưới
+  đoạn tan (như thẻ chương). Lần đầu mỗi bộ chữ phủ khung render ~2 phút.
+- `scene-a-vs-b` (C05): 2 phương án đối lập — mỗi phe nhãn (`a`, `b` ≤ 16) + ảnh (`photo_a`/`photo_b`) + ý con theo lời
+  (`items=[(cụm lời, "a"|"b", "Ý"[, "ghi chú"]), …]` ≤ 3/phe), "VS" giữa; `winner` + `win_at` (cụm lời CHỐT) → phe thắng
+  đóng dấu ✓, phe thua xám (+ gạch chéo đỏ ở GDP). `layout` sides (mặc định, 2 cột — ảnh dọc) | split (trên/dưới). Không
+  ảnh → thẻ chữ, nhãn to. Preset theo thời lượng: < 2s micro (băng "A VS B" đè footage) · < 4,2s standard · full (ý 2
+  dòng) — standard/full phủ khung. ⛔ Không chê thương hiệu khác đích danh / không so sánh ngoài lời; ảnh sản phẩm = THẬT.
+- **Ảnh cho mọi Scene** (`photo`, `photo_a`, `photo_b`): `lib:<id>` (ảnh thư viện — sản phẩm phải là ảnh thật) hoặc
+  **`src:<clip>@<giây>` = khung cắt thẳng từ clip đã quay** (tự lưu `jobs/<id>/assets/frames/`) — soát ảnh lưới
+  `sheets/<clip>.jpg` để chọn giây có hình rõ.
+- `scene-detail-spotlight` (C09): chỉ đúng MỘT chi tiết nhìn thấy trong cảnh — khoanh + mũi tên / đường chỉ dẫn tới
+  `label` (+ `note`), ngoài vòng tối nhẹ; bản full có KÍNH LÚP phóng to vùng đó (build tự cắt khung RA giữa đoạn, `zoom`
+  mặc định 2,2). **`x`, `y` bắt buộc** (tỉ lệ khung RA) — đọc bằng **`vs.py edit frame <id> <giây>`** (ảnh khung đúng như
+  bản dựng + lưới 0,1, lưu `jobs/<id>/frames/`); `r` bán kính (0,09). Preset theo thời lượng: < 1,4s micro (chỉ khoanh)
+  · < 2,4s standard (+ nhãn) · full (+ kính lúp). Đoạn chỉ phải nằm trọn trong 1 cảnh, cảnh tương đối yên (vòng không bám
+  vật chạy); không khoanh mặt; nhãn đúng lời. Soát ô `g` trong `qa_*.jpg`: vòng có trúng chi tiết không.
+- `scene-evidence-frame` (C08): BẰNG CHỨNG THẬT đóng khung — `clip="<clip>@<giây>"` = **clip đang chạy** phát trong khung
+  (trang chừa ô cửa sổ, build `ProofPainter` phát clip vào, CapCut ghép sẵn ở 1080) hoặc `photo="src:…"|"lib:…"` (ảnh
+  thật); `zoom` + `zx`,`zy` phóng dần tới chi tiết (toạ độ trong ảnh/clip — đọc bằng `vs.py edit frame`); `figure` (+
+  `figure_label`, `figure_at` cụm lời) số liệu ĐÚNG như trong bằng chứng; `caption` dòng nguồn. Preset theo thời lượng:
+  < 2s micro (khung nhỏ góc màn hình, `side`) · < 4,2s standard · full — standard/full phủ khung. Đặt sau câu chuyện,
+  trước câu chốt (mẫu M2). ⛔ Ảnh AI KHÔNG làm bằng chứng; che thông tin riêng tư của khách trong ảnh chụp màn hình.
 
 ## Luật chữ động (đo từ mẫu — `references/mau-phan-tich.md`)
 
@@ -120,6 +218,67 @@ c.save()
   (Sếp chọn không tải bộ dò mặt, 05/11): khối nào đè mặt / sản phẩm → ép `pos="left"|"right"` hoặc `y=0.40|0.56`
   trong `cap()` rồi render lại. (Đặt file YuNet `assets/models/face_detection_yunet_2023mar.onnx` thì máy tự né.)
 - Khi đang có đồ hoạ tiêu đề (GĐ2) thì không đặt chữ (tiêu đề đồ hoạ thay chữ) — như mẫu.
+- M2/M3 khác M1: chữ lớn đặt **ngang tầm / trên đầu (15–35% H)**, hiện đúng hoặc sớm 0,3–0,5s so với lời, còn lời đầy
+  đủ nằm ở **phụ đề liền** mảnh cố định ~55% H. Muốn kiểu này trước khi có `subs()`: dùng `cap(..., y=0.25)` cho từ khoá.
+
+## Bộ hiệu ứng — có / chưa có (05/11)
+
+| Hiệu ứng (mẫu) | Trạng thái | Ghi chú |
+|---|---|---|
+| Chữ động theo từ (M1), màn đen chữ, loé/tối dần/quét, zoom đẩy, đổi cỡ khung, chỉnh màu, logo | ✅ có | API ở trên |
+| Phụ đề liền mảnh cố định ~55% H (M2, M3) | ⏳ đợt 1 | CapCut: dùng luôn track chữ thường (hiện, không ẩn) |
+| Từ khoá lớn trên đầu, gradient trắng→trong, vào nhoè+trượt | ✅ Scene C01 Keyword Burst v1.0 (05/11) | `c.graphic("scene-keyword-burst", …)` |
+| Tiêu đề ghim + nhãn con dựng dần theo lời ("Bước 2 / S-T-P") | ✅ Scene C03 Pinned Title v1.0 (05/11) | `c.graphic("scene-pinned-title", …)` |
+| Số liệu từ→đến 2 bên đầu ("1,5tr" → "10tr"), ý mới đẩy ý cũ | ⏳ đợt 1 | |
+| Thẻ series (chương · tập N · câu hứa + biểu đồ), giọng chạy tiếp | ⏳ đợt 1 khuôn đơn giản | đẹp: Sếp thiết kế Claude Design |
+| Tiếng "vút / bùm / tách" theo chữ & thẻ | ✅ theo Scene (thẻ chương, từ khoá) — `tools/make_scene_sfx.py` | chữ động `cap()` chưa có tiếng |
+| Minh hoạ trắng đen theo nghĩa, chuyển nhoè 1 khung, kết trên hình thương hiệu | ⏳ đợt 1 | |
+| QA chính tả chữ hiện ("danh thu"), đánh số bước khớp lời, khe >6s không đổi hình | ⏳ đợt 1 | |
+| Chữ nằm SAU người (tóc/tay che chữ) | ✅ 05/11 — RVM `assets/models/rvm_mobilenetv3_fp32.onnx` (Sếp duyệt tải, miễn phí, CPU ~40ms/khung) | dùng qua Keyword Burst `behind=` |
+| Scene C02 Chapter Card — 3 theme (GDP Red Paper / PHALEDO Dark Glass / PHALEDO Warm Journal) × micro/standard/full | ✅ v1.0 (05/11) — `c.graphic("scene-chapter-card", …)` | `assets/scenes/chapter-card/` |
+| Scene C01 Keyword Burst — 3 theme × micro/standard/full, chữ sau người tự quyết | ✅ v1.0 (05/11) | `assets/scenes/keyword-burst/` |
+| Scene C03 Pinned Title — 3 theme × micro/standard/full, bố cục tự né người, chữ động chạy tiếp | ✅ v1.0 (05/11) | `assets/scenes/pinned-title/` |
+| Scene C04 Count & Reveal — 3 theme × micro/standard/full, mục bật theo lời, bảng tổng kết | ✅ v1.0 (05/11) | `assets/scenes/count-reveal/` |
+| Scene C05 A vs B — 2 phe (ảnh thật / khung từ clip) + VS + chốt phe thắng | ✅ v1.0 (06/11) | `assets/scenes/a-vs-b/` |
+| Scene C09 Detail Spotlight — khoanh / mũi tên / đường chỉ dẫn + kính lúp, toạ độ bằng `vs.py edit frame` | ✅ v1.0 (06/11) | `assets/scenes/detail-spotlight/` |
+| Scene C08 Evidence Frame — ảnh / CLIP thật phát trong khung + số liệu + nguồn | ✅ v1.0 (06/11) | `assets/scenes/evidence-frame/` |
+| Scene C12 Brand Outro, C06 C07 C10 C11 | ⏳ lần lượt (đợt 1 đề xuất ChatGPT) | mỗi family 1 thư mục `assets/scenes/<family>/` |
+
+## Scene Library + Story Library (05/11 — đề xuất ChatGPT, Sếp bảo làm)
+
+4 tầng: Asset (`assets/library/`) → Motion Engine → **Scene** (`assets/scenes/<family>/`: bố cục + vào/đứng/ra hoàn
+chỉnh, nhiều theme, nhiều preset, chữ/ảnh là tham số) → **Story** (`assets/scenes/stories.json`: S01–S08 chuỗi family theo
+dạng kịch bản). Luật + cách thêm family: `assets/scenes/README.md`. Khi viết cut.py: chọn Story theo dạng bài → chỉ chèn
+family đã `ready` và lời thoả `use_when` (không vì đẹp mà nhét); family chưa có → dùng cap/cover/card.
+Thêm family mới = 1 thư mục (scene.json + src HTML `setTime` + themes.js + `library.export_web`) → `vs.py motion import …
+--id scene-<family> --role scene --no-render` → khai `opaque`/`params`/`scene` → `tools\scene_previews.py <family>` (render
+kiểm mọi theme × preset + ảnh preview). Theme PHALEDO theo `shop.json`: Averta, ≤5 từ/dòng — không đổi sang serif.
+
+## Thiếu source / asset → THƯ VIỆN DÙNG CHUNG (Sếp chốt 05/11: xây 1 lần, dùng nhiều lần)
+
+`assets/library/` (luật đầy đủ: `assets/library/README.md`, code `studio/library.py` + `studio/imagegen.py`).
+1. **Tìm trước**: `vs.py lib find <từ…> [--kind canh|nen|cat-dan|icon]` — có thì dùng:
+   `vs.py edit add <job> lib:<chủ-đề>/<tên> --key g01` (ảnh → clip 15s; `c.cover("g01", …, push=0.06–0.1)` cho ảnh "sống";
+   key ảnh đặt `g..`, tránh `b..` trùng tên khối chữ).
+2. **Thiếu** → KHÔNG tạo lẻ cho một video. Thuộc kiểu hiệu ứng nào thì bổ sung vào BỘ đó (`assets/library/kits/<bộ>.json`)
+   và hoàn thiện cả bộ một lần: `vs.py lib kit <bộ>` (chỉ tạo phần thiếu, Codex song song 3) → soát `kits/<bộ>.jpg`.
+   Cảnh bối cảnh dùng chung (bếp bừa, phố vắng, văn phòng…) → `vs.py lib gen boi-canh/<tên> --prompt … --tag …`
+   đặt tên/tag tổng quát để video khác tìm thấy.
+3. **Máy tạo** — ưu tiên **Codex CLI local** (đăng nhập ChatGPT, không tốn API, đo 05/11: ~40–65s/ảnh, nền trong suốt
+   được, ảnh tham chiếu được). Codex hỏng/hết usage → **chatgpt.com trên Chrome** (Sếp đã đăng nhập): Claude soạn prompt
+   tiếng Việt (nội dung + phong cách bộ + "không chữ/logo" + khổ dọc/vuông, nền trong suốt nếu là miếng cắt dán), tạo,
+   tải ảnh về thư mục tạm, rồi `vs.py lib import <file> <id> --prompt "…" --kind … --engine chatgpt-web`.
+4. **Dựng animation từ bộ — Claude TỰ làm, Sếp không phải làm gì** (Sếp 05/11): `library.export_web(<id bộ>,
+   assets/library/kits/<bộ>/)` (cắt viền + thu nhỏ + `assets.js`) → Claude viết HTML `setTime` cạnh đó (mẫu:
+   `kits/chuong-cat-dan/cat-dan-mo-chuong.html` — tham số qua query, chữ tự co/2 dòng, giấy bay nhịp 12 hình/giây,
+   seed đổi bố cục) → soát khung bằng Chrome ẩn → `vs.py motion import <html> --id … --brand '*' --role … --no-render`
+   → khai `opaque`/`params`/`kit` trong motion.json → `vs.py motion render <id>` → `c.graphic(...)`. ⚠ KHÔNG dùng
+   `will-change` trong CSS (Chrome giữ ảnh cũ → vẽ lại cùng t ra khác → Motion Engine từ chối). Motion Engine mở Chrome
+   với `--disable-gpu` (05/11: vẽ GPU làm miếng giấy xoay có bóng đổ lệch 67 mức tuỳ khung trước → kiểm tất định
+   trượt ngẫu nhiên theo seed) — đừng bỏ cờ này. Lỗi "vẽ lại cùng thời điểm ra khung khác" → tái hiện bằng vòng
+   chụp tuần tự rồi chụp lại khung giữa, so màu đã nhân alpha, tìm vùng lệch trước khi sửa template.
+- ⛔ Ảnh AI chỉ minh hoạ bối cảnh/ý/chất liệu đồ hoạ — KHÔNG vẽ sản phẩm đang bán thay ảnh thật, KHÔNG làm bằng chứng;
+  QA nhắc mỗi khi cảnh là ảnh AI. Không lấy khung hình video kênh khác làm ảnh tham chiếu.
 
 ## Số đo QA (vs.py edit qa)
 
@@ -148,8 +307,9 @@ Chữ động render bằng Chrome local; khung chữ đứng yên dùng lại �
 - Khoảng thở giữa câu làm lộ khung nền giữa 2 cảnh minh hoạ của giọng đọc → `save` tự nối khe ≤0,6s.
 - Khối nhiều từ rút chữ lâu (11 từ × 0,083s = 0,9s) đè khối sau → giới hạn cả khối rút ≤0,3s + 0,12s.
 
-## Chưa làm (GĐ2)
+## Chưa làm
 
-Đồ hoạ cắt dán (bản đồ giấy, nhãn tiêu đề rơi, mũi tên tự vẽ, tem, sticker ảnh) + thẻ tập sau "#2": Sếp thiết kế
-bằng Claude Design (HTML có `setTime`, như animation logo) theo hướng dẫn Claude viết, mỗi mẫu có ô thay tiêu đề /
-ảnh / mũi tên → thêm `c.graphic(...)`. Tự gợi ý cảnh minh hoạ. Xuất thêm 3:4.
+Đợt 1–3 ở bảng "Bộ hiệu ứng". Đợt 3 = đồ hoạ cắt dán (nhãn tiêu đề rơi, giấy bay vào, mũi tên, tem, sticker ảnh) + thẻ
+series + thẻ tập sau: thẻ mở chương XONG 05/11 (`cat-dan-mo-chuong`); còn thẻ series (chương · tập N · câu hứa + biểu
+đồ) và thẻ hẹn tập sau — mỗi kiểu một bộ trong `assets/library/kits/` + một HTML, làm như bước 4 mục thư viện.
+Ngoài ra: tự gợi ý cảnh minh hoạ, xuất 3:4.

@@ -1,0 +1,28 @@
+{
+ "engine": "codex",
+ "model": "gpt-5.6-luna",
+ "kind": "ai",
+ "prompt": "Một trang giấy sổ tay màu kem có dòng kẻ ngang rất mờ màu nâu nhạt, mép trên có lỗ gáy xé nhẹ, một góc hơi cong, bề mặt TRỐNG hoàn toàn không chữ.\nPhong cách chung của bộ: ảnh chụp phẳng từ trên xuống, ánh sáng tự nhiên buổi sáng ấm áp, tông be kem, nâu gỗ sồi, xanh ô liu nhạt, cảm giác sổ tay nhà bếp thủ công tinh tế; tuyệt đối không chữ, số, logo, không có hũ, lọ, chai, ly thủy tinh",
+ "size": "doc",
+ "alpha": true,
+ "refs": [],
+ "thread": "01a1ab86-7318-76d1-9293-b5df32ae0b12",
+ "created": "2026-11-05 18:46",
+ "variants": [
+  {
+   "file": "trang-so-tay-trong.png",
+   "w": 1024,
+   "h": 1536,
+   "mode": "RGBA",
+   "clear": 0.171
+  },
+  {
+   "file": "trang-so-tay-trong_v2.png",
+   "w": 1024,
+   "h": 1536,
+   "mode": "RGBA",
+   "clear": 0.164
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

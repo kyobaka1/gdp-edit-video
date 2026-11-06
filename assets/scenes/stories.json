@@ -1,0 +1,25 @@
+{
+ "_note": "Story Library (đề xuất ChatGPT 05/11): cấu trúc kể chuyện → chuỗi Scene Family. Claude chọn story theo dạng kịch bản, chỉ chèn family khi lời thoả use_when của family đó; family chưa ready thì thay bằng công cụ sẵn có (cap, cover, card). Timeline luôn theo GIỌNG NÓI thật, không ép lời theo animation.",
+ "families_ready": ["C01", "C02", "C03", "C04", "C05", "C08", "C09"],
+ "stories": [
+  {"id": "S01", "name": "Đặt vấn đề → Giải thích → Kết luận", "chain": ["C01", "C06", "C09", "C11"], "for": "video giáo dục sản phẩm"},
+  {"id": "S02", "name": "Hiểu lầm → Sự thật → Bằng chứng", "chain": ["G12", "G07", "C08", "G03"], "for": "GDP: giải đáp, phản biện", "brand": "GIADUNGPLUS"},
+  {"id": "S03", "name": "A hay B → So sánh → Lựa chọn", "chain": ["C05", "C04", "C11"], "for": "so sánh sản phẩm"},
+  {"id": "S04", "name": "Con số → Phân tích → Kết quả", "chain": ["C07", "G05", "C08"], "for": "dữ liệu, nghiên cứu, kinh doanh — chỉ số liệu thật đã xác nhận"},
+  {"id": "S05", "name": "Vật liệu → Chi tiết → Trải nghiệm", "chain": ["P02", "P05", "P07", "P10"], "for": "PHALEDO: giới thiệu sản phẩm", "brand": "PHALEDO"},
+  {"id": "S06", "name": "Nguyên liệu → Thực hiện → Thành phẩm", "chain": ["P03", "P06", "P09", "P10"], "for": "PHALEDO: POV pha chế", "brand": "PHALEDO"},
+  {"id": "S07", "name": "N bước → Minh hoạ từng bước → Tổng kết", "chain": ["C02", "C03", "C04", "C11"], "for": "hướng dẫn, tutorial, bài nhiều bước (mẫu M3 '6 bước mở quán')"},
+  {"id": "S08", "name": "Câu chuyện → Bằng chứng → Góc nhìn → Tập sau", "chain": ["C01", "C08", "C11", "C12"], "for": "series dài 1–3 phút (mẫu M2 'Mô hình 3C')"}
+ ],
+ "families": {
+  "C01": "Keyword Burst", "C02": "Chapter Card", "C03": "Pinned Title", "C04": "Count & Reveal", "C05": "A vs B",
+  "C06": "Problem → Solution", "C07": "Number Impact", "C08": "Evidence Frame", "C09": "Detail Spotlight",
+  "C10": "Timeline / Process", "C11": "Quote / Insight", "C12": "Brand Outro",
+  "G01": "Xé giấy lộ bí mật", "G02": "Bàn điều tra", "G03": "Đóng dấu kết luận", "G04": "Hai phe đối đầu",
+  "G05": "Bóc tách con số", "G06": "Checklist giấy", "G07": "Myth Breaker", "G08": "Before / After", "G09": "Red Alert",
+  "G10": "Paper Flowchart", "G11": "Proof Board", "G12": "Question Hook",
+  "P01": "Ánh sáng quét qua kính", "P02": "Material Anatomy", "P03": "Recipe Journal", "P04": "Product Gallery",
+  "P05": "Feature Spotlight", "P06": "Ingredient Cascade", "P07": "Slow Detail Zoom", "P08": "Texture Comparison",
+  "P09": "Warm Photo Journal", "P10": "Glass Hero Outro"
+ }
+}

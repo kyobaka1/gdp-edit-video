@@ -1,0 +1,24 @@
+{
+ "id": "phaledo-warm",
+ "title": "PHALEDO Warm Kitchen Journal — vật liệu nền",
+ "purpose": "Theme `phaledo_warm` của Scene Library: trang sổ tay be, băng washi, nhánh lá khô, hạt cà phê, muỗng gỗ, nét gạch chân vẽ tay. Khung polaroid làm bằng CSS. Ảnh minh hoạ mặc định chỉ là NGUYÊN LIỆU (không hũ/lọ/chai — tránh bị hiểu là sản phẩm PHALEDO); sản phẩm thật truyền vào tham số photo.",
+ "style": "ảnh chụp phẳng từ trên xuống, ánh sáng tự nhiên buổi sáng ấm áp, tông be kem, nâu gỗ sồi, xanh ô liu nhạt, cảm giác sổ tay nhà bếp thủ công tinh tế; tuyệt đối không chữ, số, logo, không có hũ, lọ, chai, ly thủy tinh",
+ "assets": [
+  {"id": "nen/giay-be-am", "kind": "nen", "alpha": false, "size": "doc", "title": "Nền giấy be ấm làm tay",
+   "prompt": "Một tờ giấy làm tay màu be kem ấm phủ kín toàn bộ khung ảnh, thớ giấy có sợi và vài đốm nhỏ tự nhiên, ánh sáng mềm đều, chụp phẳng từ trên xuống. Không có vật thể nào.", "tags": ["giay", "be", "phaledo"]},
+  {"id": "phaledo-warm/trang-so-tay-trong", "kind": "cat-dan", "size": "doc", "title": "Trang sổ tay kem (trống)",
+   "prompt": "Một trang giấy sổ tay màu kem có dòng kẻ ngang rất mờ màu nâu nhạt, mép trên có lỗ gáy xé nhẹ, một góc hơi cong, bề mặt TRỐNG hoàn toàn không chữ.", "tags": ["so-tay", "trang"]},
+  {"id": "phaledo-warm/bang-washi-be", "kind": "cat-dan", "size": "ngang", "title": "Băng washi be",
+   "prompt": "Một mẩu băng dính washi màu be nhạt có hoạ tiết sọc mảnh màu nâu rất nhạt, hai đầu xé răng cưa, hơi trong.", "tags": ["bang-dinh", "washi"]},
+  {"id": "phaledo-warm/nhanh-la-kho", "kind": "cat-dan", "size": "doc", "title": "Nhánh lá khô",
+   "prompt": "Một nhánh lá bạch đàn khô màu xanh ô liu xám nhạt, thân mảnh cong tự nhiên, chụp từ trên xuống.", "tags": ["la", "trang-tri"]},
+  {"id": "phaledo-warm/hat-ca-phe-rai", "kind": "cat-dan", "size": "vuong", "title": "Hạt cà phê rải",
+   "prompt": "Một nhúm khoảng mười hai hạt cà phê rang nâu đậm rải tự nhiên thành cụm nhỏ, chụp từ trên xuống.", "tags": ["ca-phe", "nguyen-lieu"]},
+  {"id": "phaledo-warm/thia-go", "kind": "cat-dan", "size": "doc", "title": "Muỗng gỗ",
+   "prompt": "Một chiếc muỗng gỗ sồi sáng màu, cán dài thẳng đứng, đầu muỗng ở trên, vân gỗ rõ, chụp từ trên xuống.", "tags": ["go", "dung-cu"]},
+  {"id": "phaledo-warm/net-gach-chan-nau", "kind": "cat-dan", "size": "ngang", "title": "Nét gạch chân vẽ tay nâu",
+   "prompt": "Một nét gạch chân vẽ tay bằng bút mực nâu cà phê, một đường cong nhẹ có đuôi vuốt, nét mảnh đều, nằm ngang.", "tags": ["ve-tay", "gach-chan"]},
+  {"id": "phaledo-warm/anh-nguyen-lieu-am", "kind": "canh", "alpha": false, "size": "doc", "title": "Ảnh nguyên liệu ấm (không sản phẩm)",
+   "prompt": "Ảnh chụp chân thực từ trên xuống: hạt cà phê rang, một ít hạt điều và hạt sen trên khăn linen màu kem, một muỗng gỗ, mặt bàn gỗ sồi, ánh sáng tự nhiên ấm buổi sáng. Không có hũ, lọ, chai, ly, không có chữ.", "tags": ["nguyen-lieu", "am", "phaledo"]}
+ ]
+}

@@ -1,0 +1,21 @@
+{
+ "engine": "codex",
+ "model": "gpt-5.6-luna",
+ "kind": "ai",
+ "prompt": "Một nhánh lá bạch đàn khô màu xanh ô liu xám nhạt, thân mảnh cong tự nhiên, chụp từ trên xuống.\nPhong cách chung của bộ: ảnh chụp phẳng từ trên xuống, ánh sáng tự nhiên buổi sáng ấm áp, tông be kem, nâu gỗ sồi, xanh ô liu nhạt, cảm giác sổ tay nhà bếp thủ công tinh tế; tuyệt đối không chữ, số, logo, không có hũ, lọ, chai, ly thủy tinh",
+ "size": "doc",
+ "alpha": true,
+ "refs": [],
+ "thread": "01a1ab86-ef17-7950-8983-9e983f5110c0",
+ "created": "2026-11-05 18:45",
+ "variants": [
+  {
+   "file": "nhanh-la-kho.png",
+   "w": 1024,
+   "h": 1536,
+   "mode": "RGBA",
+   "clear": 0.867
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

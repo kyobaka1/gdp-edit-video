@@ -12,3 +12,6 @@ assets/shops/*/templates/_render_tmp*.html
 ._*
 
 assets/motion/_cache/
+
+# mô hình tải về (to, có nguồn gốc ghi trong assets/models/README.md)
+assets/models/*.onnx

@@ -1,0 +1,71 @@
+{
+  "id": "scene-keyword-burst",
+  "source": {
+    "kind": "html",
+    "entry": "src/keyword-burst.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\keyword-burst\\src\\keyword-burst.html"
+  },
+  "version": 5,
+  "name": "Scene C01 Keyword Burst",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "keyword_burst"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "scene",
+    "từ khoá",
+    "chữ to",
+    "chữ sau người",
+    "editorial",
+    "journal"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 1.2,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "vào",
+      "start": 0,
+      "end": 0.39
+    },
+    {
+      "name": "đứng đọc",
+      "start": 0.39,
+      "end": 1.02
+    },
+    {
+      "name": "ra",
+      "start": 1.02,
+      "end": 1.2
+    }
+  ],
+  "params": {
+    "theme": "gdp_red",
+    "preset": "standard",
+    "word": "TỪ KHOÁ",
+    "lead": "",
+    "side": "center",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "notes": "Scene Library C01 Keyword Burst v1.0 — hồ sơ: assets/scenes/keyword-burst/scene.json. Nguồn: assets/scenes/keyword-burst/src (Claude viết 05/11). 3 theme × micro/standard/full, đè footage (nền trong suốt). Chữ sau người: build.py ghép bằng mặt nạ RVM. Dùng: c.graphic('scene-keyword-burst', at=…, word=…).",
+  "z": "top",
+  "variants": {},
+  "scene": "keyword-burst"
+}

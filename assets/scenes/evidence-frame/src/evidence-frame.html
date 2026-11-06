@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Evidence Frame</title>
+<!-- Scene Library · C08 Evidence Frame v1.0 (Claude viết 06/11/2026) — assets/scenes/evidence-frame/scene.json.
+     Bằng chứng THẬT được đóng khung: ảnh (photo) hoặc CLIP đang chạy (live=1: trang chừa Ô CỬA SỔ trong suốt sau lúc
+     khung đứng yên — build.py phát clip vào đúng ô đó, kể cả phóng dần tới chi tiết) + số liệu đập vào đúng lúc nói
+     (figure) + dòng ghi nguồn (caption). standard/full phủ khung (2–5s), micro = khung nhỏ góc màn hình đè footage.
+     Hợp đồng Motion Engine: window.setTime(giây) vẽ ĐỒNG BỘ, không Internet, KHÔNG will-change.
+     Query: theme · preset · dur · title · photo (tên asset | file:///) · poster (file:/// khung đầu clip) · live (1 = clip)
+     · media_w · media_h (tỉ lệ ảnh/clip) · zoom · zx · zy (phóng tới điểm trong ảnh 0–1) · figure · figure_label ·
+     figure_t (giây) · caption · side (micro: left|right) · bg · seed. -->
+<style>
+  @font-face { font-family: "GdpBold"; src: url("fonts/UTM_AvoBold.ttf"); }
+  @font-face { font-family: "GdpReg"; src: url("fonts/UTM_Avo.ttf"); }
+  @font-face { font-family: "PhBold"; src: url("fonts/Averta-Bold.otf"); }
+  @font-face { font-family: "PhReg"; src: url("fonts/Averta-Regular.otf"); }
+  @font-face { font-family: "PhLight"; src: url("fonts/Averta-Light.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  #root { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .abs { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; white-space: nowrap; box-sizing: border-box; }
+  .full { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; transform-origin: 50% 50%; }
+  .bgimg { background-size: 100% 100%; background-repeat: no-repeat; }
+  .win { position: absolute; overflow: hidden; }
+  .win > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .ctr { display: flex; align-items: center; justify-content: center; }
+  svg { position: absolute; left: 0; top: 0; overflow: visible; }
+</style>
+<script src="assets.js"></script>
+<script src="themes.js"></script>
+</head>
+<body>
+<div id="stage"><div id="root"></div></div>
+<script>
+(function () {
+  const W = 1080, H = 1920, FPS = 30;
+  const Q = new URLSearchParams(location.search);
+  const TH_ID = Q.get("theme") || "gdp_red";
+  const T = window.SCENE_THEMES[TH_ID] || window.SCENE_THEMES.gdp_red;
+  const C = T.color, A = window.KIT_ASSETS, E = T.engine;
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const prog = (t, a, b) => b <= a ? (t >= b ? 1 : 0) : clamp((t - a) / (b - a));
+  const outBack = (x, s = 1.5) => 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2);
+  const outCubic = x => 1 - Math.pow(1 - x, 3);
+  const inCubic = x => x * x * x;
+  const inOut = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  const stop12 = t => Math.floor(t * 12 + 1e-6) / 12;
+
+  const PRESETS = { micro: { min: 1.5, def: 3 }, standard: { min: 2.0, def: 3.5 }, full: { min: 3.0, def: 5 } };
+  const PRESET = PRESETS[Q.get("preset")] ? Q.get("preset") : "standard";
+  const D = Math.max(PRESETS[PRESET].min, parseFloat(Q.get("dur") || PRESETS[PRESET].def) || PRESETS[PRESET].def);
+  const MICRO = PRESET === "micro";
+  const TITLE = (Q.get("title") || "").trim();
+  const LIVE = ["1", "true"].includes(Q.get("live"));
+  const PQ = LIVE ? (Q.get("poster") || "") : (Q.get("photo") || "");
+  const IMG = PQ.startsWith("file:") ? PQ : (A[PQ] ? A[PQ].src : null);
+  let MW = parseFloat(Q.get("media_w") || "0"), MH = parseFloat(Q.get("media_h") || "0");
+  if (!(MW > 0 && MH > 0)) { if (A[PQ]) { MW = A[PQ].w; MH = A[PQ].h; } else { MW = 9; MH = 16; } }
+  const ZOOM = clamp(parseFloat(Q.get("zoom") || "1") || 1, 1, 3);
+  const ZX = clamp(parseFloat(Q.get("zx") || "0.5")), ZY = clamp(parseFloat(Q.get("zy") || "0.5"));
+  const FIG = MICRO ? "" : (Q.get("figure") || "").trim(), FIGL = (Q.get("figure_label") || "").trim();
+  const CAP = MICRO ? "" : (Q.get("caption") || "").trim();
+  const SIDE = Q.get("side") === "left" ? "left" : "right";
+  const BGK = (T.bg || {})[Q.get("bg") || "default"] || (T.bg || {}).default;
+  const DE = D - 1 / FPS, EX = MICRO ? 0.25 : 0.35, HIN = MICRO ? 0.35 : 0.55;
+  const LIVE_T = HIN + 0.02;   // khung đứng yên từ đây → ô cửa sổ trong suốt (clip thật phát vào)
+  const FT = FIG ? clamp(parseFloat(Q.get("figure_t") || (LIVE_T + 0.5)) || 0, LIVE_T, Math.max(LIVE_T, DE - EX - 0.4)) : null;
+  const QA = { theme: TH_ID, preset: PRESET, dur: D, overflow: [], warn: [], fontPx: {} };
+  const root = document.getElementById("root");
+  const imgs = [];
+  function node(tag, cls, parent) { const e = document.createElement(tag); if (cls) e.className = cls; (parent || root).appendChild(e); return e; }
+  function bgi(el, key) { const a = A[key]; const im = new Image(); im.src = a.src; imgs.push(im); el.style.backgroundImage = `url(${a.src})`; el.classList.add("bgimg"); return el; }
+  function image(src, parent, cls) { const im = node("img", cls || "", parent); im.src = src; imgs.push(im); return im; }
+  function asset(key, w, parent) { const a = A[key], im = image(a.src, parent, "abs"); im.style.width = w + "px"; im.style.height = (w * a.h / a.w) + "px"; return im; }
+  function place(el, x, y) { el.style.left = Math.round(x) + "px"; el.style.top = Math.round(y) + "px"; }
+  function rect(el) { const r = el.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; }
+  function fitFont(el, px, maxW, minK) { let k = 1; el.style.fontSize = px + "px";
+    while (el.offsetWidth > maxW && k > minK) { k -= 0.04; el.style.fontSize = Math.round(px * k) + "px"; } return el.offsetWidth <= maxW + 1; }
+  const CX = 486;
+  if (!IMG) QA.warn.push(LIVE ? "thiếu khung đầu clip (poster)" : "thiếu ảnh bằng chứng (photo) — khung trống");
+
+  // nền (phủ khung)
+  let bg = null, vig = null, light = null, back = null, HOLE = "none";
+  if (!MICRO) {   // các lớp nền gom vào 1 khối (không biến hình) → khoét lỗ ô cửa sổ cho clip thật được
+    back = node("div", "full");
+    bg = image(A[BGK].src, back, "full");
+    if (E === "glass") { vig = node("div", "full", back); vig.style.background = "radial-gradient(ellipse 80% 60% at 50% 42%, rgba(0,0,0,0) 30%, rgba(0,0,0,.62) 100%)";
+      light = image(A[T.light].src, back, "full"); light.style.mixBlendMode = "screen"; }
+    else { vig = node("div", "full", back); vig.style.background = E === "journal" ? "radial-gradient(ellipse 85% 70% at 50% 45%, rgba(0,0,0,0) 45%, rgba(70,45,20,.28) 100%)"
+      : "radial-gradient(ellipse 80% 70% at 50% 45%, rgba(0,0,0,0) 40%, rgba(0,0,0,.35) 100%)"; }
+  }
+  // nhóm khung (vào cùng nhau): viền + ô ảnh + trang trí
+  const G = node("div", "abs");
+  const frame = node("div", "abs", G);          // viền (bên trong TRONG SUỐT — không che ô cửa sổ)
+  const win = node("div", "win", G);
+  const pic = IMG ? image(IMG, win) : null;
+  if (!IMG) win.style.background = "rgba(40,40,40,.5)";
+  let tapes = [], stamp = null, corners = [], washi = null;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("width", W); svg.setAttribute("height", H); G.appendChild(svg);
+  if (E === "paper") {
+    tapes = [asset("bang-keo-giay", MICRO ? 120 : 200, G), asset("bang-keo-giay", MICRO ? 120 : 200, G)];
+    if (!MICRO) { stamp = node("div", "abs ctr", G); bgi(stamp, "tem-do-trong"); stamp.textContent = "THẬT";
+      Object.assign(stamp.style, { width: "176px", height: "176px", fontFamily: "GdpBold", color: C.stamp, fontSize: "46px", paddingTop: "4px",
+        filter: "drop-shadow(0 6px 7px rgba(0,0,0,.35))" }); }
+  } else if (E === "journal") {
+    washi = asset(T.washi, MICRO ? 130 : 220, G);
+  }
+  // tiêu đề
+  let ttl = null;
+  if (TITLE) {
+    ttl = node("div", "abs");
+    ttl.textContent = E === "glass" ? TITLE.toLocaleUpperCase("vi") : TITLE;
+    Object.assign(ttl.style, { fontFamily: T.fonts.title, fontSize: (MICRO ? Math.round(T.px.title * 0.8) : T.px.title) + "px", color: C.title });
+    if (E === "paper") { bgi(ttl, "bang-giay-den-trong"); Object.assign(ttl.style, { padding: "16px 42px 18px 38px", filter: "drop-shadow(0 6px 7px rgba(0,0,0,.35))" }); }
+    else if (E === "glass") Object.assign(ttl.style, { letterSpacing: ".22em", padding: MICRO ? "10px 22px 11px calc(22px + .22em)" : "0", background: MICRO ? C.pill : "none",
+      borderRadius: "999px", border: MICRO ? `1px solid ${C.line}` : "none", textShadow: "0 1px 8px rgba(0,0,0,.6)" });
+    else Object.assign(ttl.style, { padding: MICRO ? "10px 22px" : "0", background: MICRO ? C.tag : "none", borderRadius: "6px" });
+  }
+  // số liệu
+  let fig = null, figN = null, figL = null, figHair = null;
+  if (FIG) {
+    fig = node("div", "abs");
+    figN = node("div", "", fig); figN.textContent = FIG;
+    Object.assign(figN.style, { fontFamily: T.fonts.figure, color: C.figure, fontSize: T.px.figure + "px", lineHeight: "1.02" });
+    if (FIGL) { figL = node("div", "", fig); figL.textContent = FIGL; Object.assign(figL.style, { fontFamily: T.fonts.small, color: C.figlab, fontSize: T.px.figlab + "px" }); }
+    if (E === "paper") { bgi(fig, "giay-note-vang-trong"); Object.assign(fig.style, { padding: "40px 46px 46px 40px", filter: "drop-shadow(0 8px 9px rgba(0,0,0,.35))" }); }
+    else if (E === "glass") { figHair = node("div", "abs"); Object.assign(figHair.style, { height: "1px", background: C.line, transformOrigin: "0 50%" });
+      Object.assign(fig.style, { textShadow: "0 2px 14px rgba(0,0,0,.6)" }); }
+    else Object.assign(fig.style, { padding: "22px 34px 24px", background: C.tag, borderRadius: "6px", filter: "drop-shadow(0 10px 12px rgba(50,28,12,.3))" });
+  }
+  // ghi nguồn
+  let cap = null;
+  if (CAP) {
+    cap = node("div", "abs"); cap.textContent = CAP;
+    Object.assign(cap.style, { fontFamily: T.fonts.small, fontSize: T.px.caption + "px", color: C.caption });
+    if (E === "paper") { bgi(cap, "nhan-tieu-de-trong"); Object.assign(cap.style, { padding: "12px 32px 14px 28px", filter: "drop-shadow(0 4px 5px rgba(0,0,0,.25))" }); }
+    else if (E === "glass") cap.style.letterSpacing = ".04em";
+  }
+
+  let WIN = null;
+  function layout() {
+    let top = MICRO ? 0.15 * H : 0.12 * H;
+    const bottom = 0.75 * H, a = MW / MH;
+    if (ttl) { fitFont(ttl, MICRO ? Math.round(T.px.title * 0.8) : T.px.title, MICRO ? 400 : 760, 0.6);
+      if (!MICRO) { place(ttl, E === "glass" ? 96 : 96, top); top += ttl.offsetHeight + (E === "paper" ? 36 : 30); } }
+    if (cap) fitFont(cap, T.px.caption, 760, 0.6);
+    const capH = cap ? cap.offsetHeight + 34 : 0;
+    if (fig) { fitFont(figN, T.px.figure, E === "paper" ? 440 : 700, 0.45); QA.fontPx.figure = parseFloat(figN.style.fontSize); }
+    const figH = fig ? fig.offsetHeight : 0;
+    const figRes = !fig ? 0 : E === "glass" ? figH + 70 : figH * 0.5;   // Dark: số nằm DƯỚI ảnh · GDP/Warm: giấy số đè góc dưới ảnh
+    let w, h, x, y;
+    if (MICRO) {   // khung nhỏ góc màn hình (picture-in-picture)
+      w = 360; h = w / a; if (h > 520) { h = 520; w = h * a; }
+      x = SIDE === "right" ? 896 - w : 76; y = top + (ttl ? ttl.offsetHeight + 16 : 0);
+      if (ttl) place(ttl, SIDE === "right" ? 896 - ttl.offsetWidth : 76, top);
+    } else {
+      const mH = bottom - top - capH - figRes - 30, mW = 760;
+      w = Math.min(mW, mH * a); h = w / a; x = CX - w / 2; y = top + 10;
+    }
+    w = Math.round(w); h = Math.round(h); x = Math.round(x); y = Math.round(y);
+    Object.assign(win.style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px" });
+    WIN = { x, y, w, h };
+    const bw = E === "paper" ? (MICRO ? 12 : 18) : E === "journal" ? (MICRO ? 10 : 14) : 0;
+    const pad = E === "glass" ? 10 : 0;
+    Object.assign(frame.style, { left: (x - bw - pad) + "px", top: (y - bw - pad) + "px", width: (w + 2 * (bw + pad)) + "px", height: (h + 2 * (bw + pad)) + "px",
+      border: E === "glass" ? `1.5px solid ${C.line}` : `${bw}px solid ${C.print || "#fbfaf6"}`,
+      boxShadow: E === "glass" ? "none" : E === "journal" ? "0 12px 18px rgba(60,40,20,.3)" : "0 12px 22px rgba(0,0,0,.45)" });
+    if (E === "paper") { const tw = parseFloat(tapes[0].style.width);
+      place(tapes[0], x - tw * 0.35, y - 26); place(tapes[1], x + w - tw * 0.65, y - 26);
+      tapes[0].style.transform = "rotate(-32deg)"; tapes[1].style.transform = "rotate(32deg)";
+      if (stamp) place(stamp, x - 50, y + h - 130); }
+    if (E === "journal") { const ww = parseFloat(washi.style.width); place(washi, x + w / 2 - ww / 2, y - 24 - bw);
+      const cs = MICRO ? 34 : 56;   // 4 góc giấy giữ ảnh
+      [[x - bw, y - bw, 0], [x + w + bw, y - bw, 90], [x + w + bw, y + h + bw, 180], [x - bw, y + h + bw, 270]].forEach(([cx, cy, r]) => {
+        const p = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        p.setAttribute("points", `${cx},${cy} ${cx + cs},${cy} ${cx},${cy + cs}`);
+        p.setAttribute("transform", `rotate(${r} ${cx} ${cy})`); Object.assign(p.style, { fill: C.corner, opacity: ".92" }); svg.appendChild(p); corners.push(p); }); }
+    if (E === "glass") {   // dấu cắt 4 góc
+      const o = 24, l = MICRO ? 22 : 40;
+      [[x - o, y - o, 1, 1], [x + w + o, y - o, -1, 1], [x + w + o, y + h + o, -1, -1], [x - o, y + h + o, 1, -1]].forEach(([cx, cy, sx, sy]) => {
+        const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        p.setAttribute("d", `M ${cx + sx * l} ${cy} L ${cx} ${cy} L ${cx} ${cy + sy * l}`);
+        Object.assign(p.style, { fill: "none", stroke: C.line, strokeWidth: "2px" }); svg.appendChild(p);
+        p.dataset.len = p.getTotalLength(); p.style.strokeDasharray = p.dataset.len; corners.push(p); }); }
+    if (fig) {
+      if (E === "glass") { const fx = 96, fy = Math.min(y + h + 40, bottom - fig.offsetHeight - capH);
+        place(fig, fx, fy + 18); figHair.style.width = "180px"; place(figHair, fx + 2, fy); }
+      else { const fw = fig.offsetWidth, fh = fig.offsetHeight;
+        place(fig, clamp(x + w - fw * 0.7, 76, 896 - fw), clamp(y + h - fh * 0.55, 0.15 * H, bottom - fh - capH * 0.3)); }
+    }
+    if (cap) { const low = Math.max(y + h + bw, fig ? rect(fig).y + fig.offsetHeight : 0);   // dòng nguồn luôn dưới cùng
+      const cy = MICRO ? 0 : Math.min(bottom - cap.offsetHeight, low + 24);
+      place(cap, E === "glass" ? 96 : CX - cap.offsetWidth / 2, cy); }
+    const parts = [{ x: x - bw, y: y - bw, w: w + 2 * bw, h: h + 2 * bw }, ...(ttl ? [rect(ttl)] : []), ...(fig ? [rect(fig)] : []), ...(cap ? [rect(cap)] : [])];
+    const x0 = Math.min(...parts.map(p => p.x)), y0 = Math.min(...parts.map(p => p.y));
+    const x1 = Math.max(...parts.map(p => p.x + p.w)), y1 = Math.max(...parts.map(p => p.y + p.h));
+    QA.area = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    if (x0 < 0.06 * W - 10 || x1 > 0.84 * W + 10 || y0 < 0.10 * H || y1 > 0.77 * H) QA.warn.push(`ra ngoài vùng an toàn TikTok (x ${x0}–${x1}, y ${y0}–${y1})`);
+    HOLE = `path(evenodd, "M0 0 H${W} V${H} H0 Z M${x} ${y} H${x + w} V${y + h} H${x} Z")`;   // nền thủng đúng ô clip
+    QA.window = WIN; QA.live = LIVE; QA.live_t = +LIVE_T.toFixed(3); QA.exit = [+(DE - EX).toFixed(3), +DE.toFixed(3)];
+    QA.zoom = ZOOM > 1.001 ? { k: ZOOM, zx: ZX, zy: ZY, t0: +LIVE_T.toFixed(3), t1: +(DE - EX).toFixed(3) } : null;
+    QA.box = WIN; QA.land = +LIVE_T.toFixed(3); QA.full_at = +Math.min(DE - EX - 0.05, Math.max(LIVE_T + 0.4, FT !== null ? FT + 0.4 : 0)).toFixed(3);
+    if (FT !== null) QA.figure_t = +FT.toFixed(3);
+  }
+
+  function setTime(t0) {
+    const t = clamp(t0, 0, D), kx = inCubic(prog(t, DE - EX, DE));
+    if (back) back.style.clipPath = LIVE && t >= LIVE_T - 1e-6 ? HOLE : "none";   // chỉ khi khung đã đứng yên
+    if (bg) { const kb = outCubic(prog(t, 0, 0.3)); bg.style.opacity = kb; bg.style.transform = `scale(${(1.04 - 0.04 * t / D).toFixed(4)})`;
+      if (vig) vig.style.opacity = kb; if (light) { light.style.opacity = (0.45 * outCubic(prog(t, 0.15, 1.1))).toFixed(4); light.style.transform = `translateY(${lerp(-50, 40, t / D).toFixed(1)}px) scale(1.1)`; } }
+    // nhóm khung vào (đứng yên hẳn trước LIVE_T — clip thật phát vào ô đúng chỗ)
+    if (E === "paper") { const k = prog(stop12(t), 0.04, HIN - 0.05); G.style.transform = `translateY(${((1 - outBack(k, 1.25)) * -140).toFixed(1)}px)`; G.style.opacity = t >= 0.04 ? 1 : 0; }
+    else if (E === "glass") { const k = inOut(prog(t, 0.06, HIN - 0.02)); G.style.opacity = Math.min(1, k * 3).toFixed(4);
+      win.style.clipPath = `inset(${((1 - k) * 100).toFixed(2)}% 0 0 0)`; frame.style.opacity = k.toFixed(4);
+      corners.forEach(p => { const kc = inOut(prog(t, 0.3, HIN + 0.2)); p.style.strokeDashoffset = ((1 - kc) * p.dataset.len).toFixed(1); }); }
+    else { const k = prog(t, 0.04, HIN - 0.04); G.style.transform = `translateY(${((1 - outBack(k, 1.3)) * -70).toFixed(1)}px)`; G.style.opacity = Math.min(1, k * 3).toFixed(4); }
+    if (pic) {
+      if (LIVE) pic.style.opacity = t >= LIVE_T - 1e-6 ? 0 : 1;   // clip thật thay khung đầu
+      else { const kz = inOut(prog(t, LIVE_T, DE - EX)); pic.style.transformOrigin = `${(ZX * 100).toFixed(1)}% ${(ZY * 100).toFixed(1)}%`;
+        pic.style.transform = `scale(${(1 + (ZOOM - 1) * kz).toFixed(4)})`; }
+    }
+    if (stamp) { const ks = prog(stop12(Math.max(0, t - LIVE_T - 0.2)), 0, 0.2); stamp.style.opacity = t >= LIVE_T + 0.2 ? 1 : 0;
+      stamp.style.transform = `translateY(${((1 - outBack(ks, 1.6)) * -90).toFixed(1)}px) rotate(-14deg)`; }
+    if (washi) { washi.style.opacity = t >= HIN - 0.1 ? 1 : 0; washi.style.transform = "rotate(-3deg)"; }
+    if (ttl) { const k = E === "paper" ? prog(stop12(t), 0.12, 0.35) : outCubic(prog(t, 0.12, 0.45));
+      ttl.style.opacity = E === "paper" ? (t >= 0.12 ? 1 : 0) : k.toFixed(4);
+      ttl.style.transform = E === "paper" ? `translateX(${((1 - outBack(k, 1.4)) * -60).toFixed(1)}px) rotate(-2deg)` : `translateY(${((1 - k) * 12).toFixed(1)}px)`;
+      if (E === "glass" && !MICRO) ttl.style.letterSpacing = lerp(0.5, 0.22, k).toFixed(3) + "em"; }
+    if (fig) { const kf = prog(t, FT, FT + 0.3);
+      if (E === "paper") { const ks = prog(stop12(Math.max(0, t - FT)), 0, 0.22); fig.style.opacity = t >= FT ? 1 : 0;
+        fig.style.transform = `translateX(${((1 - outBack(ks, 1.4)) * 120).toFixed(1)}px) rotate(4deg)`; }
+      else { fig.style.opacity = outCubic(kf).toFixed(4); fig.style.transform = `translateY(${((1 - outCubic(kf)) * 18).toFixed(1)}px)${E === "journal" ? " rotate(3deg)" : ""}`;
+        if (figHair) figHair.style.transform = `scaleX(${inOut(prog(t, FT - 0.1, FT + 0.3)).toFixed(4)})`; } }
+    if (cap) { const kc = outCubic(prog(t, LIVE_T + 0.15, LIVE_T + 0.45)); cap.style.opacity = kc.toFixed(4); cap.style.transform = E === "paper" ? "rotate(-1deg)" : "none"; }
+    root.style.opacity = (t >= DE - 1e-6 ? 0 : 1 - kx).toFixed(4);
+    root.style.filter = !LIVE && kx > 0.001 ? `blur(${(8 * kx).toFixed(2)}px)` : "none";   // clip thật: ra bằng mờ (không nhoè) cho khớp ô clip
+  }
+
+  const fams = [...new Set(Object.values(T.fonts))].concat(E === "paper" ? ["GdpBold"] : []);
+  const ready = Promise.all([
+    ...fams.map(f => document.fonts.load(`40px "${f}"`, TITLE + FIG + FIGL + CAP + "THẬTỢ0123456789")),
+    ...imgs.map(im => im.decode().catch(() => { throw new Error("thiếu ảnh " + im.src); })),
+  ]).then(() => { layout(); setTime(0); });
+
+  window.setTime = setTime;
+  window.SCENE_MOTION = { name: `Evidence Frame · ${T.label} · ${PRESET}`, duration: D, width: W, height: H, fps: FPS,
+    ready, setTime, qa: QA,
+    scenes: [{ name: "khung vào", start: 0, end: HIN }, { name: "bằng chứng + số liệu", start: HIN, end: DE - EX }, { name: "ra", start: DE - EX, end: D }] };
+  if (!Q.has("render")) {
+    const t0 = performance.now();
+    (function loop() { setTime(((performance.now() - t0) / 1000) % (D + 0.6)); requestAnimationFrame(loop); })();
+  }
+})();
+</script>
+</body>
+</html>

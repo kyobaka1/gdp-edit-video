@@ -1,0 +1,21 @@
+{
+ "engine": "codex",
+ "model": "gpt-5.6-luna",
+ "kind": "ai",
+ "prompt": "Một mẩu băng keo giấy mờ màu kem ngắn, hai đầu xé răng cưa, hơi trong.\nPhong cách chung của bộ: phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+ "size": "ngang",
+ "alpha": true,
+ "refs": [],
+ "thread": "01a1ab35-1fe0-7820-92ca-583fc1d16ce5",
+ "created": "2026-11-05 17:16",
+ "variants": [
+  {
+   "file": "bang-keo-giay.png",
+   "w": 1536,
+   "h": 1024,
+   "mode": "RGBA",
+   "clear": 0.818
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

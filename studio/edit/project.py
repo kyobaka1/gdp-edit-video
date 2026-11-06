@@ -18,6 +18,8 @@ from studio.edit import asr
 
 VIDEO_EXT = {".mp4", ".mov", ".m4v", ".mkv", ".webm"}
 AUDIO_EXT = {".wav", ".mp3", ".m4a", ".aac", ".flac", ".ogg"}
+IMAGE_EXT = {".png", ".jpg", ".jpeg", ".webp"}
+STILL_SEC = 15.0  # ảnh tĩnh → clip 15s để làm cảnh minh hoạ (cover push = zoom đẩy cho ảnh "sống")
 OUT = {"w": 1080, "h": 1920, "fps": 30}  # GĐ1: 9:16 TikTok (Sếp chốt 05/11); 3:4 Shopee làm sau
 
 
@@ -95,7 +97,8 @@ def new(job_id: str, inputs: list[Path], plan: Path | None = None, capcut: bool 
                          "rồi chạy lại với --capcut khong | --capcut co (hoặc ghi dòng `CapCut: có|không` trong plan.md)")
     files = []
     for p in inputs:
-        files += sorted(q for q in p.iterdir() if q.suffix.lower() in VIDEO_EXT | AUDIO_EXT) if p.is_dir() else [p]
+        files += sorted(q for q in p.iterdir() if q.suffix.lower() in VIDEO_EXT | AUDIO_EXT | IMAGE_EXT) \
+            if p.is_dir() else [p]
     if not files:
         raise SystemExit("Không có file video/tiếng nào")
     d = config.JOBS / job_id
@@ -108,7 +111,8 @@ def new(job_id: str, inputs: list[Path], plan: Path | None = None, capcut: bool 
         shutil.copy2(plan, d / "plan.md")
     src = {}
     for i, f in enumerate(files, 1):
-        _add(d, src, f, f"c{i:02d}" if f.suffix.lower() in VIDEO_EXT else f"a{i:02d}")
+        ext = f.suffix.lower()
+        _add(d, src, f, f"c{i:02d}" if ext in VIDEO_EXT else f"i{i:02d}" if ext in IMAGE_EXT else f"a{i:02d}")
     save_sources(d, src)
     return d
 
@@ -116,7 +120,31 @@ def new(job_id: str, inputs: list[Path], plan: Path | None = None, capcut: bool 
 def _add(d: Path, src: dict, f: Path, key: str) -> None:
     dst = d / "sources" / f"{key}{f.suffix.lower()}"
     shutil.copy2(f, dst)
+    if f.suffix.lower() in IMAGE_EXT:
+        src[key] = _still(d, f, dst, key)
+        return
     src[key] = {"file": f"sources/{dst.name}", "origin": str(f.resolve()), **_probe(dst)}
+
+
+def _still(d: Path, f: Path, img: Path, key: str) -> dict:
+    """Ảnh tĩnh (chụp thật hoặc ảnh AI của `vs.py gen`) → clip STILL_SEC giây để `cover()` dùng như cảnh quay."""
+    from PIL import Image
+    im = Image.open(img)
+    if im.mode in ("RGBA", "LA") and min(im.getchannel("A").getextrema()) < 250:
+        raise SystemExit(f"{f.name}: ảnh nền trong suốt là miếng đồ hoạ (cắt dán/sticker), không làm cảnh minh hoạ "
+                         "được — dùng ảnh có nền")
+    clip = d / "sources" / f"{key}.mp4"
+    media.run([config.FFMPEG, "-y", "-v", "error", "-loop", "1", "-framerate", "30", "-t", f"{STILL_SEC}", "-i",
+               str(img), "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p", "-c:v", "libx264",
+               "-preset", "veryfast", "-crf", "16", "-tune", "stillimage", str(clip)])
+    info = {"file": f"sources/{clip.name}", "image": f"sources/{img.name}", "origin": str(f.resolve()),
+            "still": True, **_probe(clip)}
+    side = f.with_suffix(".json")  # vs.py gen ghi kèm nguồn AI
+    if side.exists():
+        meta = json.loads(side.read_text(encoding="utf-8"))
+        if meta.get("kind") == "ai":
+            info["ai"] = {k: meta.get(k) for k in ("engine", "model", "prompt", "created")}
+    return info
 
 
 def add(job_id: str, f: Path, key: str, ref_text: Path | None = None) -> dict:
@@ -210,7 +238,7 @@ def describe(job_id: str) -> str:
     lines = [f"Chế độ: {MODE_TEXT[m]}" if m is not None else
              "Chế độ: CHƯA RÕ — hỏi Sếp có/không dùng CapCut rồi `vs.py edit mode <id> co|khong`"]
     for key, s in src.items():
-        kind = "clip" if s.get("has_video") else "tiếng"
+        kind = ("ẢNH AI" if s.get("ai") else "ảnh tĩnh") if s.get("still") else "clip" if s.get("has_video") else "tiếng"
         meta = f"{s['width']}x{s['height']} {s['fps']}fps" if s.get("has_video") else ""
         ws = words(d, key, src)
         lines.append(f"[{key}] {kind} {s['duration']:.1f}s {meta} · lời {s.get('speech', 0):.1f}s"

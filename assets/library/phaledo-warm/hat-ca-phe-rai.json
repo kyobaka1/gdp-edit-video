@@ -1,0 +1,21 @@
+{
+ "engine": "codex",
+ "model": "gpt-5.6-luna",
+ "kind": "ai",
+ "prompt": "Một nhúm khoảng mười hai hạt cà phê rang nâu đậm rải tự nhiên thành cụm nhỏ, chụp từ trên xuống.\nPhong cách chung của bộ: ảnh chụp phẳng từ trên xuống, ánh sáng tự nhiên buổi sáng ấm áp, tông be kem, nâu gỗ sồi, xanh ô liu nhạt, cảm giác sổ tay nhà bếp thủ công tinh tế; tuyệt đối không chữ, số, logo, không có hũ, lọ, chai, ly thủy tinh",
+ "size": "vuong",
+ "alpha": true,
+ "refs": [],
+ "thread": "01a1ab87-a81e-7eb0-b3dd-7a545ea53070",
+ "created": "2026-11-05 18:46",
+ "variants": [
+  {
+   "file": "hat-ca-phe-rai.png",
+   "w": 1254,
+   "h": 1254,
+   "mode": "RGBA",
+   "clear": 0.569
+  }
+ ],
+ "note": "ẢNH AI — chỉ minh hoạ bối cảnh/ý; không thay ảnh sản phẩm thật, không làm bằng chứng"
+}

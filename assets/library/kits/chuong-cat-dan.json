@@ -1,0 +1,212 @@
+{
+ "id": "chuong-cat-dan",
+ "title": "Thẻ cắt dán mở chương",
+ "purpose": "Thẻ 3–6s mở mỗi chương/bước của video giảng giải hoặc demo sản phẩm (mẫu M2/M3: 'BƯỚC 5 TRIỂN KHAI', 'ĐÓ CHÍNH LÀ C3'). Dùng lại cho mọi video, chỉ đổi chữ tiêu đề + dòng phụ (+ tuỳ chọn 1 ảnh in đen trắng).",
+ "animation": "Nền giấy đỏ gạch phủ khung → mảng giấy vàng + ảnh in trượt vào từ mép → giấy (người giấy, tay giấy, mũi tên, giấy vo) bay tung vào từ mép, xoay nhẹ, bóng đổ mềm (0,8s, nhịp stop-motion 12 hình/giây) → nhãn tiêu đề rơi từ trên xuống, nghiêng rồi đứng (0,4s) → băng giấy đen dòng phụ rơi sau 0,6s → mũi tên trượt lại 1 lần lúc đứng → cuối: giấy rơi ra mép, cả khung nhoè chuyển động sang cảnh sau. Vào thẻ: 1 khung loé trắng-đen rồi có màu.",
+ "params": [
+  "title (≤ 22 ký tự, IN HOA)",
+  "sub (≤ 40 ký tự)",
+  "photo (tuỳ chọn: id ảnh in trong thư viện)",
+  "accent (màu nhấn shop, mặc định vàng nghệ)"
+ ],
+ "motion_id": "cat-dan-mo-chuong",
+ "status": "XONG 05/11: đủ 18/18 asset + animation HTML (Claude viết) đã nhập thư viện motion 'cat-dan-mo-chuong' → dùng: c.graphic('cat-dan-mo-chuong', at=…, until=…, title=…, sub=…, photo=…|none, bg=…)",
+ "style": "phong cách cắt dán giấy thủ công (paper collage) chụp phẳng từ trên xuống: giấy có thớ và nếp nhăn nhẹ, mép rách xơ tự nhiên hoặc viền trắng như sticker, bảng màu đỏ gạch / vàng nghệ / be cũ / xám / đen nhám, ánh sáng đều không bóng gắt, chất ảnh in hạt nhẹ; tuyệt đối không có chữ, số, logo, watermark",
+ "assets": [
+  {
+   "id": "nen/giay-do-gach",
+   "kind": "nen",
+   "alpha": false,
+   "size": "doc",
+   "title": "Nền giấy đỏ gạch",
+   "prompt": "Một tờ giấy thủ công màu đỏ gạch phủ kín toàn bộ khung ảnh, thớ giấy và vết nhăn nhẹ, vài đốm ố nhạt, chụp phẳng từ trên xuống, ánh sáng đều. Không có vật thể nào khác.",
+   "tags": [
+    "giay",
+    "do"
+   ]
+  },
+  {
+   "id": "nen/giay-kraft-nau-toi",
+   "kind": "nen",
+   "alpha": false,
+   "size": "doc",
+   "title": "Nền giấy kraft nâu tối (thẻ series)",
+   "prompt": "Một tờ giấy kraft màu nâu cà phê đậm phủ kín toàn bộ khung ảnh, thớ giấy rõ, vài vết ố tròn mờ như vết ly cà phê, chụp phẳng từ trên xuống. Không có vật thể nào khác.",
+   "tags": [
+    "giay",
+    "nau",
+    "series"
+   ]
+  },
+  {
+   "id": "cat-dan-giay/nhan-tieu-de-trong",
+   "kind": "cat-dan",
+   "size": "ngang",
+   "title": "Nhãn tiêu đề giấy be (trống)",
+   "prompt": "Một dải nhãn giấy màu be cũ hình chữ nhật dài nằm ngang (tỉ lệ khoảng 5:1), mép rách xơ, hai đầu dán mẩu băng keo giấy mờ, bề mặt TRỐNG hoàn toàn để chèn chữ sau.",
+   "tags": [
+    "nhan",
+    "tieu-de"
+   ]
+  },
+  {
+   "id": "cat-dan-giay/bang-giay-den-trong",
+   "kind": "cat-dan",
+   "size": "ngang",
+   "title": "Băng giấy đen dòng phụ (trống)",
+   "prompt": "Một dải băng giấy đen nhám dài nằm ngang (tỉ lệ khoảng 7:1), mép rách xơ, hơi nghiêng 3 độ, bề mặt TRỐNG để chèn chữ trắng sau.",
+   "tags": [
+    "nhan",
+    "dong-phu"
+   ]
+  },
+  {
+   "id": "cat-dan-giay/mang-giay-vang-xe",
+   "kind": "cat-dan",
+   "size": "vuong",
+   "title": "Mảng giấy vàng xé tay",
+   "prompt": "Một mảng giấy màu vàng nghệ xé tay lớn, hình dạng bất định gần chữ nhật, mép rách xơ trắng.",
+   "tags": [
+    "giay",
+    "vang",
+    "mang"
+   ]
+  },
+  {
+   "id": "cat-dan-giay/mui-ten-vang",
+   "kind": "cat-dan",
+   "size": "vuong",
+   "title": "Mũi tên giấy vàng",
+   "prompt": "Mũi tên cắt từ giấy thủ công vàng nghệ, mép rách xơ.",
+   "tags": [
+    "mui-ten"
+   ]
+  },
+  {
+   "id": "cat-dan-giay/mui-ten-ve-tay-do",
+   "kind": "cat-dan",
+   "size": "ngang",
+   "title": "Mũi tên cong vẽ tay đỏ",
+   "prompt": "Một mũi tên cong vẽ tay bằng bút dạ màu đỏ, nét mảnh hơi run, đầu mũi tên hai nét.",
+   "tags": [
+    "mui-ten",
+    "ve-tay"
+   ]
+  },
+  {
+   "id": "cat-dan-giay/nguoi-giay-xam",
+   "kind": "cat-dan",
+   "size": "doc",
+   "title": "Người giấy xám",
+   "prompt": "HÌNH BÓNG (silhouette) một người đứng thẳng hai tay buông, cắt từ MỘT tờ giấy xám nhạt TRƠN một màu: không mặt, không tóc chi tiết, không quần áo, không hoa văn, không màu khác; quanh mép có viền giấy trắng như sticker.",
+   "tags": [
+    "nguoi"
+   ]
+  },
+  {
+   "id": "cat-dan-giay/nguoi-giay-den-chi-tay",
+   "kind": "cat-dan",
+   "size": "doc",
+   "title": "Người giấy đen đang chỉ tay",
+   "prompt": "Hình người giấy cắt dán màu đen nhám, dáng đứng một tay chỉ sang ngang, viền trắng mảnh như sticker.",
+   "tags": [
+    "nguoi"
+   ]
+  },
+  {
+   "id": "cat-dan-giay/tay-giay-trang",
+   "kind": "cat-dan",
+   "size": "vuong",
+   "title": "Bàn tay giấy trắng xoè",
+   "prompt": "Một bàn tay xoè năm ngón cắt từ MỘT tờ giấy trắng ngà TRƠN một màu (không hoa văn, không họa tiết, không màu khác), mép cắt viền xám mảnh, nhìn từ trên xuống.",
+   "tags": [
+    "tay"
+   ]
+  },
+  {
+   "id": "cat-dan-giay/tay-giay-den-chi",
+   "kind": "cat-dan",
+   "size": "vuong",
+   "title": "Bàn tay giấy đen chỉ ngón trỏ",
+   "prompt": "Một bàn tay cắt từ giấy đen nhám đang chỉ bằng ngón trỏ, viền trắng mảnh như sticker.",
+   "tags": [
+    "tay",
+    "chi"
+   ]
+  },
+  {
+   "id": "cat-dan-giay/kep-giay",
+   "kind": "cat-dan",
+   "size": "vuong",
+   "title": "Kẹp giấy bạc",
+   "prompt": "Một chiếc kẹp giấy kim loại màu bạc nằm nghiêng, chụp từ trên xuống.",
+   "tags": [
+    "van-phong-pham"
+   ]
+  },
+  {
+   "id": "cat-dan-giay/cuon-bang-dinh",
+   "kind": "cat-dan",
+   "size": "vuong",
+   "title": "Cuộn băng dính giấy",
+   "prompt": "Một cuộn băng dính giấy màu kem nhìn thẳng từ trên xuống, lõi tròn rỗng.",
+   "tags": [
+    "van-phong-pham"
+   ]
+  },
+  {
+   "id": "cat-dan-giay/bang-keo-giay",
+   "kind": "cat-dan",
+   "size": "ngang",
+   "title": "Mẩu băng keo giấy",
+   "prompt": "Một mẩu băng keo giấy mờ màu kem ngắn, hai đầu xé răng cưa, hơi trong.",
+   "tags": [
+    "van-phong-pham",
+    "keo"
+   ]
+  },
+  {
+   "id": "cat-dan-giay/giay-note-vang-trong",
+   "kind": "cat-dan",
+   "size": "vuong",
+   "title": "Giấy note vàng (trống)",
+   "prompt": "Một tờ giấy note vàng nhạt hình vuông hơi cong một góc, bề mặt TRỐNG để chèn chữ viết tay sau.",
+   "tags": [
+    "note"
+   ]
+  },
+  {
+   "id": "cat-dan-giay/giay-vo-nhau",
+   "kind": "cat-dan",
+   "size": "vuong",
+   "title": "Mẩu giấy vo nhàu",
+   "prompt": "Một mẩu giấy trắng bị vo nhàu thành cục tròn, nếp gấp rõ.",
+   "tags": [
+    "giay"
+   ]
+  },
+  {
+   "id": "cat-dan-giay/tem-do-trong",
+   "kind": "cat-dan",
+   "size": "vuong",
+   "title": "Dấu tròn đỏ (trống)",
+   "prompt": "Một con dấu mộc tròn màu đỏ đóng trên giấy, mực loang nhẹ, phần giữa TRỐNG không chữ.",
+   "tags": [
+    "tem",
+    "dau"
+   ]
+  },
+  {
+   "id": "cat-dan-giay/anh-in-bep-den-trang",
+   "kind": "cat-dan",
+   "size": "doc",
+   "title": "Ảnh in đen trắng góc bếp gọn",
+   "prompt": "Một tấm ảnh in đen trắng có viền trắng như ảnh in, hơi nghiêng 4 độ: góc bếp gia đình gọn gàng với hũ gia vị xếp thẳng hàng trên kệ. Chỉ tấm ảnh, quanh viền là trong suốt.",
+   "tags": [
+    "anh-in",
+    "bep"
+   ]
+  }
+ ],
+ "animation_src": "assets/library/kits/chuong-cat-dan/cat-dan-mo-chuong.html"
+}

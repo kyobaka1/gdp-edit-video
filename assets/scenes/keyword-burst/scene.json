@@ -1,0 +1,73 @@
+{
+ "id": "keyword-burst",
+ "code": "C01",
+ "name": "Keyword Burst — từ khoá bật to",
+ "version": "1.0.0",
+ "motion_id": "scene-keyword-burst",
+ "status": "ready",
+ "purpose": "Một từ khoá / con số đắt nhất của ý bật TO lên đúng lúc người nói nói ra nó, đè lên footage (không phủ khung), có thể nằm SAU người (đầu/tóc/tay che một phần chữ) như mẫu M2/M3. Tắt tiếng vẫn bắt được ý chính.",
+ "use_when": [
+  "Lời có một từ khoá / con số / lợi ích đáng nhấn ('chịu lực 15 ký', 'HÀNH TRÌNH', 'MIỄN PHÍ', '3 bước') — chữ = đúng lời nói (hoặc rút gọn lời đó)",
+  "Đoạn người nói dài > 4s cần đổi nhịp thị giác mà không cắt cảnh (mẫu: ~1 từ khoá / 2,5–3s trên cảnh người nói)",
+  "Hook giây 0–3: từ khoá của câu hứa hiện ≤ 0,6s đầu (không phải thẻ phủ khung)",
+  "Cảnh người nói đứng yên, đầu ở 1/3 trên khung → để chữ sau đầu (behind auto) cho chiều sâu"
+ ],
+ "avoid_when": [
+  "Từ không có trong lời / thêm tuyên bố sản phẩm chưa có trong nguồn",
+  "Hai từ khoá cách nhau < 2s, hoặc trùng đúng đoạn khối chữ cap() (đồ hoạ hiện thì chữ động tắt)",
+  "Cảnh sản phẩm / bằng chứng mà chữ to sẽ che chi tiết cần xem",
+  "Câu chuyển chương / bước mới — dùng Chapter Card (C02)"
+ ],
+ "presets": {
+  "micro": {"dur": [0.45, 0.95], "default": 0.7, "covers": false, "hides": ["lead"], "note": "1 từ bật nhanh, không dòng dẫn (có lead → tự nâng standard nếu đủ 0,8s) — nhịp lời nhanh"},
+  "standard": {"dur": [0.8, 1.7], "default": 1.2, "covers": false, "note": "từ khoá + dòng dẫn nhỏ (lead), vào từng từ"},
+  "full": {"dur": [1.4, 3.5], "default": 2.0, "covers": false, "note": "bóng mờ báo trước rồi chữ đặc trồi lên (GDP/Dark), ánh sáng quét / gạch chân tự vẽ"}
+ },
+ "preset_auto": [[0.95, "micro"], [1.7, "standard"], [99, "full"]],
+ "default_dur": 1.2,
+ "hold_after": 0.35,
+ "lead_in": {"micro": 0.1, "standard": 0.22, "full": 0.45, "note": "hiện sớm hơn lời — không sớm hơn lúc từ liền trước nói xong"},
+ "behind": {"default": "auto", "min_person": 0.03, "max_occlusion": 0.35, "max_occlusion_peak": 0.5, "target_occlusion": 0.22, "top_limit": 0.10, "y_band": [0.14, 0.42],
+            "note": "auto (đo trên NÉT chữ thật): chưa ép y → dời chữ dọc tìm chỗ người che ~22% nét (đầu chìm sau đáy chữ), tối đa 35% (đo 3 lúc khi chữ đứng, lúc nào cũng ≤ 50%); không có chỗ (cận mặt, đầu sát mép trên, người xoay/sát máy) → chữ TRƯỚC người, dời né vùng đầu; không có người → giữ chỗ. DẤU NẶNG (Ạ Ộ Ụ…) luôn nổi trước người (template báo qa.dots) — không bao giờ bị khoét. Mặt nạ: assets/models/rvm_mobilenetv3_fp32.onnx (RVM, chạy máy, miễn phí)"},
+ "themes": {
+  "gdp_red": {"brand": "GIADUNGPLUS", "trans": "cut",
+              "look": "chữ UTM Avo trắng → nhạt dần xuống đáy, bóng mềm; dòng dẫn trên băng giấy đen; trượt ngang vượt nhẹ rồi khựng; accent = vàng GDP"},
+  "phaledo_dark": {"brand": "PHALEDO", "trans": "cut",
+                   "look": "chữ Averta giãn nhẹ, trồi lên trong mặt nạ từng từ, ánh sáng champagne quét qua, viên kính tối cho dòng dẫn, nét mảnh"},
+  "phaledo_warm": {"brand": "PHALEDO", "trans": "cut",
+                   "look": "chữ Averta kem ấm trượt lên rồi đặt xuống (nảy nhẹ) như dán sổ, dòng dẫn trên băng washi nghiêng, nét gạch chân tự vẽ"}
+ },
+ "theme_by_brand": {"GIADUNGPLUS": "gdp_red", "PHALEDO": "phaledo_dark", "*": "gdp_red"},
+ "params": {
+  "word": {"required": true, "max_chars": 16, "note": "từ khoá IN HOA tự động; ≤ 2 từ là đẹp nhất; '|' ép xuống dòng; dài thì tự 2 dòng"},
+  "lead": {"max_chars": 22, "note": "dòng dẫn nhỏ trên từ khoá ('Bước 3', 'từ', 'đó chính là') — micro không hiện"},
+  "side": {"note": "center | left | right — chữ đứng phía nào và trượt vào từ phía đó (mẫu: số bên trái đầu, số to bên phải)"},
+  "y": {"note": "tâm chữ theo tỉ lệ cao khung; BỎ TRỐNG = máy tự đặt ngang đầu khi chữ sau người (behind auto), không có người = theo theme (~0,25)"},
+  "accent": {"note": "1 = màu nhấn (GDP vàng, PHALEDO champagne/cát) cho con số / chữ đắt nhất"},
+  "behind": {"note": "auto (mặc định) | True ép sau người | False luôn trước người — tham số dựng, không phải của trang HTML"},
+  "theme": {"note": "bỏ trống = theo shop của job (c.logo / c.theme)"},
+  "preset": {"note": "bỏ trống = theo thời lượng: at → until | dur | không ghi gì = tới hết cụm at + hold_after 0,35s (at là giây → default_dur 1,2s)"}
+ },
+ "sfx": {
+  "gdp_red": [{"at": "word", "file": "scene/word_whoosh.wav", "gain_db": -19}],
+  "phaledo_dark": [{"at": "word", "file": "scene/air_shimmer.wav", "gain_db": -23}],
+  "phaledo_warm": [{"at": "word", "file": "click_003.ogg", "gain_db": -22, "presets": ["micro"]},
+                   {"at": "land", "file": "scene/pencil_scribble.wav", "gain_db": -21, "presets": ["standard", "full"]}]
+ },
+ "word_at": {"gdp_red": {"micro": 0.0, "standard": 0.07, "full": 0.42}, "phaledo_dark": {"micro": 0.0, "standard": 0.1, "full": 0.45},
+             "phaledo_warm": {"micro": 0.0, "standard": 0.1, "full": 0.22}},
+ "land_at": {"gdp_red": {"micro": 0.21, "standard": 0.38, "full": 0.78}, "phaledo_dark": {"micro": 0.28, "standard": 0.6, "full": 1.07},
+             "phaledo_warm": {"micro": 0.26, "standard": 0.5, "full": 0.68}},
+ "qa": ["Motion Engine: tất định, nền trong suốt, khung cuối trong suốt; cảnh báo 'viền TỐI' = bóng mềm cố ý cho chữ đọc được trên nền sáng, bỏ qua",
+        "Template: chữ không tràn (qa.overflow rỗng), dấu tiếng Việt trên/dưới chữ hoa (Ủ Ầ / Ộ Ụ) không mất; qa.warn = ra ngoài vùng an toàn TikTok",
+        "Dựng: chữ sau người → báo % nét chữ bị che (đích ~22%, ≤ 35%; đo thật từng khung, > 60% = trượt), chữ không che mặt khi để trước người (soát ảnh qa_*.jpg ô 'g')",
+        "Lời: từ khoá phải có trong lời, hiện sớm 0,1–0,45s so với lúc nói (lead_in)"],
+ "examples": [
+  "c.graphic('scene-keyword-burst', at='hành trình', word='Hành trình')                       # 1,2s standard, theme theo shop",
+  "c.graphic('scene-keyword-burst', at='mười lăm ký', dur=0.7, word='15 KG', accent=1)         # micro, màu nhấn",
+  "c.graphic('scene-keyword-burst', at='Bước ba', until='Branding', word='Branding', lead='Bước 3', side='left')",
+  "c.graphic('scene-keyword-burst', at='thủy tinh', word='Thủy tinh', theme='phaledo_dark', behind=False)"
+ ],
+ "sample": {"GIADUNGPLUS": {"word": "Chịu lực 15 kg", "lead": "Dán là chắc"}, "PHALEDO": {"word": "Thủy tinh", "lead": "Chất liệu"}},
+ "previews": "previews/<theme>-<preset>.jpg (6 mốc trên 3 nền: tối / sáng / footage giả) + previews/_board.jpg (footage thật)"
+}
