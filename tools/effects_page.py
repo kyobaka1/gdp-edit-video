@@ -4,7 +4,7 @@ r"""Thư viện hiệu ứng → trang xem hieu-ung.html (mở thẳng bằng Ch
     .\.venv\Scripts\python.exe tools\effects_page.py --html     # chỉ dựng lại trang (sửa catalog.json / page.html)
     .\.venv\Scripts\python.exe tools\effects_page.py --force    # làm lại toàn bộ media
 
-Nguồn: assets/effects/catalog.json (tên gọi, nhóm, liều lượng, demo) + assets/scenes/<family>/scene.json (thẻ cảnh C01–C11,
+Nguồn: assets/effects/catalog.json (tên gọi, nhóm, liều lượng, demo) + assets/scenes/<family>/scene.json (thẻ cảnh C01–C17,
 tự đồng bộ) + assets/motion/<id>/motion.json (animation thương hiệu). Media sinh ra ở assets/effects/media/ (clip 360×640 cắt
 từ video đã dựng, ảnh thu nhỏ). Khuôn trang: assets/effects/page.html. Thêm hiệu ứng = thêm mục vào catalog.json → chạy lại.
 """
@@ -112,12 +112,13 @@ def scene_thumbs(e: dict, info: dict, footage: Image.Image, force: bool) -> dict
     """Ảnh thu nhỏ thẻ cảnh: 3 theme, preset standard (đè footage nếu không phủ khung), khung lúc nội dung hiện đủ."""
     out = {}
     entry = ROOT / "assets" / "scenes" / e["scene"] / "src" / f"{e['scene']}.html"
-    for th in THEMES:
+    for th in info["themes"]:   # theme của chính family (C01–C11: 3 theme shop · C13+: ui_dark / ui_light)
         jpg = MEDIA / "thumbs" / f"scene_{e['scene']}_{th}.jpg"
         out[th] = rel(jpg)
         if jpg.exists() and not force:
             continue
-        params = {**info["sample"].get(THEME_BRAND[th], {}), "theme": th, "preset": "standard", "seed": 1}
+        smp = info["sample"].get(th) or info["sample"].get(THEME_BRAND.get(th, "")) or next(iter(info["sample"].values()), {})
+        params = {**smp, "theme": th, "preset": "standard", "seed": 1}
         with motionlib.HtmlPage(entry, params, [1080, 1920]) as pg:
             qa = pg.page.evaluate("() => (window.SCENE_MOTION || {}).qa || {}")
             dur = float(pg.info.get("duration") or 3)
@@ -125,6 +126,8 @@ def scene_thumbs(e: dict, info: dict, footage: Image.Image, force: bool) -> dict
             t = min(dur - 0.4, float(t) + 0.15)
             if e["scene"] == "problem-solution":
                 t = dur - 0.6
+            if scenes.load(e["scene"]).get("uikit"):   # thẻ giao diện dựng dần theo lời → chụp lúc đủ mục, trước khi tan
+                t = dur - 0.5
             im = Image.open(io.BytesIO(pg.frame(t))).convert("RGBA")
         base = footage.copy()
         base.alpha_composite(im)

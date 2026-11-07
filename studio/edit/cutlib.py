@@ -2,6 +2,7 @@
 
     from studio.edit.cutlib import Cut
     c = Cut(__file__)
+    c.style("gdp-ban-hang")                                # (tuỳ) phong cách: chữ, màu hình, nền màn chữ, theme Scene
     c.say("vo", "Năm ngày ở Bắc Kinh", "cảnh đẹp")        # đoạn lời: từ cụm đầu → hết cụm cuối (khớp chữ đã chép)
     c.say("c08", 0.35, 1.9, frame="tight")                 # đoạn lời theo giây; clip có hình → hiện người nói
     c.cover("c11", at="Cả nhóm", until="háo hức", src_in=1.0, trans="flash")   # cảnh minh hoạ đè hình, giữ tiếng
@@ -45,9 +46,12 @@ class Cut:
         self.pieces, self.covers, self.cards, self.caps, self.graphics = [], [], [], [], []
         self.audio_cfg = {"voice_lufs": -14.0, "music": None, "music_lufs": -30.0, "clean": True}
         self.logo_cfg = None
-        self.style = "cinematic"
+        self.kinetic_page = "cinematic"
         self.grade_cfg = "cinematic"   # chỉnh màu như mẫu (tối viền, nén vùng sáng); None = giữ màu gốc
         self.theme_cfg = None          # theme Scene Library cả video (None = theo shop của logo)
+        self.style_raw = None          # phong cách (assets/styles/<id>/style.json) — c.style()
+        self._grade_set = False
+        self._audio_set = set()
 
     # ───────────────────────── lời (trục thời gian chính) ─────────────────────────
     def _words(self, key: str) -> list[dict]:
@@ -64,11 +68,33 @@ class Cut:
         near = " ".join(w["w"] for w in ws if w["start"] >= after - 0.01)[:160]
         raise CutError(f"Không thấy cụm '{phrase}' (sau {after:.2f}s). Lời phía sau: {near}")
 
+    def style(self, style_id: str):
+        """Phong cách dựng (Style Pack, `vs.py styles`): kiểu chữ động, cao độ chữ, chỉnh màu, nền màn chữ (kính mờ),
+        theme Scene, nhịp cắt, mức nhạc. Gọi TRƯỚC c.say(). Font + màu nhấn vẫn theo thương hiệu của c.logo(shop)."""
+        from studio.edit import styles
+        try:
+            self.style_raw = styles.load(style_id)
+        except styles.StyleError as exc:
+            raise CutError(str(exc))
+        if self.pieces:
+            raise CutError("c.style() phải gọi trước c.say() (nhịp cắt lời theo phong cách)")
+        return self
+
+    def _style_get(self, *path, default=None):
+        d = self.style_raw or {}
+        for k in path:   # khoá có mặt với giá trị null = cố ý tắt (vd san-pham-thuan: tighten null = không cắt lặng)
+            if not isinstance(d, dict) or k not in d:
+                return default
+            d = d[k]
+        return d
+
     def say(self, key: str, a, b=None, *, frame=None, push: float = 0.0, focus=None,
-            tighten: float | None = 0.35, pad: tuple[float, float] = (0.05, 0.10)):
+            tighten: float | None | str = "style", pad: tuple[float, float] = (0.05, 0.10)):
         """Thêm một đoạn lời vào trục chính. a/b = cụm chữ (đầu / cuối đoạn) hoặc giây trong nguồn.
         tighten = cắt khoảng lặng giữa đoạn dài hơn X giây (giữ 0,12s) như mẫu nói liền ~4 âm tiết/giây; None = giữ nguyên.
         frame = "wide"|"medium"|"tight"|số zoom (chỉ nguồn có hình); push = zoom thêm dần trong đoạn (mẫu mở đầu +0,14)."""
+        if tighten == "style":   # mặc định 0,35s; phong cách có thể cắt chặt hơn (mẫu m2/Blue 1: không khoảng > 0,3s)
+            tighten = self._style_get("pacing", "tighten", default=0.35)
         ws = self._words(key)
         dur = self.src[key]["duration"]
         if isinstance(a, str):
@@ -121,8 +147,13 @@ class Cut:
                             "speed": speed, "ambient": ambient})
         return self
 
-    def card(self, at, until=None, *, dur: float | None = None, bg: str = "black", trans: str = "dip"):
-        """Màn đen chữ (mở đầu / câu chốt): hình tối hẳn, chữ đứng giữa, dòng cũ tối đi khi dòng mới vào."""
+    def card(self, at, until=None, *, dur: float | None = None, bg: str | None = None, trans: str | None = None):
+        """Màn chữ (mở đầu / câu chốt / câu tuyên bố): chữ đứng giữa, dòng cũ tối đi khi dòng mới vào.
+        bg: black (màn đen) | glass (KÍNH MỜ — hình vẫn chạy, nhoè + tối, mẫu Blue 1); không ghi = theo phong cách."""
+        bg = bg or self._style_get("card_bg", default="black")
+        if bg not in ("black", "glass"):
+            raise CutError(f"card bg '{bg}' không có (dùng black | glass)")
+        trans = trans or ("cut" if bg == "glass" else "dip")   # kính mờ tự nhoè vào/ra 0,2s
         self.cards.append({"at": at, "until": until, "dur": dur, "bg": bg, "trans": trans})
         return self
 
@@ -184,11 +215,12 @@ class Cut:
                               "params": {k: v for k, v in params.items() if v is not None}})
         return self
 
-    def cap(self, markup: str, *, exit: str = "words", pos: str = "auto", y: float | None = None,
+    def cap(self, markup: str, *, exit: str | None = None, pos: str = "auto", y: float | None = None,
             hold: float = 0.45, morph: bool = True):
         """Khối chữ. Dòng cách nhau " / "; đầu dòng: `!` cụm khoá IN HOA đậm · `!!` khoá nghiêng · `~` chữ mảnh to ·
         `.` dòng phụ nhỏ · không dấu = dòng đang nói; thêm `^` = tô màu nhấn (vàng). Mẫu: ".không có mặt bằng nào / !HOÀN HẢO HẾT".
-        exit: words (rút từng từ) | rise (trôi lên) | fade. pos: auto | center | left | right."""
+        exit: words (rút từng từ) | rise (trôi lên) | fade (không ghi = theo phong cách). pos: auto | center | left | right."""
+        exit = exit or self._style_get("captions", "exit", default="words")
         if exit not in EXITS:
             raise CutError(f"exit '{exit}' không có (dùng {', '.join(sorted(EXITS))})")
         self.caps.append({"markup": markup, "exit": exit, "pos": pos, "y": y, "hold": hold, "morph": morph})
@@ -197,10 +229,16 @@ class Cut:
     def audio(self, **kw):
         """voice_lufs (−14), music (đường file hoặc None — mẫu không có nhạc), music_lufs (−30), clean (lọc + nén giọng)."""
         self.audio_cfg.update(kw)
+        self._audio_set |= set(kw)
         return self
 
     def grade(self, kind: str | None = "cinematic"):
+        """Chỉnh màu: cinematic (mẫu vlog) | toi-vang (hạ bão hoà, tối 4 góc — mẫu m2) | sach (sáng, nhẹ viền) | None."""
+        from studio.edit.build import GRADES
+        if kind is not None and kind not in GRADES:
+            raise CutError(f"grade '{kind}' không có (dùng {', '.join(GRADES)} | None)")
         self.grade_cfg = kind
+        self._grade_set = True
         return self
 
     def logo(self, shop: str, corner: str = "top-left", width_pct: float = 0.14):
@@ -354,6 +392,7 @@ class Cut:
     def _scene_setup(self, graphics: list[dict], words: list[dict], total: float) -> list[str]:
         """Scene Library: theme (shop/c.theme), preset (thời lượng), phủ khung hay không, chuyển cảnh vào, ảnh lib:."""
         from studio import scenes
+        from studio.edit import styles
         warns = []
         for g in graphics:
             prof = scenes.for_motion(g["id"])
@@ -370,9 +409,20 @@ class Cut:
                 g["trans"] = g["trans"] or "flash"
                 continue
             try:
-                th = p.get("theme") or scenes.theme_for(prof, (self.logo_cfg or {}).get("shop"), self.theme_cfg)
+                th = (p.get("theme") or (None if self.theme_cfg else styles.prefers_theme(self.style_cfg, prof))
+                      or scenes.theme_for(prof, (self.logo_cfg or {}).get("shop"), self.theme_cfg))
             except scenes.SceneError as exc:
                 raise CutError(str(exc))
+            if prof.get("brand_param"):   # family mới (C13+): font + màu nhấn theo thương hiệu của shop
+                p.setdefault("brand", (self.style_cfg or {}).get("brand") or scenes.brand_of((self.logo_cfg or {}).get("shop"))
+                             or "GIADUNGPLUS")
+                acc = ((self.style_cfg or {}).get("skin") or {}).get("accent") or scenes.accent_of((self.logo_cfg or {}).get("shop"))
+                if acc:
+                    p.setdefault("accent", acc)
+            avoid = ((self.style_cfg or {}).get("scenes") or {}).get("avoid") or []
+            if prof["id"] in avoid:
+                warns.append(f"đồ hoạ {g['id']}: phong cách {self.style_cfg['id']} TRÁNH '{prof['id']}' "
+                             f"({((self.style_cfg or {}).get('scenes') or {}).get('why', {}).get(prof['id'], 'xem style.json')})")
             if th not in prof["themes"]:
                 raise CutError(f"{prof['id']}: không có theme '{th}' (có: {', '.join(prof['themes'])})")
             if g.pop("auto_hold", False):   # until = chính cụm at (+0,12s) → đổi thành + hold_after
@@ -440,6 +490,10 @@ class Cut:
                 if pr == "micro" and not cfg.get("micro"):
                     warns.append(f"đồ hoạ {g['id']} preset micro không hiện nhãn con")
                 p["items"] = json.dumps(out, ensure_ascii=False)
+            for k, v in prof.get("params", {}).items():   # tham số "when": cụm lời | giây tuyệt đối → giây tính từ đầu thẻ
+                if v.get("when") and p.get(k) not in (None, ""):
+                    ta = self._when(words, p[k], g["t0"] - 0.6)
+                    p[k] = round(min(max(0.4, ta - g["t0"]), g["t1"] - g["t0"] - 0.6), 3)
             g["min_dur"] = prof["presets"][pr]["dur"][0]
             g["trans"] = g["trans"] or (prof["themes"][th].get("trans", "flash") if g["covers"] else "cut")
             miss = [k for k, v in prof.get("params", {}).items() if v.get("required") and p.get(k) in (None, "")]
@@ -502,6 +556,16 @@ class Cut:
     def save(self) -> dict:
         if not self.pieces:
             raise CutError("Chưa có đoạn lời nào (c.say)")
+        self.style_cfg = None
+        if self.style_raw:   # phong cách → cấu hình cụ thể theo shop (font / màu nhấn của thương hiệu)
+            from studio.edit import styles
+            self.style_cfg = styles.resolve(self.style_raw, (self.logo_cfg or {}).get("shop"))
+            self.kinetic_page = self.style_cfg["page"]
+            if not self._grade_set:
+                self.grade_cfg = self.style_cfg["grade"]
+            for k, v in (self.style_cfg.get("audio") or {}).items():
+                if k not in self._audio_set:
+                    self.audio_cfg[k] = v
         words = self._timeline()
         total = self.pieces[-1]["t1"]
         cards, after = [], -1.0
@@ -539,6 +603,13 @@ class Cut:
                     x["t0"], x["trans"] = round(g["t1"] - 0.3, 3), "cut"
                     if "src_in" in x:
                         x["src_in"] = max(0.0, x["src_in"] - 0.3 * x.get("speed", 1.0))
+        seq = sorted([g for g in graphics if not g.get("captions_keep")], key=lambda x: x["t0"])
+        for x, y in zip(seq, seq[1:]):   # 2 thẻ nối nhau (until cụm cuối + giữ lại) chồng giờ → thẻ trước nhường thẻ sau
+            if x["t1"] > y["t0"] > x["t0"]:
+                if x["t1"] - y["t0"] > 0.4:
+                    scene_warns.append(f"đồ hoạ {x['id']} {x['t0']:.2f}–{x['t1']:.2f}s chồng {y['id']} "
+                                       f"{x['t1'] - y['t0']:.2f}s → cắt thẻ trước tại {y['t0']:.2f}s")
+                x["t1"] = y["t0"]
         for g in graphics:   # thời lượng animation = khoảng đã chốt (sau khi nối khe)
             if g["t1"] - g["t0"] < g["min_dur"] - 1e-3:
                 raise CutError(f"đồ hoạ {g['id']} {g['t0']:.2f}–{g['t1']:.2f}s ngắn hơn {g['min_dur']}s"
@@ -577,7 +648,8 @@ class Cut:
         if holes:
             raise CutError("Đoạn giọng đọc không có hình: " + ", ".join(f"{a:.2f}–{b:.2f}s" for a, b in holes)
                            + " → thêm c.cover(...) cho các khoảng này")
-        edit = {"out": self.meta["out"], "style": self.style, "grade": self.grade_cfg, "duration": round(total, 3),
+        edit = {"out": self.meta["out"], "style": self.kinetic_page, "style_pack": (self.style_cfg or {}).get("id"),
+                "style_cfg": self.style_cfg, "grade": self.grade_cfg, "duration": round(total, 3),
                 "pieces": self.pieces,
                 "covers": covers, "cards": cards, "graphics": graphics, "captions": blocks, "words": words,
                 "audio": self.audio_cfg,
@@ -588,7 +660,8 @@ class Cut:
 
     def _report(self, e: dict) -> None:
         print(f"edit.json · {e['duration']:.2f}s · {len(e['pieces'])} đoạn lời · {len(e['covers'])} cảnh đè · "
-              f"{len(e['cards'])} màn chữ · {len(e['captions'])} khối chữ")
+              f"{len(e['cards'])} màn chữ · {len(e['captions'])} khối chữ"
+              + (f" · phong cách {e['style_pack']} (màu {e['grade']})" if e.get("style_pack") else ""))
         for p in e["pieces"]:
             fr = f" khung {p['frame']}" + (f" push+{p['push']}" if p.get("push") else "") if p.get("zoom") else ""
             print(f"  lời  {p['t0']:6.2f}–{p['t1']:6.2f}  {p['src']} {p['in']:.2f}–{p['out']:.2f}{fr}")

@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Keyword Burst</title>
+<!-- Scene Library · C01 Keyword Burst v1.0 (Claude viết 05/11/2026) — assets/scenes/keyword-burst/scene.json.
+     Một từ khoá TO bật lên đúng nhịp lời, đè lên footage (nền trong suốt, không phủ khung). Học từ mẫu M2/M3:
+     chữ trắng → trong suốt dần xuống đáy, bóng mềm, ngang tầm đầu (15–35% H), vào từng từ từ phía nó đứng, bản full có
+     "bóng mờ báo trước". Chữ nằm SAU người do build.py ghép bằng mặt nạ tách người (không phải việc của trang này).
+     Hợp đồng Motion Engine: window.setTime(giây) vẽ ĐỒNG BỘ, không Internet, KHÔNG will-change, không scale phần tử có filter.
+     Query: theme · preset (micro|standard|full) · dur · word ('|' = xuống dòng) · lead (dòng dẫn nhỏ) ·
+     side (center|left|right) · y (tâm chữ, tỉ lệ cao khung) · accent (1 = màu nhấn) · seed. -->
+<style>
+  @font-face { font-family: "GdpBold"; src: url("fonts/UTM_AvoBold.ttf"); }
+  @font-face { font-family: "GdpReg"; src: url("fonts/UTM_Avo.ttf"); }
+  @font-face { font-family: "PhBold"; src: url("fonts/Averta-Bold.otf"); }
+  @font-face { font-family: "PhReg"; src: url("fonts/Averta-Regular.otf"); }
+  @font-face { font-family: "PhLight"; src: url("fonts/Averta-Light.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  .grp { position: absolute; left: 0; top: 0; }
+  .line { position: relative; white-space: nowrap; line-height: 1.02; }
+  .mask { overflow: hidden; padding: 40px 44px; margin: -40px -44px; }
+  .w { display: inline-block; position: relative; }
+  .w + .w { margin-left: .26em; }
+  /* chừa chỗ dấu tiếng Việt trên chữ hoa (Ủ Ầ Ỗ) và dấu nặng dưới (Ộ Ụ): nền đổ màu chỉ vẽ trong hộp chữ */
+  .fill, .sh { padding: .24em .06em .2em; margin: -.24em -.06em -.2em; }
+  .fill { position: relative; display: inline-block; -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sh { position: absolute; left: 0; top: 0; white-space: nowrap;
+        -webkit-mask-image: linear-gradient(180deg, #000 35%, rgba(0,0,0,.35) 100%); mask-image: linear-gradient(180deg, #000 35%, rgba(0,0,0,.35) 100%); }
+  .lead { position: absolute; left: 0; top: 0; white-space: nowrap; transform-origin: 50% 50%; }
+  .tape { background-size: 100% 100%; background-repeat: no-repeat; box-sizing: border-box; }
+  .hair { position: absolute; height: 2px; transform-origin: 50% 50%; }
+  svg { position: absolute; left: 0; top: 0; overflow: visible; }
+</style>
+<script src="assets.js"></script>
+<script src="themes.js"></script>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+(function () {
+  const W = 1080, H = 1920, FPS = 30;
+  const Q = new URLSearchParams(location.search);
+  const TH_ID = Q.get("theme") || "gdp_red";
+  const T = window.SCENE_THEMES[TH_ID] || window.SCENE_THEMES.gdp_red;
+  const PRESETS = { micro: { min: 0.45, def: 0.7 }, standard: { min: 0.8, def: 1.2 }, full: { min: 1.4, def: 2.0 } };
+  const PRESET = PRESETS[Q.get("preset")] ? Q.get("preset") : "standard";
+  const D = Math.max(PRESETS[PRESET].min, parseFloat(Q.get("dur") || PRESETS[PRESET].def) || PRESETS[PRESET].def);
+  const FULL = PRESET === "full", MICRO = PRESET === "micro";
+  const WORD = (Q.get("word") || "TỪ KHOÁ").toLocaleUpperCase("vi").trim();
+  const LEAD = MICRO ? "" : (Q.get("lead") || "").trim();
+  const SIDE = ["left", "right"].includes(Q.get("side")) ? Q.get("side") : "center";
+  const Y = clampN(parseFloat(Q.get("y") || T.y) || T.y, 0.14, 0.72);
+  const ACCENT = ["1", "true", "yes"].includes((Q.get("accent") || "").toLowerCase());
+  const SEED = parseInt(Q.get("seed") || "1", 10) || 1;
+  const A = window.KIT_ASSETS;
+  function clampN(x, a, b) { return Math.min(b, Math.max(a, x)); }
+
+  // ── tiện ích (tất định) ──
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const prog = (t, a, b) => b <= a ? (t >= b ? 1 : 0) : clamp((t - a) / (b - a));
+  const outBack = (x, s = 1.5) => 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2);
+  const outCubic = x => 1 - Math.pow(1 - x, 3);
+  const inCubic = x => x * x * x;
+  const inOut = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  const stop12 = t => Math.floor(t * 12 + 1e-6) / 12;
+  function rng(n) {
+    let a = (SEED * 7919 + n * 104729) >>> 0;
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  const stage = document.getElementById("stage");
+  function node(tag, cls, parent) { const e = document.createElement(tag); if (cls) e.className = cls; (parent || stage).appendChild(e); return e; }
+  const imgs = [];
+  function preload(src) { const im = new Image(); im.src = src; imgs.push(im); return src; }
+  function split2(text) {
+    const w = text.split(" "); let best = 1, score = 1e9;
+    for (let i = 1; i < w.length; i++) {
+      const sc = Math.abs(w.slice(0, i).join(" ").length - w.slice(i).join(" ").length);
+      if (sc < score) { score = sc; best = i; }
+    }
+    return [w.slice(0, best).join(" "), w.slice(best).join(" ")];
+  }
+  const QA = { theme: TH_ID, preset: PRESET, dur: D, overflow: [], warn: [], fontPx: {} };
+  const MAXW = SIDE === "center" ? 820 : 640;
+  const CX = 486;   // giữa vùng an toàn TikTok (6–84% ngang: cột nút bên phải)
+  const SAFE = [0.06 * W, 0.12 * H, 0.84 * W, 0.76 * H];
+
+  // ── khối chữ: mỗi dòng → mỗi từ = bóng mềm (.sh) + chữ đổ màu dọc (.fill) ──
+  const C = T.color;
+  const top = ACCENT ? C.accentTop : C.top, bot = ACCENT ? C.accentBottom : C.bottom;
+  function grad(extra) {
+    const base = `linear-gradient(180deg, ${top} 0%, ${top} 50%, ${bot} 100%)`;   // nhạt dần nhưng dấu nặng (Ộ Ụ) vẫn đọc được
+    return extra ? `${extra}, ${base}` : base;
+  }
+  const SHINE = T.engine === "glass" ? `linear-gradient(100deg, rgba(255,255,255,0) 40%, ${C.shine} 50%, rgba(255,255,255,0) 60%)` : null;
+  function buildBlock(grp, lines, ghost) {
+    grp.textContent = "";
+    const words = [];
+    lines.forEach((ln, li) => {
+      const L = node("div", "line" + (T.engine === "glass" && !ghost ? " mask" : ""), grp);
+      ln.split(" ").filter(Boolean).forEach(tx => {
+        const w = node("span", "w", L);
+        let sh = null;
+        if (!ghost) {
+          sh = node("span", "sh", w); sh.textContent = tx;
+          Object.assign(sh.style, { color: C.shadow, filter: "blur(14px)", transform: "translateY(9px)" });
+        }
+        const f = node("span", "fill", w); f.textContent = tx;
+        if (ghost) { f.style.background = "none"; f.style.color = C.ghost; }
+        else {
+          f.style.backgroundImage = grad(SHINE);
+          if (SHINE) { f.style.backgroundSize = "340% 100%, 100% 100%"; f.style.backgroundPosition = "100% 0, 0 0"; }
+        }
+        words.push({ el: w, f, sh, line: li });
+      });
+    });
+    [...grp.querySelectorAll(".sh, .fill")].forEach(s => { s.style.fontFamily = T.fonts.word; s.style.letterSpacing = T.track; });
+    return words;
+  }
+  const ghostGrp = (FULL && T.engine !== "journal") ? node("div", "grp") : null;
+  const grp = node("div", "grp");
+  let words = [], ghostWords = [], lines = [WORD];
+  function setPx(g, px) { g.querySelectorAll(".line").forEach(s => s.style.fontSize = px + "px"); }   // .w/.sh/.fill thừa hưởng → khoảng cách từ .26em đúng cỡ
+  function blockW(g) { return Math.max(...[...g.querySelectorAll(".line")].map(l => l.scrollWidth - (l.classList.contains("mask") ? 88 : 0))); }
+  function fit(g, max, min) {
+    let px = max; setPx(g, px);
+    while (px > min && blockW(g) > MAXW) { px -= 2; setPx(g, px); }
+    return px;
+  }
+
+  // ── dòng dẫn nhỏ (lead) ──
+  let lead = null;
+  if (LEAD) {
+    lead = node("div", "lead");
+    lead.textContent = T.engine === "journal" ? LEAD : LEAD.toLocaleUpperCase("vi");
+    if (T.engine === "paper") {
+      lead.className = "lead tape"; preload(A[T.tape].src);
+      Object.assign(lead.style, { backgroundImage: `url(${A[T.tape].src})`, fontFamily: T.fonts.lead, color: C.lead,
+        fontSize: "46px", padding: "20px 44px 22px 40px", letterSpacing: ".02em" });
+    } else if (T.engine === "journal") {
+      lead.className = "lead tape"; preload(A[T.tape].src);
+      Object.assign(lead.style, { backgroundImage: `url(${A[T.tape].src})`, fontFamily: T.fonts.lead, color: C.lead,
+        fontSize: "46px", padding: "14px 48px 16px 44px" });
+    } else {
+      // viên kính tối mảnh: đọc được cả trên nền sáng mà vẫn đúng chất Dark Glass
+      Object.assign(lead.style, { fontFamily: T.fonts.lead, color: C.lead, fontSize: "38px", letterSpacing: ".34em",
+        padding: "12px 30px 13px calc(30px + .34em)", background: "rgba(16,16,16,.58)", border: `1px solid ${C.line}`,
+        borderRadius: "999px", textShadow: "0 1px 6px rgba(0,0,0,.6)" });
+    }
+  }
+  const hair = (T.engine === "glass" && !MICRO) ? node("div", "hair") : null;
+  if (hair) hair.style.background = C.line;
+  let ul = null, ulPath = null, ulLen = 0;
+  if (T.engine === "journal" && !MICRO) {
+    ul = document.createElementNS("http://www.w3.org/2000/svg", "svg"); stage.appendChild(ul);
+    ulPath = document.createElementNS("http://www.w3.org/2000/svg", "path"); ul.appendChild(ulPath);
+    Object.assign(ulPath.style, { fill: "none", stroke: C.underline, strokeWidth: "11px", strokeLinecap: "round", strokeLinejoin: "round" });
+    ul.setAttribute("width", W); ul.setAttribute("height", H);
+  }
+
+  let BOX = { x: 0, y: 0, w: 0, h: 0 }, LEADBOX = null;
+  function layout() {
+    words = buildBlock(grp, lines, false);
+    let px = fit(grp, T.px[PRESET], 88);
+    if (WORD.includes("|")) { lines = WORD.split("|").map(s => s.trim()).filter(Boolean).slice(0, 2); }
+    else if (px < T.min1 && WORD.split(" ").length >= 2) lines = split2(WORD);
+    if (lines.length > 1 || WORD.includes("|")) { words = buildBlock(grp, lines, false); px = fit(grp, T.px[PRESET], 88); }
+    QA.fontPx.word = px; QA.lines = lines;
+    if (blockW(grp) > MAXW + 1) QA.overflow.push("word");
+    grp.style.textAlign = SIDE === "right" ? "right" : SIDE === "left" ? "left" : "center";
+    const bw = blockW(grp), bh = grp.offsetHeight;
+    const x = SIDE === "left" ? 0.07 * W : SIDE === "right" ? 0.83 * W - bw : CX - bw / 2;
+    const y = Y * H - bh / 2;
+    grp.style.left = Math.round(x) + "px"; grp.style.top = Math.round(y) + "px"; grp.style.width = Math.ceil(bw) + "px";
+    BOX = { x: Math.round(x), y: Math.round(y), w: Math.round(bw), h: Math.round(bh) };
+    if (ghostGrp) {
+      ghostWords = buildBlock(ghostGrp, lines, true); setPx(ghostGrp, px);
+      ghostGrp.style.textAlign = grp.style.textAlign; ghostGrp.style.left = grp.style.left; ghostGrp.style.top = grp.style.top;
+      ghostGrp.style.width = grp.style.width;
+    }
+    if (lead) {
+      if (lead.offsetWidth > MAXW) { let q = parseFloat(lead.style.fontSize); while (q > 26 && lead.offsetWidth > MAXW) { q -= 2; lead.style.fontSize = q + "px"; } }
+      if (lead.offsetWidth > MAXW + 1) QA.overflow.push("lead");
+      const lw = lead.offsetWidth, lh = lead.offsetHeight;
+      const lx = SIDE === "left" ? x - (T.engine === "glass" ? 0 : 10) : SIDE === "right" ? x + bw - lw : CX - lw / 2;
+      const gap = T.engine === "glass" ? 22 : 6;
+      LEADBOX = { x: lx, y: y - lh - gap + (T.engine === "glass" ? 0 : 0.06 * px), w: lw, h: lh };
+      QA.fontPx.lead = parseFloat(lead.style.fontSize);
+    }
+    if (hair) { const hw = Math.min(260, bw * 0.4); Object.assign(hair.style, { width: hw + "px", top: (y + bh + 26) + "px",
+      left: (SIDE === "left" ? x + 6 : SIDE === "right" ? x + bw - hw - 6 : CX - hw / 2) + "px" }); }
+    if (ul) {   // nét gạch chân vẽ tay: run nhẹ theo seed, dưới dòng cuối
+      const r = rng(7), last = [...grp.querySelectorAll(".line")].pop();
+      const lw = Math.min(bw, last.scrollWidth) * 0.9;
+      const x0 = SIDE === "left" ? x + 8 : SIDE === "right" ? x + bw - lw - 8 : CX - lw / 2, yy = y + bh + 0.13 * px;   // dưới dấu nặng
+      let d = `M ${x0.toFixed(1)} ${(yy + (r() - 0.5) * 6).toFixed(1)}`;
+      const n = 6;
+      for (let i = 1; i <= n; i++) {
+        const px2 = x0 + lw * i / n, py2 = yy + Math.sin(i * 1.7 + r()) * 5 + (r() - 0.5) * 6 - i * 1.2;
+        const cx2 = x0 + lw * (i - 0.5) / n, cy2 = yy + (r() - 0.5) * 12;
+        d += ` Q ${cx2.toFixed(1)} ${cy2.toFixed(1)} ${px2.toFixed(1)} ${py2.toFixed(1)}`;
+      }
+      ulPath.setAttribute("d", d); ulLen = ulPath.getTotalLength();
+      ulPath.style.strokeDasharray = ulLen.toFixed(1);
+    }
+    // vùng an toàn TikTok (cảnh báo, không chặn: chữ sau đầu được phép chạm mép trên khi y nhỏ)
+    const L = LEADBOX ? Math.min(BOX.x, LEADBOX.x) : BOX.x, R = Math.max(BOX.x + BOX.w, LEADBOX ? LEADBOX.x + LEADBOX.w : 0);
+    const Tp = LEADBOX ? LEADBOX.y : BOX.y, Bt = BOX.y + BOX.h;
+    if (L < SAFE[0] - 4 || R > SAFE[2] + 4 || Tp < SAFE[1] - 4 || Bt > SAFE[3] + 4)
+      QA.warn.push(`chữ ra ngoài vùng an toàn TikTok (x ${Math.round(L)}–${Math.round(R)}, y ${Math.round(Tp)}–${Math.round(Bt)})`);
+    QA.box = BOX; QA.leadBox = LEADBOX;
+  }
+
+  // ── nhịp từng theme × preset (giây) ──
+  const TM = {
+    paper:   { micro: { w0: 0.0, st: 0.05, wd: 0.16, ex: 0.13 }, standard: { w0: 0.07, st: 0.09, wd: 0.22, ex: 0.18 },
+               full: { w0: 0.42, st: 0.10, wd: 0.26, ex: 0.24 } },
+    glass:   { micro: { w0: 0.0, st: 0.06, wd: 0.22, ex: 0.16 }, standard: { w0: 0.10, st: 0.12, wd: 0.38, ex: 0.24 },
+               full: { w0: 0.45, st: 0.14, wd: 0.48, ex: 0.30 } },
+    journal: { micro: { w0: 0.0, st: 0.06, wd: 0.20, ex: 0.15 }, standard: { w0: 0.10, st: 0.10, wd: 0.30, ex: 0.20 },
+               full: { w0: 0.22, st: 0.12, wd: 0.34, ex: 0.26 } },
+  }[T.engine][PRESET];
+  const DIR = SIDE === "right" ? 1 : -1;   // vào từ phía nó đứng (giữa: từ trái như mẫu)
+  function landAt() { return TM.w0 + Math.max(0, words.length - 1) * TM.st + TM.wd; }
+
+  function setTime(t0) {
+    // khung cuối Motion Engine vẽ ở D − 1/FPS → phải tan HẾT trước mốc đó (không thì overlay tắt đột ngột)
+    const DE = D - 1 / FPS, t = clamp(t0, 0, D), E = DE - TM.ex, ko = prog(t, E, DE);
+    const n = words.length;
+    words.forEach((w, i) => {
+      const a = TM.w0 + i * TM.st, k = prog(t, a, a + TM.wd), kc = outCubic(k);
+      let tf = "", blur = 0, op = 1;
+      if (T.engine === "paper") {
+        if (FULL) tf = `translateY(${((1 - kc) * 62).toFixed(2)}px)`;   // trồi lên từ bóng mờ
+        else tf = `translateX(${(DIR * (1 - outBack(k, 1.7)) * 96).toFixed(2)}px)`;   // trượt ngang, vượt nhẹ rồi khựng
+        blur = (1 - kc) * 16; op = Math.min(1, k * 3);
+      } else if (T.engine === "glass") {
+        tf = `translateY(${((1 - kc) * 112).toFixed(2)}%)`; blur = (1 - kc) * 8; op = Math.min(1, k * 4);
+      } else {
+        const r = rng(20 + i)();
+        tf = `translateY(${((1 - kc) * 40).toFixed(2)}px) rotate(${((1 - kc) * (-5 + r * 2)).toFixed(3)}deg)`;
+        blur = (1 - kc) * 6; op = Math.min(1, k * 2.2);
+      }
+      w.el.style.transform = tf; w.el.style.opacity = op.toFixed(4);
+      w.el.style.filter = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : "none";
+      if (SHINE) {   // ánh sáng quét qua sau khi chữ vào xong
+        const L0 = landAt() + 0.05 + i * 0.06, sw = MICRO ? 1 : prog(t, L0, L0 + (FULL ? 0.75 : 0.55));
+        w.f.style.backgroundPosition = `${lerp(100, 0, sw).toFixed(2)}% 0, 0 0`;
+      }
+    });
+    if (ghostGrp) {   // bóng mờ báo trước: hiện ngay, tắt khi chữ đặc vào xong
+      const kg = outCubic(prog(t, 0, 0.14)) * (1 - prog(t, TM.w0 + 0.05, landAt()));
+      ghostGrp.style.opacity = kg.toFixed(4);
+      ghostGrp.style.filter = `blur(${T.engine === "glass" ? 4 : 2.5}px)`;
+    }
+    if (lead && LEADBOX) {
+      const l0 = FULL ? 0.06 : 0.0;
+      let x = LEADBOX.x, y = LEADBOX.y, r = 0, op = 1;
+      if (T.engine === "paper") {   // băng giấy đen đập vào, nhịp stop-motion 12 hình/giây
+        const k = prog(stop12(Math.max(0, t - l0)), 0, 0.17);
+        r = lerp(-9, -3, outCubic(k)); x += DIR * (1 - outCubic(k)) * 40; op = t >= l0 ? 1 : 0;
+      } else if (T.engine === "journal") {
+        const k = outCubic(prog(t, l0, l0 + 0.24)); r = lerp(-9, -3, k); x += DIR * (1 - k) * 70; op = Math.min(1, k * 2.5);
+      } else {
+        const k = outCubic(prog(t, l0, l0 + (FULL ? 0.6 : 0.42))); op = k;
+        lead.style.letterSpacing = lerp(0.62, 0.34, k).toFixed(3) + "em";
+        if (SIDE === "center") x = CX - lead.offsetWidth / 2;
+      }
+      lead.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) rotate(${r.toFixed(2)}deg)`;
+      lead.style.opacity = (op * (1 - ko)).toFixed(4);
+    }
+    if (hair) { const k = inOut(prog(t, TM.w0 + 0.1, landAt() + 0.2)); hair.style.transform = `scaleX(${k.toFixed(4)})`; hair.style.opacity = (1 - ko).toFixed(4); }
+    if (ul) {
+      const L0 = landAt() - 0.02, k = inOut(prog(t, L0, L0 + (FULL ? 0.4 : 0.3)));
+      ulPath.style.strokeDashoffset = ((1 - k) * ulLen).toFixed(1);
+      ul.style.opacity = (k > 0 ? 1 - ko : 0).toFixed(4);
+    }
+    // ra: GDP nhoè + bay lên · Dark tan + nhoè · Warm tan + trôi xuống
+    const kx = inCubic(ko);
+    const exitTf = T.engine === "paper" ? `translateY(${(-26 * kx).toFixed(2)}px)` : T.engine === "journal" ? `translateY(${(16 * kx).toFixed(2)}px)` : "none";
+    grp.style.transform = exitTf;
+    grp.style.opacity = (1 - kx).toFixed(4);
+    grp.style.filter = kx > 0.001 ? `blur(${((T.engine === "journal" ? 5 : 10) * kx).toFixed(2)}px)` : "none";
+    if (ul) ul.style.transform = exitTf;
+    if (t >= DE - 1e-6) { grp.style.opacity = 0; if (lead) lead.style.opacity = 0; if (hair) hair.style.opacity = 0; if (ul) ul.style.opacity = 0; if (ghostGrp) ghostGrp.style.opacity = 0; }
+  }
+
+  const fams = Object.values(T.fonts);
+  const ready = Promise.all([
+    ...fams.map(f => document.fonts.load(`120px "${f}"`, WORD + LEAD + "Ợ")),
+    ...imgs.map(im => im.decode().catch(() => { throw new Error("thiếu ảnh " + im.src); })),
+  ]).then(() => { layout(); QA.land = +landAt().toFixed(3); setTime(0); });
+
+  window.setTime = setTime;
+  window.SCENE_MOTION = { name: `Keyword Burst · ${T.label} · ${PRESET}`, duration: D, width: W, height: H, fps: FPS,
+    ready, setTime, qa: QA,
+    scenes: [{ name: "vào", start: 0, end: Math.min(D - TM.ex, TM.w0 + TM.wd + 0.1) },
+             { name: "đứng đọc", start: Math.min(D - TM.ex, TM.w0 + TM.wd + 0.1), end: D - TM.ex },
+             { name: "ra", start: D - TM.ex, end: D }] };
+  if (!Q.has("render")) {
+    const t0 = performance.now();
+    (function loop() { setTime(((performance.now() - t0) / 1000) % (D + 0.6)); requestAnimationFrame(loop); })();
+  }
+})();
+</script>
+</body>
+</html>

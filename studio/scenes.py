@@ -40,6 +40,17 @@ def brand_of(shop: str | None) -> str | None:
     return shop_profile(shop).get("brand")
 
 
+def accent_of(shop: str | None) -> str | None:
+    """Màu nhấn của shop (shop.json palette.accent) — family mới (brand_param) tô nhấn theo thương hiệu."""
+    if not shop:
+        return None
+    from studio.templates import shop_profile
+    try:
+        return (shop_profile(shop).get("palette") or {}).get("accent")
+    except FileNotFoundError:
+        return None
+
+
 def theme_for(prof: dict, shop: str | None, job_theme: str | None) -> str:
     if job_theme:
         if job_theme not in prof["themes"]:

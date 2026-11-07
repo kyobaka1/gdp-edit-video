@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Cắt dán mở chương</title>
+<!-- Thẻ cắt dán mở chương — bộ asset `chuong-cat-dan` (assets/library). Claude viết 05/11/2026.
+     Hợp đồng Motion Engine: window.setTime(giây) vẽ ĐỒNG BỘ, nền trang trong suốt, không Internet.
+     Tham số (query): title, sub, photo (tên ảnh in trong assets/ | none), bg (giay-do-gach | giay-kraft-nau-toi),
+     seed (đổi bố cục giấy để mỗi chương một khác), dur (giây, ≥2,2 — mặc định 3,6). -->
+<style>
+  @font-face { font-family: "AvBlack"; src: url("fonts/Averta-Black.otf"); }
+  @font-face { font-family: "AvSemi"; src: url("fonts/Averta-Semibold.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden;
+           transform-origin: 50% 45%; }
+  .p { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; }
+  .p img { display: block; width: 100%; height: 100%; }
+  .sh img { filter: drop-shadow(0 10px 9px rgba(0,0,0,.38)) drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
+  #bg { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; transform-origin: 50% 50%; }
+  .txt { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; align-items: center;
+         justify-content: center; white-space: nowrap; }
+  #title { font-family: "AvBlack"; color: #2b1b12; letter-spacing: 0.01em; }
+  #title span { display: inline-block; transform: scaleX(0.9); }
+  #sub { font-family: "AvSemi"; color: #f4efe6; letter-spacing: 0.01em; }
+  #sub span { display: inline-block; }
+</style>
+<script src="assets.js"></script>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+(function () {
+  const W = 1080, H = 1920, FPS = 30;
+  const Q = new URLSearchParams(location.search);
+  const TITLE = (Q.get("title") || "BƯỚC 1: TÊN CHƯƠNG").toLocaleUpperCase("vi");
+  const SUB = Q.get("sub") || "";
+  const PHOTO = Q.get("photo") || "anh-in-bep-den-trang";
+  const BG = Q.get("bg") || "giay-do-gach";
+  const SEED = parseInt(Q.get("seed") || "1", 10) || 1;
+  const D = Math.max(2.2, parseFloat(Q.get("dur") || "3.6") || 3.6);
+  const A = window.KIT_ASSETS;
+
+  // ── tiện ích ──
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const prog = (t, a, b) => clamp((t - a) / (b - a));
+  const outBack = (x, s = 1.5) => 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2);
+  const outCubic = x => 1 - Math.pow(1 - x, 3);
+  const inCubic = x => x * x * x;
+  function rng(n) {  // mulberry32 — tất định theo seed + số thứ tự
+    let a = (SEED * 7919 + n * 104729) >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0; let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const stop = t => Math.floor(t * 12 + 1e-6) / 12;   // nhịp stop-motion 12 hình/giây cho giấy bay
+
+  const stage = document.getElementById("stage");
+  const imgs = [];
+  function piece(key, w, cls) {
+    const a = A[key];
+    const el = document.createElement("div");
+    el.className = "p " + (cls || "");
+    const h = w * a.h / a.w;
+    el.style.width = w + "px"; el.style.height = h + "px";
+    const im = document.createElement("img");
+    im.src = a.src; imgs.push(im);
+    el.appendChild(im);
+    stage.appendChild(el);
+    return { el, w, h };
+  }
+  function put(o, x, y, r, s, op, flip) {  // tâm (x, y), xoay r°, phóng s
+    o.el.style.transform = `translate(${x - o.w / 2}px, ${y - o.h / 2}px) rotate(${r}deg) scale(${(flip ? -1 : 1) * s}, ${s})`;
+    o.el.style.opacity = op;
+  }
+
+  // ── nền ──
+  const bg = document.createElement("img");
+  bg.id = "bg"; bg.src = A[BG].src; imgs.push(bg); stage.appendChild(bg);
+
+  // ── mảng vàng + ảnh in ──
+  const mang = piece("mang-giay-vang-xe", 800, "sh");
+  const photo = PHOTO !== "none" && A[PHOTO] ? piece(PHOTO, 500, "sh") : null;
+
+  // ── giấy bay vào (vị trí gốc; seed lắc ±28px, ±9°, bỏ ngẫu nhiên 2 miếng để mỗi chương một khác) ──
+  const BASE = [
+    { k: "giay-note-vang-trong", w: 230, x: 905, y: 215, r: 9, from: "top", t: 0.30 },
+    { k: "tay-giay-trang", w: 245, x: 125, y: 790, r: 22, from: "left", t: 0.24 },
+    { k: "tay-giay-den-chi", w: 300, x: 915, y: 835, r: -9, from: "right", t: 0.14, flip: true },
+    { k: "kep-giay", w: 140, x: 300, y: 665, r: 28, from: "top", t: 0.52 },
+    { k: "tem-do-trong", w: 215, x: 890, y: 1095, r: -12, from: "right", t: 0.32 },
+    { k: "giay-vo-nhau", w: 165, x: 115, y: 1130, r: 0, from: "left", t: 0.38 },
+    { k: "nguoi-giay-xam", w: 205, x: 160, y: 1400, r: -5, from: "left", t: 0.10 },
+    { k: "nguoi-giay-den-chi-tay", w: 250, x: 905, y: 1370, r: 3, from: "right", t: 0.18, flip: true },
+    { k: "mui-ten-vang", w: 290, x: 345, y: 1650, r: -16, from: "bottom", t: 0.28, nudge: true },
+    { k: "mui-ten-ve-tay-do", w: 360, x: 700, y: 1600, r: -7, from: "bottom", t: 0.42 },
+    { k: "cuon-bang-dinh", w: 205, x: 935, y: 1690, r: 0, from: "right", t: 0.22 },
+  ];
+  // không có ảnh in → hai người giấy đứng giữa mảng vàng (khỏi trống giữa khung)
+  const CENTER = { "nguoi-giay-xam": { w: 250, x: 410, y: 1060, r: -3, keep: true },
+                   "nguoi-giay-den-chi-tay": { w: 300, x: 650, y: 1045, r: 2, keep: true } };
+  const BASE2 = BASE.map(b => (!photo && CENTER[b.k]) ? { ...b, ...CENTER[b.k] } : b);
+  const r0 = rng(0);
+  const drop = new Set();
+  while (drop.size < 2) { const i = Math.floor(r0() * BASE2.length); if (!BASE2[i].keep && !BASE2[i].nudge) drop.add(i); }
+  const PIECES = BASE2.filter((_, i) => !drop.has(i)).map((b, i) => {
+    const r = rng(i + 1);
+    const p = { ...b, x: b.x + (r() - 0.5) * 56, y: b.y + (r() - 0.5) * 56, r: b.r + (r() - 0.5) * 18,
+                spin: (r() - 0.5) * 140, t: b.t + (r() - 0.5) * 0.08, ex: 0.02 * i };
+    p.o = piece(b.k, b.w, "sh");
+    return p;
+  });
+
+  // ── nhãn tiêu đề + băng dòng phụ (trên cùng) ──
+  const tape1 = piece("bang-keo-giay", 150, "");
+  const tape2 = piece("bang-keo-giay", 140, "");
+  const label = piece("nhan-tieu-de-trong", 940, "sh");
+  const tt = document.createElement("div"); tt.className = "txt"; tt.id = "title";
+  tt.innerHTML = "<span></span>"; tt.firstChild.textContent = TITLE; label.el.appendChild(tt);
+  stage.appendChild(tape1.el); stage.appendChild(tape2.el);   // băng keo đè lên nhãn
+  const strip = SUB ? piece("bang-giay-den-trong", 820, "sh") : null;
+  let st = null;
+  if (strip) {
+    st = document.createElement("div"); st.className = "txt"; st.id = "sub";
+    st.innerHTML = "<span></span>"; st.firstChild.textContent = SUB; strip.el.appendChild(st);
+  }
+
+  function fit(el, inner, innerH, maxPx, minPx, sx) {  // cỡ chữ lớn nhất vừa khung (tính cả co ngang sx)
+    let s = maxPx;
+    el.style.fontSize = s + "px";
+    const span = el.firstElementChild;
+    while (s > minPx && (span.offsetWidth * sx > inner || span.offsetHeight > innerH)) { s -= 2; el.style.fontSize = s + "px"; }
+    return { s, ok: span.offsetWidth * sx <= inner + 1 };
+  }
+  function split2(text) {  // tách 2 dòng: theo "|" nếu có, không thì sau ":" hoặc chỗ cân nhất
+    if (text.includes("|")) return text.split("|").map(x => x.trim()).slice(0, 2);
+    const w = text.split(" ");
+    let best = 1, score = 1e9;
+    for (let i = 1; i < w.length; i++) {
+      const a = w.slice(0, i).join(" "), b = w.slice(i).join(" ");
+      const sc = Math.abs(a.length - b.length) - (a.endsWith(":") ? 6 : 0);
+      if (sc < score) { score = sc; best = i; }
+    }
+    return [w.slice(0, best).join(" "), w.slice(best).join(" ")];
+  }
+  function setLines(el, lines) {
+    const span = el.firstElementChild;
+    span.textContent = "";
+    lines.forEach((ln, i) => { if (i) span.appendChild(document.createElement("br")); span.appendChild(document.createTextNode(ln)); });
+  }
+  function grow(o, k) {  // giãn nhãn/băng giấy theo chiều dọc cho chữ 2 dòng
+    o.h *= k; o.el.style.height = o.h + "px";
+  }
+  function layout() {
+    // tiêu đề: 1 dòng nếu chữ ≥ 70px vừa nhãn; không thì 2 dòng (nhãn cao ×1,75)
+    const TW = 940 * 0.80;
+    let r = { ok: false, s: 0 };
+    if (!TITLE.includes("|")) { setLines(tt, [TITLE]); r = fit(tt, TW, label.h * 0.74, 116, 70, 0.9); }
+    if (!r.ok) {
+      grow(label, 1.75);
+      setLines(tt, split2(TITLE));
+      tt.style.lineHeight = "1.0";
+      fit(tt, TW, label.h * 0.76, 104, 44, 0.9);
+    }
+    if (st) {
+      const SW = 820 * 0.84;
+      let q = { ok: false };
+      if (!SUB.includes("|")) { setLines(st, [SUB]); q = fit(st, SW, strip.h * 0.62, 50, 36, 1); }
+      if (!q.ok) { grow(strip, 1.7); setLines(st, split2(SUB)); st.style.lineHeight = "1.12"; fit(st, SW, strip.h * 0.72, 46, 26, 1); }
+    }
+  }
+
+  const LX = 500, LY = 360, SX = 520, SY = 525;
+  const DIRS = { left: [-1, 0], right: [1, 0], top: [0, -1], bottom: [0, 1] };
+
+  function setTime(tt_) {
+    const t = clamp(tt_, 0, D);
+    const ts = stop(t);
+    const E = D - 0.55;        // bắt đầu rút
+    // nền: đẩy chậm 3%
+    bg.style.transform = `scale(${1 + 0.03 * t / D})`;
+    // mảng vàng: trồi từ dưới
+    const km = outBack(prog(ts, 0.0, 0.32), 1.3);
+    const outM = inCubic(prog(t, E + 0.12, E + 0.42));
+    put(mang, 520, lerp(1010 + 1150, 1010, km) + outM * 1100, lerp(-11, -3, km), 1, 1);
+    if (photo) {
+      const kp = outBack(prog(ts, 0.12, 0.45), 1.4);
+      const outP = inCubic(prog(t, E + 0.06, E + 0.36));
+      put(photo, lerp(500 + 950, 500, kp) + outP * 1000, 1000, lerp(18, 4, kp) + outP * 20, 1, 1);
+    }
+    // giấy bay
+    PIECES.forEach((p, i) => {
+      const [dx, dy] = DIRS[p.from];
+      const k = outBack(prog(ts, p.t, p.t + 0.32), 1.45);
+      const ko = inCubic(prog(t, E + p.ex, E + p.ex + 0.3));
+      const far = 900;
+      const jr = rng(1000 + i * 97 + Math.round(ts * 12));  // rung nhẹ tay làm (stop-motion) khi đã đứng
+      const idle = k >= 1 && ko <= 0 ? 1 : 0;
+      let x = p.x + dx * far * (1 - k) + dx * far * ko + idle * (jr() - 0.5) * 2.4;
+      let y = p.y + dy * far * (1 - k) + dy * far * ko + idle * (jr() - 0.5) * 2.4;
+      if (p.nudge) {  // mũi tên trượt lại một nhịp lúc đứng
+        const nb = Math.sin(Math.PI * prog(t, 1.75, 2.15));
+        const a = (p.r - 0) * Math.PI / 180;
+        x += Math.cos(a) * 34 * nb; y += Math.sin(a) * 34 * nb;
+      }
+      put(p.o, x, y, p.r + p.spin * (1 - k) - p.spin * 0.6 * ko + idle * (jr() - 0.5) * 0.7, 1,
+          prog(ts, p.t - 0.01, p.t + 0.02), p.flip);
+    });
+    // nhãn tiêu đề: rơi từ trên, nghiêng rồi đứng
+    const kl = outBack(prog(t, 0.50, 0.90), 1.7);
+    const outL = inCubic(prog(t, E + 0.1, E + 0.4));
+    put(label, LX, lerp(-260, LY, kl) - outL * 160, lerp(-11, -2, kl), 1, prog(t, 0.49, 0.53) * (1 - outL));
+    const kt = prog(t, 0.88, 1.0);
+    const pop = kt <= 0 ? 0 : lerp(1.35, 1, outCubic(kt));
+    put(tape1, LX - 430, LY - label.h * 0.37 - outL * 160, -34, pop, kt > 0 ? 1 - outL : 0);
+    put(tape2, LX + 438, LY - label.h * 0.35 - outL * 160, 31, pop, kt > 0 ? 1 - outL : 0);
+    if (strip) {
+      const ks = outBack(prog(t, 0.96, 1.26), 1.6);
+      const outS = inCubic(prog(t, E + 0.04, E + 0.34));
+      const sy = LY + label.h / 2 + strip.h / 2 + 8;   // ngay dưới nhãn (nhãn 2 dòng thì xuống thấp hơn)
+      put(strip, SX, lerp(-160, sy, ks) - outS * 180, lerp(7, 1.5, ks), 1, prog(t, 0.95, 0.99) * (1 - outS));
+    }
+    // ra: nhoè chuyển động + phóng nhẹ + mờ về trong suốt (lộ cảnh sau)
+    const kx = prog(t, D - 0.28, D);
+    stage.style.transform = `scale(${1 + 0.08 * kx * kx})`;
+    stage.style.filter = kx > 0 ? `blur(${(16 * kx).toFixed(2)}px)` : "none";
+    stage.style.opacity = (1 - kx * kx).toFixed(4);
+  }
+
+  const ready = Promise.all([
+    document.fonts.load('100px "AvBlack"', TITLE), document.fonts.load('40px "AvSemi"', SUB || "A"),
+    ...imgs.map(im => im.decode().catch(() => { throw new Error("thiếu ảnh " + im.src); })),
+  ]).then(() => {
+    layout();
+    setTime(0);
+  });
+
+  window.setTime = setTime;
+  window.CHUONG_MOTION = { name: "Cắt dán mở chương", duration: D, width: W, height: H, fps: FPS, ready, setTime,
+    scenes: [{ name: "Giấy bay vào", start: 0, end: 0.6 }, { name: "Nhãn rơi", start: 0.5, end: 1.3 },
+             { name: "Đứng đọc", start: 1.3, end: D - 0.55 }, { name: "Rút + nhoè", start: D - 0.55, end: D }] };
+  if (!Q.has("render")) {  // xem thử trong trình duyệt
+    const t0 = performance.now();
+    (function loop() { setTime(((performance.now() - t0) / 1000) % (D + 0.6)); requestAnimationFrame(loop); })();
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Label Zoom</title>
+<!-- Scene Library · C15 Label Zoom v1.0 (Claude viết 07/11/2026) — assets/scenes/label-zoom/scene.json.
+     SOI NHÃN THẬT (học mẫu m2 không người — thuốc kẽm): cắt đúng vùng nhãn / bảng thành phần / thông số trên bao bì
+     từ khung clip (`photo=src:<clip>@<giây>`), phóng lên thành thẻ nổi giữa khung, footage tối đi; mỗi lần lời đọc
+     tới một dòng → THANH TÔ màu nhấn quét qua dòng đó + con số to bên dưới ("50mg vitamin C", "tương đương 5,16mg").
+     Không bịa số: chữ trên thẻ là ảnh thật, số to phải đọc được trong vùng nhãn.
+     Hợp đồng Motion Engine: window.setTime(giây) vẽ ĐỒNG BỘ, không Internet, KHÔNG will-change, khung cuối trong suốt.
+     Query: theme · preset (standard|full) · dur · brand · accent · photo (file:/// | tên ảnh trong assets/) ·
+     crop "x,y,w,h" (tỉ lệ ảnh) · marks "y0:y1,…" (tỉ lệ trong vùng cắt, dòng thứ k ↔ mục thứ k) ·
+     items (JSON [{t, x: số to, n: dòng nhỏ trên số}]) · title · eyebrow · y · seed. -->
+<style>
+  @font-face { font-family: "GdpBold"; src: url("fonts/UTM_AvoBold.ttf"); }
+  @font-face { font-family: "GdpReg"; src: url("fonts/UTM_Avo.ttf"); }
+  @font-face { font-family: "PhBold"; src: url("fonts/Averta-Bold.otf"); }
+  @font-face { font-family: "PhReg"; src: url("fonts/Averta-Regular.otf"); }
+  @font-face { font-family: "PhLight"; src: url("fonts/Averta-Light.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  #root { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .abs { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; white-space: nowrap; box-sizing: border-box; }
+</style>
+</head>
+<body>
+<div id="stage"><div id="root"></div></div>
+<script src="uikit.js"></script>
+<script>
+(function () {
+  const U = window.UIKIT, { Q, W, H, FPS, T, F, ACC, clamp, lerp, prog, outCubic, outBack, inOut, node, place, fitFont, show } = U;
+  const PRESETS = { standard: { min: 2.0, def: 3.5 }, full: { min: 3.0, def: 5 } };
+  const PRESET = PRESETS[Q.get("preset")] ? Q.get("preset") : "standard";
+  const D = Math.max(PRESETS[PRESET].min, parseFloat(Q.get("dur") || PRESETS[PRESET].def) || PRESETS[PRESET].def);
+  const FULL = PRESET === "full";
+  const DE = D - 1 / FPS, EX = 0.3;
+  const QA = { theme: U.THEME_ID, preset: PRESET, dur: D, overflow: [], warn: [], fontPx: {} };
+  const PQ = Q.get("photo") || "";
+  const SRC = PQ.startsWith("file:") ? PQ : (PQ && !PQ.includes("/") ? `assets/${PQ}` : PQ) || "assets/sample-label.jpg";
+  if (!PQ) QA.warn.push("chưa có photo (src:<clip>@<giây>) — preview dùng nhãn mẫu");
+  const CROP = (Q.get("crop") || "0,0,1,1").split(",").map(Number);
+  const [cx, cy, cw, ch] = CROP.length === 4 && CROP.every(v => isFinite(v)) ? CROP : [0, 0, 1, 1];
+  const MARKS = (Q.get("marks") || "").split(",").map(s => s.split(":").map(Number)).filter(m => m.length === 2 && m.every(isFinite));
+  let ITEMS = U.items().slice(0, 4);
+  ITEMS.forEach((it, i) => { it.t = clamp(+it.t || (0.7 + i * 0.8), 0.45, DE - EX - 0.5); it.val = (it.x || "").trim(); it.note = (it.n || "").trim(); });
+  if (MARKS.length && MARKS.length < ITEMS.length) QA.warn.push(`${ITEMS.length} mục nhưng chỉ ${MARKS.length} dòng tô (marks)`);
+  const TITLE = (Q.get("title") || "").trim(), EYEBROW = (Q.get("eyebrow") || "").trim();
+  const im = U.img(SRC);
+
+  const sc = U.scrim(FULL ? 0.66 : 0.55);
+  const head = (TITLE || EYEBROW) ? U.heading(EYEBROW, TITLE, { tPx: FULL ? 88 : 72, ePx: 38 }) : null;
+  const cardEl = node("div", { borderRadius: "26px", overflow: "hidden", border: `3px solid ${U.rgba("#ffffff", 0.85)}`,
+    boxShadow: "0 24px 60px rgba(0,0,0,.55)", backgroundRepeat: "no-repeat", backgroundColor: "#222" });
+  const hl = [];          // thanh tô từng dòng (trong thẻ)
+  const vals = ITEMS.map(it => {   // số to + dòng nhỏ dưới thẻ, mỗi mục một bộ (thay nhau theo lời)
+    const wrap = node("div", { width: (0.8 * W) + "px", textAlign: "center" });
+    const n = it.note ? node("div", { position: "relative", fontFamily: F.reg, fontSize: "40px", color: "#ffffff", display: "block",
+      textShadow: "0 2px 12px rgba(0,0,0,.7)" }, wrap, it.note) : null;
+    const v = node("div", { position: "relative", fontFamily: F.bold, fontSize: (FULL ? 92 : 80) + "px", color: ACC, display: "block",
+      lineHeight: "1.08", textShadow: "0 3px 18px rgba(0,0,0,.65)" }, wrap, it.val);
+    return { it, wrap, n, v };
+  });
+  let CARD = null;
+
+  function layout() {
+    const iw = im.naturalWidth || 1080, ih = im.naturalHeight || 1350;
+    const rw = cw * iw, rh = ch * ih;
+    let w = (FULL ? 0.84 : 0.78) * W, h = w * rh / rw;
+    const maxH = (FULL ? 0.42 : 0.36) * H;
+    if (h > maxH) { h = maxH; w = h * rw / rh; }
+    const s = w / rw;
+    Object.assign(cardEl.style, { width: Math.round(w) + "px", height: Math.round(h) + "px", backgroundImage: `url("${SRC}")`,
+      backgroundSize: `${(iw * s).toFixed(1)}px ${(ih * s).toFixed(1)}px`,
+      backgroundPosition: `${(-cx * iw * s).toFixed(1)}px ${(-cy * ih * s).toFixed(1)}px` });
+    const yc = clamp(parseFloat(Q.get("y") || (FULL ? "0.42" : "0.40")), 0.25, 0.6) * H;
+    const x = (W - w) / 2;
+    let y = yc - h / 2;
+    const headH = head ? head.h + 28 : 0;
+    y = Math.max(0.13 * H + headH, y);
+    place(cardEl, x, y);
+    if (head) place(head.wrap, (W - 0.78 * W) / 2, y - headH);
+    MARKS.forEach((m, k) => { const b = node("div", { left: "0", top: (m[0] * h).toFixed(1) + "px", height: ((m[1] - m[0]) * h).toFixed(1) + "px",
+      width: w + "px", background: U.rgba(ACC, 0.34), borderTop: `3px solid ${ACC}`, borderBottom: `3px solid ${ACC}`,
+      transformOrigin: "0 50%", mixBlendMode: "multiply" }, cardEl); hl.push(b); });
+    let vb = y + h + 40;
+    vals.forEach(o => { fitFont(o.v, FULL ? 92 : 80, 0.8 * W, 0.5); if (o.n) fitFont(o.n, 40, 0.8 * W, 0.6);
+      place(o.wrap, (W - 0.8 * W) / 2, vb);
+      if (o.v.offsetWidth > 0.8 * W + 1) QA.overflow.push(`số '${o.it.val}' dài`); });
+    const valH = Math.max(0, ...vals.map(o => o.wrap.offsetHeight));
+    if (vb + valH > 0.76 * H) QA.overflow.push(`số to xuống quá vùng an toàn (${((vb + valH) / H).toFixed(2)}H)`);
+    QA.fontPx.value = Math.min(99, ...vals.map(o => parseFloat(o.v.style.fontSize)));
+    CARD = { x, y, w, h };
+    QA.area = { x: Math.round(x), y: Math.round(y - headH), w: Math.round(w), h: Math.round(vb + valH - (y - headH)) };
+    QA.land = 0.45;
+  }
+
+  function setTime(t0) {
+    const t = clamp(t0, 0, D);
+    sc.style.opacity = outCubic(prog(t, 0, 0.35)).toFixed(4);
+    const kc = outBack(prog(t, 0.08, 0.5), 1.25), kcd = prog(t, 0.08, 0.5);
+    cardEl.style.opacity = clamp(kcd * 2).toFixed(3);
+    cardEl.style.transform = kcd >= 1 ? "none" : `translateY(${Math.round((1 - kc) * 60)}px) scale(${(0.86 + 0.14 * kc).toFixed(4)})`;
+    if (head) { show(head.e, outCubic(prog(t, 0.15, 0.45)), 16); show(head.t, outCubic(prog(t, 0.2, 0.52)), 22); }
+    const cur = ITEMS.reduce((a, it, i) => t >= it.t - 0.1 ? i : a, -1);
+    hl.forEach((b, k) => { const it = ITEMS[k];
+      if (!it) { b.style.opacity = 0; return; }
+      const kd = inOut(prog(t, it.t - 0.1, it.t + 0.25));
+      b.style.transform = kd >= 1 ? "none" : `scaleX(${kd.toFixed(4)})`;
+      b.style.opacity = (kd <= 0 ? 0 : k === cur ? 1 : 0.32).toFixed(3); });
+    vals.forEach((o, k) => {   // số của mục đang đọc: vào bật lên, mục cũ trượt lên mờ đi
+      const ki = outBack(prog(t, o.it.t - 0.05, o.it.t + 0.28), 1.6), nxt = ITEMS[k + 1];
+      const ko = nxt ? outCubic(prog(t, nxt.t - 0.12, nxt.t + 0.08)) : 0;
+      o.wrap.style.opacity = clamp(prog(t, o.it.t - 0.05, o.it.t + 0.15) * (1 - ko)).toFixed(3);
+      const dy = Math.round((1 - ki) * 40 - ko * 30);
+      o.wrap.style.transform = dy === 0 ? "none" : `translateY(${dy}px)`; });
+    U.exitAll(t, D, EX);
+  }
+
+  const ready = U.ready(TITLE + EYEBROW + ITEMS.map(i => i.val + i.note).join(""), () => { layout(); setTime(0); });
+  window.setTime = setTime;
+  window.SCENE_MOTION = { name: `Label Zoom · ${T.label} · ${PRESET}`, duration: D, width: W, height: H, fps: FPS, ready, setTime, qa: QA,
+    scenes: [{ name: "thẻ nhãn vào", start: 0, end: 0.5 }, { name: "tô từng dòng", start: 0.5, end: DE - EX }, { name: "ra", start: DE - EX, end: D }] };
+  if (!Q.has("render")) { const t0 = performance.now();
+    (function loop() { setTime(((performance.now() - t0) / 1000) % (D + 0.6)); requestAnimationFrame(loop); })(); }
+})();
+</script>
+</body>
+</html>

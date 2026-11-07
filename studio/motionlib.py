@@ -225,7 +225,8 @@ class HtmlPage:
         self._pw = sync_playwright().start()
         # --disable-gpu: vẽ bằng CPU. Đo 05/11: Chrome vẽ GPU (RTX 4060) cho miếng giấy xoay có bóng đổ lệch tới 67 mức
         # khi vẽ lại cùng t (tuỳ khung trước đó) → kiểm tất định trượt; vẽ CPU lệch ≤ 2, tốc độ gần như cũ.
-        self._browser = self._pw.chromium.launch(channel="chrome", headless=True, args=["--disable-gpu"])
+        # --disable-lcd-text: chữ trên nền ĐẶC (thẻ phủ khung) không vẽ khử răng cưa LCD (viền màu xanh/cam trên video)
+        self._browser = self._pw.chromium.launch(channel="chrome", headless=True, args=["--disable-gpu", "--disable-lcd-text"])
         w, h = self.canvas
         self.page = self._browser.new_page(viewport={"width": int(w), "height": int(h)}, device_scale_factor=1)
 

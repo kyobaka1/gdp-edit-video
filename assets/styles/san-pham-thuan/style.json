@@ -1,0 +1,38 @@
+{
+ "id": "san-pham-thuan",
+ "code": "S4",
+ "name": "Sản phẩm thuần — không người, giọng đọc + thẻ",
+ "version": "1.0.0",
+ "status": "ready",
+ "learned_from": "mẫu m2 không người (example/_phan-tich/m2_sp_a, m2_sp_b): footage tay cầm / cận / flycam + giọng AI; cắt vùng nhãn thật thành thẻ + tô dòng; công tắc bật dần; biểu đồ cột, đồng hồ %, hoá đơn; vòng khoanh vẽ tay; kết tên thương hiệu phát sáng",
+ "use_for": ["video sản phẩm tự quay không người nói (skill gdp-video-product)", "footage NCC đã Việt hoá cần dựng lại theo kịch bản", "video tính năng / thông số / hướng dẫn dùng"],
+ "avoid_for": ["video có người nói (dùng gdp-ban-hang)"],
+ "kinetic": "cinematic",
+ "skin": {
+  "keyMode": "box",
+  "keyUpper": false,
+  "size": {"live": 0.033, "key": 0.044, "sub": 0.024, "big": 0.06},
+  "maxWidth": 0.76,
+  "boxRadius": 0.1,
+  "italicMode": "key"
+ },
+ "captions": {"y": 0.64, "y_opts": [0.64, 0.6, 0.68], "places": ["center"], "exit": "words",
+              "note": "chữ dưới tâm khung (sản phẩm thường ở giữa), 2 tầng như gdp-ban-hang"},
+ "grade": "toi-vang",
+ "card_bg": "glass",
+ "pacing": {"tighten": null, "note": "giọng đọc AI liền mạch — không cắt lặng"},
+ "audio": {"music_lufs": -25},
+ "scene_theme": {"*": "ui_dark"},
+ "scenes": {
+  "prefer": ["label-zoom", "detail-spotlight", "list-motion", "feature-chips", "data-card", "number-impact", "cta-close"],
+  "avoid": ["pinned-title", "quote"],
+  "why": {"pinned-title": "không có người nói để ghim tiêu đề phía trên", "quote": "không có câu nói của người thật"}
+ },
+ "rules": [
+  "Footage là SẢN PHẨM THẬT; thông số trên thẻ phải có trên bao bì / tài liệu NCC (không bịa) — ưu tiên scene-label-zoom cắt đúng vùng nhãn",
+  "Mở bằng câu hỏi / con số trong 2s đầu; kết bằng scene-cta-close",
+  "Mỗi ý của kịch bản = 1 cảnh footage + tối đa 1 thẻ; thẻ đè footage (không phủ kín) để sản phẩm vẫn thấy",
+  "Tiền / tiết kiệm / phần trăm → scene-data-card (bars | gauge | receipt)"
+ ],
+ "demo": "assets/styles/san-pham-thuan/demo.jpg"
+}

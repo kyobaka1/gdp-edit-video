@@ -24,6 +24,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("family")
 ap.add_argument("--theme", action="append")
 ap.add_argument("--preset", action="append")
+ap.add_argument("--sample", help="khoá chữ mẫu khác trong scene.json sample (vd receipt) → ảnh <theme>-<preset>-<khoá>.jpg")
 a = ap.parse_args()
 prof = scenes.load(a.family)
 anim = motionlib.get(prof["motion_id"])
@@ -37,7 +38,9 @@ for theme, tcfg in prof["themes"].items():
         if a.preset and preset not in a.preset:
             continue
         sample = prof.get("sample") or SAMPLE   # chữ mẫu riêng của family (scene.json "sample") nếu có
-        params = {"theme": theme, "preset": preset, **sample.get(tcfg.get("brand"), sample["GIADUNGPLUS"]), "seed": 1}
+        # chữ mẫu: theo theme (family giao diện C13+ — mỗi theme thử 1 thương hiệu) → theo brand của theme → GDP
+        smp = (sample.get(a.sample) if a.sample else None) or sample.get(theme) or sample.get(tcfg.get("brand")) or sample["GIADUNGPLUS"]
+        params = {"theme": theme, "preset": preset, **smp, "seed": 1}
         t0 = time.time()
         try:
             info = motionlib.render(anim, params=params)
@@ -46,11 +49,11 @@ for theme, tcfg in prof["themes"].items():
             report.append({"theme": theme, "preset": preset, "ok": False, "error": str(exc)[:300]})
             continue
         chk = info["check"]
-        shutil.copyfile(Path(info["dir"]) / "sheet.jpg", out / f"{theme}-{preset}.jpg")
+        shutil.copyfile(Path(info["dir"]) / "sheet.jpg", out / f"{theme}-{preset}{'-' + a.sample if a.sample else ''}.jpg")
         shutil.rmtree(info["dir"], ignore_errors=True)   # chữ mẫu → không video nào dùng lại cache này (ProRes ~90MB/giây)
         print(f"✓ {theme:13s} {preset:9s} {info['duration']:.2f}s {info['frames']} khung · khung đầu α{chk['first_alpha_max']}"
               f" · khung cuối α{chk['last_alpha_max']} · {time.time() - t0:.0f}s" + (f" · ⚠ {'; '.join(chk['warn'])}" if chk["warn"] else ""))
-        report.append({"theme": theme, "preset": preset, "ok": True, "duration": info["duration"], "frames": info["frames"],
+        report.append({"theme": theme + (f"/{a.sample}" if a.sample else ""), "preset": preset, "ok": True, "duration": info["duration"], "frames": info["frames"],
                        "first_alpha": chk["first_alpha_max"], "last_alpha": chk["last_alpha_max"], "warn": chk["warn"]})
 rp = out / "_report.json"   # gộp với lần chạy trước (chạy riêng --theme/--preset không làm mất dòng khác)
 old = json.loads(rp.read_text(encoding="utf-8")) if rp.exists() else []

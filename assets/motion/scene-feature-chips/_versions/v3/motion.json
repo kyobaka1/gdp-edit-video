@@ -1,0 +1,76 @@
+{
+  "id": "scene-feature-chips",
+  "source": {
+    "kind": "html",
+    "entry": "src/feature-chips.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\feature-chips\\src\\feature-chips.html"
+  },
+  "version": 3,
+  "name": "Scene C14 Feature Chips",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "feature_chips"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "chip",
+    "giao diện",
+    "icon",
+    "scene",
+    "thông số",
+    "tính năng",
+    "uikit"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 3.5,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "vào",
+      "start": 0,
+      "end": 0.4
+    },
+    {
+      "name": "chip theo lời",
+      "start": 0.4,
+      "end": 3.166666666666667
+    },
+    {
+      "name": "ra",
+      "start": 3.166666666666667,
+      "end": 3.5
+    }
+  ],
+  "params": {
+    "theme": "ui_dark",
+    "preset": "standard",
+    "brand": "GIADUNGPLUS",
+    "accent": "",
+    "title": "",
+    "eyebrow": "",
+    "items": "[]",
+    "y": "",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "opaque": true,
+  "z": "top",
+  "variants": {},
+  "scene": "feature-chips",
+  "notes": "Scene Library C14 Feature Chips — chip tính năng có icon bật theo lời v1.0.0 — hồ sơ assets/scenes/feature-chips/scene.json. UI Kit chung (assets/scenes/_uikit). Dùng: c.graphic('scene-feature-chips', at='inox', until='chống nước', items=[('inox', 'Inox 304|shield', 'không gỉ'), ('mười lăm', 'Chịu 15kg'), ('khoan', 'Không khoan|wrench'), ('chống nước', 'Chống nước')])"
+}

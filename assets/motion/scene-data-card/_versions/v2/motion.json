@@ -1,0 +1,85 @@
+{
+  "id": "scene-data-card",
+  "source": {
+    "kind": "html",
+    "entry": "src/data-card.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\data-card\\src\\data-card.html"
+  },
+  "version": 2,
+  "name": "Scene C16 Data Card",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "data_card"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "biểu đồ",
+    "giao diện",
+    "hoá đơn",
+    "phần trăm",
+    "scene",
+    "so sánh",
+    "số liệu",
+    "tiền",
+    "uikit"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 4,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "vào",
+      "start": 0,
+      "end": 0.45
+    },
+    {
+      "name": "số theo lời",
+      "start": 0.45,
+      "end": 3.666666666666667
+    },
+    {
+      "name": "ra",
+      "start": 3.666666666666667,
+      "end": 4
+    }
+  ],
+  "params": {
+    "theme": "ui_dark",
+    "preset": "standard",
+    "brand": "GIADUNGPLUS",
+    "accent": "",
+    "mode": "",
+    "title": "",
+    "eyebrow": "",
+    "value": "",
+    "unit": "",
+    "note": "",
+    "chip": "",
+    "total": "",
+    "total_label": "",
+    "total_t": "",
+    "y": "",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "opaque": true,
+  "z": "top",
+  "variants": {},
+  "scene": "data-card",
+  "notes": "Scene Library C16 Data Card — số tiền / % / so sánh thành thẻ số liệu dựng theo lời v1.0.0 — hồ sơ assets/scenes/data-card/scene.json. UI Kit chung (assets/scenes/_uikit). Dùng: c.graphic('scene-data-card', at='một tháng', until='120 triệu', mode='bars', title='Tiết kiệm', items=[('một tháng', '1 tháng', '2tr'), ('một năm', '1 năm', '24tr'), ('5 năm', '5 năm', '120tr')])"
+}

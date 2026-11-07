@@ -72,6 +72,11 @@ giadungplus `skills/gdp-video-localize/`.
      1 brand reveal đúng brand (gọn ở dải trên) + accent trong budget nếu có quãng trống; **logo thường trực nhỏ ở góc hiện
      suốt video chính, chỉ tạm ẩn ĐÚNG KHOẢNG animation thay logo chạy rồi tiếp quản**; watermark chữ → **watermark động**
      (xuất hiện → chìm dần → trượt đổi chỗ mỗi ~6s như cũ). Chèn tay / tắt: skill `gdp-video-motion`. Job cũ không khai = flow cũ.
+   - `edl.reveal = {"mode": "auto"}` + `edl.poster = {"mode": "auto"}` + `audio.sfx: true` (Sếp 29/10, mặc định job
+     mới): chữ hiện dần + khối nhấn `*...*` + ảnh bìa + tiếng khẽ — luật ở mục "Chữ hiện dần, khối nhấn, ảnh bìa". Job cũ
+     không khai = render y như trước. Mẫu đủ bộ: `jobs/gdp-taobao-0416-fx/direct.py`.
+   - **Chốt HOOK trước** (2 giây đầu quyết định người xem có ở lại): ô chữ đầu + câu thuyết minh đầu nói ngay sản phẩm
+     là gì / giải quyết gì, đừng mở bằng câu chung chung.
 4. `vs.py music <id>` (Lyria 3.5, không lời; nghi có lời hát thì `vs.py hear music.mp3` 1 lần) → `vs.py narrate <id>`.
 5. `vs.py render <id>` (preview) → `vs.py qa <id>` (Codex soát) phải **ĐẠT (sót 0)**; chưa đạt → `vs.py patch <id>` → render/qa lại.
    Job có `edl.motion`: render in kế hoạch (animation chọn/bỏ + lý do, logo hiện khoảng nào, watermark từng pha —
@@ -83,6 +88,28 @@ giadungplus `skills/gdp-video-localize/`.
 7. Gửi Sếp (SendUserFile) ảnh so sánh + preview. Sếp duyệt → `render --final` + `qa --final` + `audiocheck --final`
    + nghe lại `final` MỘT lần bằng `vs.py hear` (đủ lời, 1 giọng, không tiếng Trung, không đè/cụt) + soát khung bằng
    `vs.py look` — không viết thêm script review gọi Gemini.
+8. Viết `jobs/<id>/caption.txt` (Sếp 29/10): 1–2 câu đăng kèm video (Shopee/TikTok) + 3–5 hashtag, đúng giọng shop,
+   CHỈ dùng sự thật có trong video gốc / SKU (không "giảm giá", không thông số bịa), không "Hãy cùng khám phá…".
+   Gửi Sếp cùng final + `final.jpg` (ảnh bìa — tải lên làm cover khi sàn cho chọn).
+
+## Chữ hiện dần, khối nhấn, ảnh bìa (Sếp 29/10 — học từ skill brag)
+
+- **Hiện dần** (`edl.reveal = {"mode": "auto"}`, từng ô ép `"reveal": true/false`): NỀN ô vào/che chữ Trung y như cũ,
+  chỉ CHỮ bên trong hiện lần lượt (từng chữ; câu dài 2–3 chữ/bước; xong trong ≤0,7s). Badge/callout không hiện dần
+  (bật cả khối). **Đọc trước, hiệu ứng sau**: ô không đủ ~0,25s/âm tiết (tối thiểu 0,8s) sau khi hiện xong → tự hiện cả
+  câu ngay. Ô vào với nền TRỐNG rồi mới ra chữ → không còn mờ chéo hai câu thành một khung nhoè.
+- **Khối nhấn** `*cụm từ*` trong `text_vi`/`sub_vi`: nền màu `manifest.highlight` của shop (GDP vàng/đỏ sậm, badge GDP
+  đỏ/trắng · LTENG VN trắng/xanh · LTENG HCM trắng/đỏ · PHALEDO vàng gỗ/đen), chữ nghiêng nhẹ, "bật" 1,08× một nhịp
+  0,12s khi hiện. THƯA: ~1 khối / 2–3 ô, chỉ cụm đắt nhất (công dụng, chất liệu, điểm khác biệt) — nhấn mọi ô = không nhấn
+  gì. Dấu câu dính liền sau khối (`*bừa bộn*,`) tự dính, không chèn khoảng trắng. Không dùng `*` cho việc khác.
+- **Tiếng hiệu ứng** `audio.sfx: true` (chỉ mode narration): "thịch" ấm khi hook/badge/callout vào + "tách" nhỏ khi khối
+  nhấn bật; ≥0,3s cách nhau, ≤16 tiếng/video, nằm dưới nhạc (file Kenney CC0 `assets/sfx/`). Đo 29/10: cả bản vẫn
+  −14,2 LUFS, đỉnh −2,1 dBFS.
+- **Chữ hiện ngắn**: render in `⚠ chữ hiện ngắn: '…' đọc được Xs, cần ~Ys` (+ `layers.json.read_warnings`) → rút bản
+  dịch / gộp ô, KHÔNG kéo dài ô (mốc theo chữ Trung). Đo 22–29/10: 7% ô của 40/94 job dính.
+- **Ảnh bìa** (`edl.poster = {"mode": "auto"}`; `{"at": giây}` chọn tay): khung đã ghép lúc chữ đứng yên của
+  ô hook (không có thì badge, rồi ô đầu) → `final.jpg`/`preview.jpg` + THAY khung 0 của mp4 (sàn/Zalo lấy khung 0 làm ảnh
+  chờ; thay 1 khung, độ dài + tiếng giữ nguyên). `layers.json.poster` ghi giây + lý do; chưa đẹp thì chọn tay.
 
 ## Luật chữ (Sếp chốt 20/10)
 
@@ -93,6 +120,7 @@ giadungplus `skills/gdp-video-localize/`.
   viết hoa đầu dòng 2 ("Kệ treo tường không cần khoan" / "Chịu lực tốt"); câu KHÔNG dấu ngắt → nới ngang trước
   (≤92% khung), hết cỡ mới chia đôi cân theo từ (≥5 từ). Tự quyết chỗ xuống dòng: ghi `\n` trong `text_vi`.
 - Mẫu có đệm trái/phải ≈0,45–0,6× chiều cao ô, trên/dưới ≈0,12–0,16× (Sếp 20/10: chữ không được sát viền).
+  Ô sticker quá vuông → "không vừa mẫu": cách xử lý ở "Bẫy đã gặp". Mốc `start`/`end` sticker phải kiểm khung ±0,4s.
 - Dịch theo nghĩa bán hàng, ngắn hơn bản gốc. KHÔNG thêm công dụng/thông số không có trong video gốc hoặc dữ liệu SKU;
   câu tuyệt đối làm mềm ("hạn chế gỉ sét" thay "không gỉ") và liệt kê cho Sếp xác nhận.
 
@@ -117,6 +145,10 @@ giadungplus `skills/gdp-video-localize/`.
   mơ hồ. Đã thử 20/10 (2 bản LTENG VN + HCM song song): mỗi bản ~150k token, 5–9 phút, đạt mọi cổng, không phạm luật,
   văn phong khác nhau rõ. Người điều phối PHẢI tự chấm lại: `siblings` sau khi cả hai xong (agent song song không thấy
   bản kia hoàn chỉnh → còn câu trùng), soát ảnh khung (`vs.py look`), nghe lại 1 lần (`vs.py hear`), rồi mới gửi Sếp.
+- **Cách điều phối chốt (4 video × 3 shop, 20/10)**: **1 subagent Sonnet / 1 VIDEO làm cả 3 shop**, chạy 3 video song song
+  (~15–30 phút, 165–285k token mỗi agent). Giữ văn phong khác nhau giữa shop tốt hơn kiểu 1 agent/shop (agent thấy cả 3
+  bản nên chủ động tránh trùng). Người điều phối vẫn PHẢI tự: soát ảnh khung (đủ mốc ±0,4s, xem "Bẫy đã gặp"), phóng góc
+  logo xem đè dấu, chạy `siblings`, rồi mới gửi Sếp.
 - Job chép nguồn không cần Sếp duyệt bản nháp → render thẳng `--final` được; vẫn qa/audiocheck/soát khung đầy đủ.
 - TTS mỗi lượt dài ngắn lệch ~±1s → mỗi đoạn chừa ~10% thời lượng cảnh; báo trễ/tràn thì rút chữ đoạn trước.
 
@@ -168,13 +200,13 @@ giadungplus `skills/gdp-video-localize/`.
 - ✅ **MẶC ĐỊNH CHO MỌI VIDEO (Sếp duyệt 20/10):** hiệu ứng ô chữ (tự bật) + watermark trôi (theo `shop.json`) + logo chính
   + outro có sẵn của shop. KHÔNG tắt những thứ này trừ khi Sếp yêu cầu. Lower third / callout là TUỲ CHỌN: thêm khi có cảnh
   hợp (lower third 1 lần ở cảnh giới thiệu; callout 1–2 cái ở cảnh máy đứng yên, chỉ vào công dụng có trong video).
+  **Từ 23/10 thêm `edl.motion = {"mode": "auto"}`**: brand reveal (điểm nhấn) + logo THƯỜNG TRỰC (luôn có, chỉ tạm ẩn
+  trong lúc reveal) + watermark động (thay chữ: xuất hiện → chìm dần → trượt đổi chỗ như cũ) + accent khi có quãng trống.
 - **Hiệu ứng ô chữ** (`studio/motion.py`, tự động): mặc định caption/info = trượt lên, hook/badge/callout = bật phóng,
   lower third = trượt ngang; ép bằng `anim` ("fade" | "slide-up" | "slide-right" | "pop" | "none") trên overlay/extra.
   ⛔ Luật che phủ: ô che chữ Trung VÀO SỚM 0,25s để đục 100% đúng lúc chữ Trung hiện; ô bắt đầu ~0s không có hiệu ứng vào
   (không thể mà không lộ). Chuyển nhãn cùng chỗ = nhãn mới đè lên nhãn cũ (KHÔNG mờ chéo — lộ ~25% chữ Trung). Mờ dần khi
   tắt chỉ khi không có nhãn khác vào thay chỗ. Morph co giãn khung: KHÔNG làm (tốn công, lợi ích nhỏ).
-  **Từ 23/10 thêm `edl.motion = {"mode": "auto"}`**: brand reveal (điểm nhấn) + logo THƯỜNG TRỰC (luôn có, chỉ tạm ẩn
-  trong lúc reveal) + watermark động (thay chữ: xuất hiện → chìm dần → trượt đổi chỗ như cũ) + accent khi có quãng trống.
 - **Phần tử CHÈN MỚI** `edl.extras` (mẫu `covers:false`, không bao giờ dùng che chữ Trung):
   `{"template": "lower-third", "text", "sub", "start", "end", "position": "lower-left"|"upper-left"}` ·
   `{"template": "callout-left"|"callout-right", "text", "target": [x, y], "start", "end"}` — `target` = điểm trên sản phẩm
@@ -226,3 +258,24 @@ giadungplus `skills/gdp-video-localize/`.
   LẶNG LẼ thay font khác → renderer ép tải mọi @font-face, lỗi là dừng (`tools/test_font_gate.py` kiểm cổng này).
   Averta là font Latin — kiểm đủ dấu tiếng Việt trước khi dùng cho chữ Việt; UTM Avo từng thiếu glyph •/—.
 - `.NET` trong PowerShell hiểu đường dẫn tương đối theo thư mục UNC của phiên → dùng Edit tool hoặc đường dẫn tuyệt đối.
+
+Bẫy làm thật 4 video × 3 shop (20/10) — đều phải tự soát trong `direct.py`, agent không soát là lỗi lọt:
+
+- **Mốc `start`/`end` của sticker lệch vài trăm ms**: Gemini hay báo `start` muộn / `end` sớm → chữ Trung lộ lúc nhãn Việt
+  vào/tắt (qa trên khung 0,5s không bắt hết). Cắt khung nguồn **±0,4s quanh MỖI mốc** của từng ô sticker, xem bằng mắt rồi
+  chỉnh `start`/`end` trong `direct.py` (vd `jobs/gdp-gia-treo-dep-01` o5 `end` 4,22 → 4,6).
+- **Logo góc trên đè DẤU tiếng Việt** của nhãn sát góc (logo cao ~22..94px, logo HCM đáy 94px; từng ra "ĐỔI" → "ĐÔI").
+  Soát từng nhãn nằm sát góc logo trên khung đã phóng. Sửa: thu `box` về sát chữ Hán thật (soát lưới toạ độ) để chữ hạ
+  xuống dưới logo, hoặc dịch tâm ô sang phải; đừng để dấu nằm trong vùng logo.
+- **"không vừa mẫu"**: mẫu hook/badge có đệm ngang ≈0,5× chiều cao; ô sticker Gemini thường gồm cả tia/sao nên quá vuông.
+  Sửa: thu `box` về phần chữ, rút chữ Việt, hoặc `\n` 2 dòng. Ô nghiêng <6° → đặt `angle: 0` để renderer được nới ngang
+  (ô xoay chỉ nới tối đa 1,25×).
+- **Dấu câu trong caption**: có `,` `.` `?` là renderer tách 2 dòng và nới ô rất rộng. Muốn 1 dòng thì bỏ dấu.
+- **Phụ đề là nửa sau của câu** (chữ thường đầu) vẫn hiện riêng trên màn → viết hoa chữ đầu.
+- **Gemini trả chữ lỗi mã hoá** (vd "䄀䄀䄀䄀") **hoặc BỊA lời thoại** (video móc treo cửa ra "súng massage"). Khi đó tra ô
+  bằng `by_id`, không dùng `find()` (khớp chữ gần đúng sẽ hỏng), và bỏ qua thoại bịa — kịch bản chỉ bám cảnh thật.
+- **Lyria trả `candidates=None`** → `TypeError` trong `make_music`: lỗi tạm, chạy lại `vs.py music <id>` là được.
+- **TTS đọc sai brand ở câu chốt ngắn** ("Lơ tơ mơ", "Lotte" thay "Lờ teng"): cổng kiểm ngược bắt được → đổi câu
+  (dài hơn / đặt brand giữa câu), đừng nới ngưỡng cổng.
+- **Đã biết (chưa sửa code)**: bộ chặn đỉnh 0,75 trong `_normalize_loudness` có thể để cả bản −14,6…−14,7 LUFS (thấy với
+  giọng Puck/Charon) → `audiocheck` ra ngoài ±0,5. Ghi nhận, báo số đo thật cho Sếp; không tự vá code trong khi làm job.

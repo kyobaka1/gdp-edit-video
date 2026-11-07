@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>CTA Close</title>
+<!-- Scene Library · C17 CTA Close v1.0 (Claude viết 07/11/2026) — assets/scenes/cta-close/scene.json.
+     CÂU CHỐT KÊU GỌI cuối video bán hàng (học mẫu m2: tên thương hiệu phát sáng có tia + lấp lánh, dòng phụ, nút
+     "bình luận MUA" / "bấm giỏ hàng" / "theo dõi xem phần 2"). KHÔNG thay outro shop (outro mp4 vẫn chạy sau) —
+     đây là 2–4s cuối lời nói, gắn đúng câu kêu gọi.
+       glow = chữ thương hiệu hiện từng chữ, sáng loé màu nhấn + tia quét chậm + lấp lánh
+       type = chữ gõ từng ký tự kiểu bảng LED, con trỏ nhấp nháy
+     Hợp đồng Motion Engine: window.setTime(giây) vẽ ĐỒNG BỘ, không Internet, KHÔNG will-change, khung cuối trong suốt.
+     Tia sáng = conic-gradient đổi góc từng khung (KHÔNG xoay bằng transform — tất định khi vẽ lại).
+     Query: theme · preset (standard|full) · dur · brand · accent · mode (glow|type) · name · sub · cta
+     (comment|cart|follow|none) · cta_text · cta_t (giây) · y · seed. -->
+<style>
+  @font-face { font-family: "GdpBold"; src: url("fonts/UTM_AvoBold.ttf"); }
+  @font-face { font-family: "GdpReg"; src: url("fonts/UTM_Avo.ttf"); }
+  @font-face { font-family: "PhBold"; src: url("fonts/Averta-Bold.otf"); }
+  @font-face { font-family: "PhReg"; src: url("fonts/Averta-Regular.otf"); }
+  @font-face { font-family: "PhLight"; src: url("fonts/Averta-Light.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  #root { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .abs { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; white-space: nowrap; box-sizing: border-box; }
+</style>
+</head>
+<body>
+<div id="stage"><div id="root"></div></div>
+<script src="uikit.js"></script>
+<script>
+(function () {
+  const U = window.UIKIT, { Q, W, H, FPS, T, F, ACC, BRAND, clamp, lerp, prog, outCubic, outBack, inOut, node, place, fitFont, show } = U;
+  const PRESETS = { standard: { min: 1.8, def: 3 }, full: { min: 2.5, def: 4 } };
+  const PRESET = PRESETS[Q.get("preset")] ? Q.get("preset") : "standard";
+  const D = Math.max(PRESETS[PRESET].min, parseFloat(Q.get("dur") || PRESETS[PRESET].def) || PRESETS[PRESET].def);
+  const FULL = PRESET === "full";
+  const MODE = Q.get("mode") === "type" ? "type" : "glow";
+  const DE = D - 1 / FPS, EX = 0.3;
+  const QA = { theme: U.THEME_ID, preset: PRESET, mode: MODE, dur: D, overflow: [], warn: [], fontPx: {} };
+  const NAMES = { GIADUNGPLUS: "GIA DỤNG PLUS", PHALEDO: "PHALEDO", LTENG: "LTENG" };
+  const NAME = ((Q.get("name") || NAMES[BRAND] || BRAND).trim()).toLocaleUpperCase("vi");
+  const SUB = (Q.get("sub") || "").trim();
+  const CTA = ["comment", "cart", "follow", "none"].includes(Q.get("cta")) ? Q.get("cta") : "comment";
+  const CTA_DEF = { comment: "Bình luận “MUA” để nhận link", cart: "Bấm giỏ hàng góc trái", follow: "Theo dõi để xem phần sau" };
+  const CTA_IC = { comment: "chat", cart: "cart", follow: "heart" };
+  const CTA_TXT = CTA === "none" ? "" : (Q.get("cta_text") || CTA_DEF[CTA]).trim();
+  const LIGHT = U.THEME_ID === "ui_light";
+  const NAME_T = 0.25, NAME_DUR = MODE === "type" ? Math.min(1.1, 0.07 * NAME.length + 0.2) : 0.55;
+  const CTA_T = clamp(parseFloat(Q.get("cta_t") || "") || (NAME_T + NAME_DUR + 0.45), 0.5, DE - EX - 0.5);
+  const R = U.rng(17);
+
+  // nền: standard = footage tối; full = nền đặc (tối, hoặc sáng cho ui_light) + quầng màu nhấn
+  const bg = FULL ? node("div", { width: W + "px", height: H + "px", background: LIGHT
+      ? `radial-gradient(ellipse at 50% 44%, #ffffff 0%, ${U.rgba(ACC, 0.18)} 45%, #e9e7e2 85%)`
+      : `radial-gradient(ellipse at 50% 44%, ${U.rgba(ACC, 0.30)} 0%, #121214 48%, #070708 85%)` })
+    : U.scrim(0.6);
+  const halo = node("div", { width: "900px", height: "900px", borderRadius: "50%",
+    background: `radial-gradient(circle, ${U.rgba(ACC, LIGHT && FULL ? 0.30 : 0.42)} 0%, ${U.rgba(ACC, 0)} 62%)` });
+  const rays = node("div", { width: "1400px", height: "1400px", borderRadius: "50%",
+    WebkitMaskImage: "radial-gradient(circle, #000 8%, rgba(0,0,0,.55) 30%, transparent 62%)",
+    maskImage: "radial-gradient(circle, #000 8%, rgba(0,0,0,.55) 30%, transparent 62%)" });
+  const TXT = FULL && LIGHT ? T.text : "#ffffff";
+  const nameWrap = node("div", { textAlign: "center" });
+  const chars = [...NAME].map(ch => node("span", { position: "relative", display: "inline-block", fontFamily: F.bold,
+    color: TXT, whiteSpace: "pre" }, nameWrap, ch));
+  const cursor = MODE === "type" ? node("span", { position: "relative", display: "inline-block", width: "0.12em", height: "0.9em",
+    background: ACC, marginLeft: "0.06em", verticalAlign: "-0.06em" }, nameWrap) : null;
+  const sub = SUB ? node("div", { fontFamily: F.reg, color: FULL && LIGHT ? T.sub : "rgba(255,255,255,.86)",
+    textShadow: FULL && LIGHT ? "none" : "0 2px 14px rgba(0,0,0,.6)", letterSpacing: ".02em" }, null, SUB) : null;
+  const btn = CTA_TXT ? node("div", { display: "flex", alignItems: "center", gap: "18px", padding: "22px 40px 22px 30px", borderRadius: "999px",
+    background: ACC, color: U.onAcc, fontFamily: F.bold, fontSize: (FULL ? 46 : 42) + "px", boxShadow: `0 14px 40px ${U.rgba(ACC, 0.45)}` }) : null;
+  if (btn) btn.innerHTML = U.icon(CTA_IC[CTA], U.onAcc, FULL ? 50 : 46, 2.4) + `<span style="position:static">${CTA_TXT}</span>`;
+  const ring = btn ? node("div", { borderRadius: "999px", border: `3px solid ${ACC}` }) : null;   // gợn vòng quanh nút
+  const sparks = Array.from({ length: 9 }, (_, i) => ({ dx: (R() - 0.5) * 760, dy: (R() - 0.5) * 300, s: Math.round(18 + R() * 26),
+    t: NAME_T + NAME_DUR * 0.6 + R() * Math.max(0.6, D - 1.6), p: 0.7 + R() * 0.6 }))
+    .map(o => Object.assign(o, { el: node("div", { width: o.s + "px", height: o.s + "px" }) }));
+  sparks.forEach(o => { o.el.innerHTML = `<svg width="${o.s}" height="${o.s}" viewBox="0 0 24 24" style="position:static;display:block">`
+    + `<path d="M12 0C12.8 8 16 11.2 24 12C16 12.8 12.8 16 12 24C11.2 16 8 12.8 0 12C8 11.2 11.2 8 12 0Z" fill="${LIGHT && FULL ? ACC : "#fff8e0"}"/></svg>`; });
+  let C = null;
+
+  function layout() {
+    const px0 = FULL ? 150 : 132;
+    nameWrap.style.fontSize = px0 + "px";
+    fitFont(nameWrap, px0, 0.86 * W, 0.45);
+    QA.fontPx.name = parseFloat(nameWrap.style.fontSize);
+    const cx = W / 2, cy = clamp(parseFloat(Q.get("y") || (FULL ? "0.42" : "0.40")), 0.25, 0.6) * H;
+    place(nameWrap, cx - nameWrap.offsetWidth / 2, cy - nameWrap.offsetHeight / 2);
+    place(halo, cx - 450, cy - 450); place(rays, cx - 700, cy - 700);
+    let yb = cy + nameWrap.offsetHeight / 2 + 22;
+    if (sub) { sub.style.fontSize = (FULL ? 48 : 44) + "px"; fitFont(sub, FULL ? 48 : 44, 0.82 * W, 0.6); place(sub, cx - sub.offsetWidth / 2, yb); yb += sub.offsetHeight + 46; }
+    else yb += 30;
+    if (btn) { if (btn.offsetWidth > 0.86 * W) { QA.overflow.push(`nút '${CTA_TXT}' dài`); fitFont(btn, FULL ? 46 : 42, 0.86 * W, 0.6); }
+      place(btn, cx - btn.offsetWidth / 2, yb); Object.assign(ring.style, { width: btn.offsetWidth + "px", height: btn.offsetHeight + "px" });
+      place(ring, cx - btn.offsetWidth / 2, yb); yb += btn.offsetHeight; }
+    sparks.forEach(o => place(o.el, cx + o.dx - o.s / 2, cy + o.dy - o.s / 2));
+    if (yb > 0.76 * H) QA.overflow.push(`nút xuống quá vùng an toàn (${(yb / H).toFixed(2)}H)`);
+    const top = cy - nameWrap.offsetHeight / 2;
+    C = { cx, cy };
+    QA.area = { x: Math.round(Math.min(cx - nameWrap.offsetWidth / 2, btn ? cx - btn.offsetWidth / 2 : 1e9)), y: Math.round(top),
+                w: Math.round(Math.max(nameWrap.offsetWidth, btn ? btn.offsetWidth : 0)), h: Math.round(yb - top) };
+    QA.land = NAME_T + NAME_DUR;
+    QA.cta_t = CTA_T;
+  }
+
+  function setTime(t0) {
+    const t = clamp(t0, 0, D);
+    bg.style.opacity = outCubic(prog(t, 0, 0.3)).toFixed(4);
+    const kh = outCubic(prog(t, NAME_T, NAME_T + 0.6));
+    halo.style.opacity = (kh * (0.85 + 0.15 * Math.sin(t * 3.1))).toFixed(3);
+    rays.style.opacity = (MODE === "glow" ? 0.55 : 0.3) * kh;
+    const ang = (t * 14).toFixed(2), rc = U.rgba(ACC, LIGHT && FULL ? 0.22 : 0.30);
+    rays.style.background = `repeating-conic-gradient(from ${ang}deg at 50% 50%, ${rc} 0deg 5deg, transparent 5deg 18deg)`;
+    const n = chars.length;
+    chars.forEach((c, i) => {
+      if (MODE === "type") { const ti = NAME_T + i * (NAME_DUR - 0.2) / Math.max(1, n); c.style.opacity = t >= ti ? 1 : 0; c.style.transform = "none"; return; }
+      const ti = NAME_T + i * 0.035, kc = prog(t, ti, ti + 0.4), k = outBack(kc, 1.4);
+      c.style.opacity = clamp(kc * 2).toFixed(3);
+      const dy = Math.round((1 - k) * 46);
+      c.style.transform = kc >= 1 ? "none" : `translateY(${dy}px)`;
+    });
+    // loé sáng khi chữ vào xong rồi dịu về ánh sáng nền (text-shadow, không transform)
+    const fl = prog(t, NAME_T + NAME_DUR - 0.1, NAME_T + NAME_DUR + 0.5), glow = 1 - 0.65 * outCubic(fl);
+    const base = FULL && LIGHT ? 0.5 : 1;
+    const g = (MODE === "glow" ? glow : 0.5) * base * prog(t, NAME_T, NAME_T + NAME_DUR);
+    nameWrap.style.textShadow = `0 0 ${Math.round(18 + 30 * g)}px ${U.rgba(ACC, (0.55 * g + 0.25 * base).toFixed(3))}, 0 0 ${Math.round(70 * g + 10)}px ${U.rgba(ACC, (0.4 * g).toFixed(3))}`
+      + (FULL && LIGHT ? "" : ", 0 3px 16px rgba(0,0,0,.45)");
+    if (cursor) { const done = t >= NAME_T + NAME_DUR; cursor.style.opacity = t < NAME_T - 0.1 ? 0 : !done || Math.floor((t - NAME_T) * 2.4) % 2 === 0 ? 1 : 0;
+      cursor.style.display = t >= DE - EX - 0.2 ? "none" : "inline-block"; }
+    if (sub) show(sub, outCubic(prog(t, NAME_T + NAME_DUR - 0.05, NAME_T + NAME_DUR + 0.35)), 20);
+    if (btn) { const kb = prog(t, CTA_T, CTA_T + 0.35), k = outBack(kb, 1.8);
+      btn.style.opacity = clamp(kb * 2).toFixed(3);
+      btn.style.transform = kb >= 1 ? "none" : `scale(${(0.7 + 0.3 * k).toFixed(4)})`;
+      // gợn vòng: 2 nhịp sau khi nút vào (mời bấm) — border mở rộng bằng inset âm (không transform)
+      const kr = (t - CTA_T - 0.35) / 0.9, ph = kr - Math.floor(kr), on = kr >= 0 && kr < 2;
+      const grow = Math.round(ph * 36);
+      ring.style.opacity = on ? (0.8 * (1 - ph)).toFixed(3) : 0;
+      ring.style.left = (parseFloat(btn.style.left) - grow) + "px"; ring.style.top = (parseFloat(btn.style.top) - grow) + "px";
+      ring.style.width = (btn.offsetWidth + 2 * grow) + "px"; ring.style.height = (btn.offsetHeight + 2 * grow) + "px"; }
+    sparks.forEach(o => { const ph = (t - o.t) / o.p; const v = ph < 0 || ph > 1 ? 0 : Math.sin(Math.PI * ph); o.el.style.opacity = v.toFixed(3); });
+    U.exitAll(t, D, EX);
+  }
+
+  const ready = U.ready(NAME + SUB + CTA_TXT, () => { layout(); setTime(0); });
+  window.setTime = setTime;
+  window.SCENE_MOTION = { name: `CTA Close · ${MODE} · ${T.label} · ${PRESET}`, duration: D, width: W, height: H, fps: FPS, ready, setTime, qa: QA,
+    scenes: [{ name: "tên thương hiệu", start: 0, end: NAME_T + NAME_DUR }, { name: "kêu gọi", start: CTA_T, end: DE - EX }, { name: "ra", start: DE - EX, end: D }] };
+  if (!Q.has("render")) { const t0 = performance.now();
+    (function loop() { setTime(((performance.now() - t0) / 1000) % (D + 0.6)); requestAnimationFrame(loop); })(); }
+})();
+</script>
+</body>
+</html>

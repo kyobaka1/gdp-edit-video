@@ -41,12 +41,22 @@ Set-Location C:\Users\Admin\gdp-video-studio; $env:PYTHONIOENCODING='utf-8'
 # THƯ VIỆN HIỆU ỨNG hieu-ung.html (mã + tên gọi + demo; nguồn assets/effects/catalog.json) — chọn hiệu ứng = BẢNG PHÂN CẢNH, ít mà tinh (skill gdp-video-edit)
 .\.venv\Scripts\python.exe tools\effects_page.py              # dựng lại trang (+ clip demo / ảnh thu nhỏ còn thiếu); --html chỉ dựng trang
 .\.venv\Scripts\python.exe vs.py edit frame <id> <giây>     # khung RA đúng bản dựng + lưới toạ độ 0,1 (chọn x,y cho Scene)
+# PHONG CÁCH (Sếp 07/11, học mẫu khoá "Edit Video Pro" — docs/2026-11-07-hoc-hoi-khoa-skill-edit-video-pro.md): c.style("<id>") trong cut.py
+#   S1 gdp-ban-hang · S2 gdp-giai-thich · S3 phaledo-tap-chi · S4 san-pham-thuan (assets/styles/<id>/style.json + demo.jpg)
+.\.venv\Scripts\python.exe vs.py styles                       # danh sách phong cách + dùng cho gì
+.\.venv\Scripts\python.exe tools\style_previews.py [id]       # ảnh mẫu da phụ đề / màn chữ của phong cách
+#   thẻ GIAO DIỆN C13 list-motion · C14 feature-chips · C15 label-zoom · C16 data-card · C17 cta-close (theme ui_dark/ui_light, font+màu theo shop)
+.\.venv\Scripts\python.exe tools\ui_scenes_sync.py [family]   # sửa assets/scenes/_uikit/uikit.js hoặc template C13+ xong → chạy, rồi scene_previews
 ```
 
 Animation thương hiệu (Sếp 23/10, Motion Director V2): skill **`gdp-video-motion`** + `assets/motion/README.md`. Job
 mới khai `edl["motion"] = {"mode": "auto"}` → brand reveal + accent (trong budget) + logo THƯỜNG TRỰC (chỉ tạm ẩn đúng
 khoảng reveal chạy) + watermark động (xuất hiện → chìm dần → trượt đổi chỗ mỗi ~6s như cũ). `vs.py motion plan <id>` giải thích
 chọn/bỏ; `vs.py motion storyboard <id>` ảnh soát. Thêm animation mới = `vs.py motion import`, không sửa code.
+
+Chữ hiện dần + khối nhấn + ảnh bìa + tiếng khẽ (Sếp 29/10, học từ skill brag): job mới khai `edl.reveal = {"mode": "auto"}`,
+`edl.poster = {"mode": "auto"}`, `audio.sfx: true`; `*cụm từ*` trong `text_vi` = khối nhấn màu shop. Render cảnh báo
+`⚠ chữ hiện ngắn` → rút bản dịch. Luật đầy đủ: skill `gdp-video-localize`. Test: `tools\test_reveal.py`.
 
 ## 5 luật không được quên
 

@@ -261,6 +261,14 @@ const TH = [
   { id: "phaledo_dark", name: "PHALEDO · Kính tối", short: "Kính tối", brand: "PHALEDO", sw: "#161616" },
   { id: "phaledo_warm", name: "PHALEDO · Sổ tay ấm", short: "Sổ tay ấm", brand: "PHALEDO", sw: "#C0703F" },
 ];
+// thẻ GIAO DIỆN C13+ (không gắn shop — font / màu nhấn theo brand trong chữ mẫu)
+const TH_UI = [
+  { id: "ui_dark", name: "Giao diện · Tối", short: "UI tối", brand: "GIADUNGPLUS", sw: "#141416" },
+  { id: "ui_light", name: "Giao diện · Sáng", short: "UI sáng", brand: "PHALEDO", sw: "#ECEAE4" },
+];
+const thInfo = id => TH.concat(TH_UI).find(x => x.id === id) || { id, name: id, short: id, brand: "GIADUNGPLUS", sw: "#888" };
+const thOf = s => TH.concat(TH_UI).filter(x => x.id in s.themes);
+const smpOf = (s, id) => s.sample[id] || s.sample[thInfo(id).brand] || Object.values(s.sample)[0] || {};
 const PRESET_NAME = { micro: "Micro", standard: "Standard", full: "Full" };
 const store = {
   get(k, d) { try { const v = localStorage.getItem("gdpfx:" + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -380,7 +388,7 @@ const dr = $("#dr");
 let cur = null;
 function openFx(id) {
   const e = BY[id]; if (!e) return;
-  cur = { e, tab: 0, theme, preset: "standard", over: {} };
+  cur = { e, tab: 0, theme: e.sceneinfo && !(theme in e.sceneinfo.themes) ? Object.keys(e.sceneinfo.themes)[0] : theme, preset: "standard", over: {} };
   if (e.sceneinfo && !e.sceneinfo.presets.standard) cur.preset = Object.keys(e.sceneinfo.presets)[0];
   drawDrawer();
   if (!dr.open) dr.showModal();
@@ -415,7 +423,7 @@ function drawDrawer() {
   if (s) presetTbl = `<div class="sec"><h3>Preset <small>${esc(typeof s.preset_rule === "string" ? s.preset_rule : "tự chọn theo thời lượng")}</small></h3>
     <table class="pt"><tr><th>Preset</th><th>Thời lượng</th><th>Phủ khung</th><th>Là gì</th></tr>
     ${Object.entries(s.presets).map(([k, v]) => `<tr><td>${PRESET_NAME[k] || k}</td><td class="mono">${v.dur[0]}–${v.dur[1]}s</td><td>${v.covers ? "Có — nặng" : "Không — đè footage"}</td><td>${md(v.note)}</td></tr>`).join("")}</table></div>
-    <div class="sec"><h3>3 theme</h3><dl class="kv">${Object.entries(s.themes).map(([k, v]) => `<dt>${esc(TH.find(x => x.id === k)?.name || k)}</dt><dd>${md(v)}</dd>`).join("")}</dl></div>
+    <div class="sec"><h3>${Object.keys(s.themes).length} theme</h3><dl class="kv">${Object.entries(s.themes).map(([k, v]) => `<dt>${esc(thInfo(k).name)}</dt><dd>${md(v)}</dd>`).join("")}</dl></div>
     <div class="sec"><h3>Tham số <small>trong c.graphic(…)</small></h3><dl class="kv">${Object.entries(s.params).map(([k, v]) => `<dt class="mono">${esc(k)}${v.required ? " *" : ""}</dt><dd>${md(v.note || "")}${v.max_chars ? ` <span class="mono" style="color:var(--subtle)">≤ ${v.max_chars}</span>` : ""}</dd>`).join("")}</dl></div>`;
   const rel = (e.related || []).filter(r => BY[r]);
   dr.innerHTML = `<div class="dr-h"><div class="dr-tt"><h2 id="drt"><span class="code">${e.id}</span>${esc(e.name)}${starBtn(e.id)}</h2>
@@ -442,8 +450,8 @@ function drawDrawer() {
   wireStage(t);
 }
 function liveUrl() {
-  const s = cur.e.sceneinfo, brand = TH.find(x => x.id === cur.theme).brand;
-  const sample = { ...(s.sample[brand] || Object.values(s.sample)[0] || {}) };
+  const s = cur.e.sceneinfo;
+  const sample = { ...smpOf(s, cur.theme) };
   const pr = s.presets[cur.preset];
   let dur = parseFloat(cur.over.dur || sample.dur || pr.default || (pr.dur[0] + pr.dur[1]) / 2);
   dur = Math.min(Math.max(dur, pr.dur[0]), Math.max(pr.dur[0], Math.min(pr.dur[1], 9)));
@@ -466,15 +474,15 @@ function textToItems(txt, sided, dur) {
 function stageHtml(t) {
   const e = cur.e;
   if (t.kind === "live") {
-    const s = e.sceneinfo, pr = s.presets[cur.preset], brand = TH.find(x => x.id === cur.theme).brand;
-    const sample = { ...(s.sample[brand] || Object.values(s.sample)[0] || {}), ...cur.over };
+    const s = e.sceneinfo, pr = s.presets[cur.preset];
+    const sample = { ...smpOf(s, cur.theme), ...cur.over };
     const keys = TEXT_KEYS.filter(k => k in sample || (k in s.params && ["title", "word", "quote", "problem", "solution", "value", "label"].includes(k) && !(k === "value" && sample.from_value)));
-    const sided = !!(s.sample[brand] || {}).items && e.scene === "a-vs-b";
+    const sided = !!smpOf(s, cur.theme).items && e.scene === "a-vs-b";
     const items = sample.items ? `<label>Nhãn con — mỗi dòng 1 mục${sided ? " · <span class=\"mono\">a | Ý | ghi chú</span>" : " · <span class=\"mono\">Nhãn | ghi chú</span>"}
       <textarea data-items>${esc(cur.over._items ?? itemsToText(sample.items, sided))}</textarea></label>` : "";
     return `<div class="pwrap"><div class="stage ${pr.covers ? "" : "foot"}" style="${pr.covers ? "" : `background-image:url('${DATA.footage}')`}">
         <iframe id="live" title="Mẫu trực tiếp" src="${liveUrl()}" loading="lazy"></iframe></div>
-      <div class="pside"><div class="row"><span class="plabel">Theme</span>${TH.map(x => `<button class="ptab" data-lth="${x.id}" aria-pressed="${x.id === cur.theme}"><span class="sw" style="background:${x.sw}"></span>${x.short}</button>`).join("")}</div>
+      <div class="pside"><div class="row"><span class="plabel">Theme</span>${thOf(s).map(x => `<button class="ptab" data-lth="${x.id}" aria-pressed="${x.id === cur.theme}"><span class="sw" style="background:${x.sw}"></span>${x.short}</button>`).join("")}</div>
         <div class="row"><span class="plabel">Preset</span>${Object.keys(s.presets).map(k => `<button class="ptab" data-lpr="${k}" aria-pressed="${k === cur.preset}">${PRESET_NAME[k] || k}</button>`).join("")}</div>
         <p class="pnote"><b>${PRESET_NAME[cur.preset]}</b> · ${pr.dur[0]}–${pr.dur[1]}s · ${pr.covers ? "phủ kín khung" : "đè lên hình thật (nền là ảnh mẫu)"}<br>${md(pr.note)}</p>
         <div class="try"><b>Thử chữ của Sếp</b>${keys.map(k => `<label>${esc(k)}${s.params[k]?.max_chars ? ` · ≤ ${s.params[k].max_chars} ký tự` : ""}<input data-k="${k}" value="${esc(sample[k] ?? "")}"></label>`).join("")}${items}
@@ -489,6 +497,7 @@ function stageHtml(t) {
     return `<div class="pwrap"><div class="stage${land ? " land" : ""}" style="height:${Math.round(ch * k)}px;width:${bw}px"><iframe src="${t.src}" style="width:${cw}px;height:${ch}px;transform:scale(${k})" title="${esc(t.name)}"></iframe></div>
       <div class="pside"><p class="pnote"><b>${esc(t.name)}</b> · ${cw}×${ch} · ${(+t.duration).toFixed(1)}s — animation thật trong thư viện Motion (tự lặp).</p></div></div>`;
   }
+  if (t.kind === "image") return `<div class="pwrap"><img src="${t.jpg}" alt="${esc(t.name)}" style="max-width:100%;border-radius:10px;display:block"><div class="pside"><p class="pnote">${md(t.note || "")}</p></div></div>`;
   if (t.kind === "audio") return `<div class="aud">${t.files.map(([n, f]) => `<div>${ICON.speaker}<span>${esc(n)}</span><audio controls preload="none" src="${encodeURI(f)}"></audio></div>`).join("")}</div>`;
   if (t.kind === "themes") return `<div class="themes3">${TH.map(x => `<figure><img src="${BY.C02.thumbs[x.id]}" alt=""><figcaption>${x.name}</figcaption></figure>`).join("")}</div>`;
   return `<p class="pnote" style="margin:4px 0">${md(t.note || "Không có demo hình.")}</p>`;
@@ -500,7 +509,7 @@ function wireStage(t) {
   const apply = () => {
     dr.querySelectorAll("[data-k]").forEach(i => { if (i.value !== "") cur.over[i.dataset.k] = i.value; else delete cur.over[i.dataset.k]; });
     const ta = dr.querySelector("[data-items]");
-    if (ta) { cur.over._items = ta.value; const dur = parseFloat(cur.over.dur || cur.e.sceneinfo.sample[TH.find(x => x.id === cur.theme).brand]?.dur || 5);
+    if (ta) { cur.over._items = ta.value; const dur = parseFloat(cur.over.dur || smpOf(cur.e.sceneinfo, cur.theme).dur || 5);
       cur.over.items = textToItems(ta.value, cur.e.scene === "a-vs-b", dur); }
     drawDrawer();
   };

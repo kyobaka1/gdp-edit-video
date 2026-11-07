@@ -1,0 +1,74 @@
+{
+  "id": "scene-count-reveal",
+  "source": {
+    "kind": "html",
+    "entry": "src/count-reveal.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\count-reveal\\src\\count-reveal.html"
+  },
+  "version": 1,
+  "name": "Scene C04 Count & Reveal",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "count_reveal"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "scene",
+    "đếm",
+    "checklist",
+    "danh sách",
+    "tổng kết",
+    "editorial",
+    "journal"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 4,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "vào",
+      "start": 0,
+      "end": 0.55
+    },
+    {
+      "name": "đếm từng mục",
+      "start": 0.55,
+      "end": 3.566666666666667
+    },
+    {
+      "name": "ra",
+      "start": 3.566666666666667,
+      "end": 4
+    }
+  ],
+  "params": {
+    "theme": "gdp_red",
+    "preset": "standard",
+    "title": "",
+    "eyebrow": "",
+    "items": "[]",
+    "count": "",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "opaque": true,
+  "z": "top",
+  "variants": {},
+  "scene": "count-reveal",
+  "notes": "Scene Library C04 Count & Reveal v1.0 — hồ sơ assets/scenes/count-reveal/scene.json. Nguồn assets/scenes/count-reveal/src (Claude viết 05/11). Số đếm to + từng mục bật ra theo lời; standard/full phủ khung, micro đè footage. Dùng: c.graphic('scene-count-reveal', at=…, until=…, title=…, items=[…])."
+}

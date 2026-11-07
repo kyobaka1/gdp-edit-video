@@ -43,6 +43,9 @@ hợp đồng (Claude Code sửa giúp được) → đặt vào `templates/` + 
   (font chung, mỗi họ một thư mục con, vd `BeVietnamPro/BeVietnamPro-Bold.ttf`) hoặc `url("../fonts/<file>")`
   (font riêng của shop). Font tải lỗi → renderer dừng và báo (không lặng lẽ thay font khác). Font phải có đủ dấu tiếng Việt.
 - Không tự xoay — renderer xoay theo góc chữ gốc. `"nowrap": true` trong manifest = luôn một dòng (mẫu xoay chéo).
+- Khối nhấn `*...*` (29/10): màu khai `"highlight": {"bg", "fg"}` ở gốc manifest (mặc định cả shop) và/hoặc trong từng
+  slot (mẫu nền khác màu, vd badge nền trắng). Chọn cặp tương phản với NỀN MẪU, không trùng màu nền. Mẫu không cần sửa
+  CSS — renderer tự chèn kiểu `.hl` + bọc từng chữ (`.u`) khi hiện dần; đừng đặt CSS cho `#text span` trong mẫu.
 
 ```json
 { "slots": {

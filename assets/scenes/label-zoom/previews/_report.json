@@ -1,0 +1,50 @@
+[
+ {
+  "theme": "ui_dark",
+  "preset": "full",
+  "ok": true,
+  "duration": 4.2333,
+  "frames": 127,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 246.2) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "ui_dark",
+  "preset": "standard",
+  "ok": true,
+  "duration": 4.2333,
+  "frames": 127,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 246.2) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "ui_light",
+  "preset": "full",
+  "ok": true,
+  "duration": 4.5333,
+  "frames": 136,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 246.2) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "ui_light",
+  "preset": "standard",
+  "ok": true,
+  "duration": 4.5333,
+  "frames": 136,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 246.2) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ }
+]

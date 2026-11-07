@@ -1,0 +1,69 @@
+{
+ "id": "list-motion",
+ "code": "C13",
+ "name": "List Motion — danh sách dựng theo lời (tick / công tắc / gạch)",
+ "version": "1.0.0",
+ "motion_id": "scene-list-motion",
+ "status": "ready",
+ "uikit": true,
+ "brand_param": true,
+ "learned_from": "m2 (danh sách gạch dần 'Prompt sửa từng chi tiết / Tốn thời gian / Tốn token'), m2 không người (công tắc bật dần 'Miễn dịch / Vị giác…'), Blue 1 (checklist tick xanh)",
+ "purpose": "Liệt kê 2–6 ý mà MỖI Ý BẬT ĐÚNG LÚC NÓI: lợi ích (tick), công dụng/tính năng (toggle), cách cũ bị loại bỏ (strike + chip kết luận). Đồ hoạ dựng nhiều bước theo lời — đúng ngữ pháp 'mỗi 2–4s có một thứ mới' mà vẫn chỉ là MỘT loại hiệu ứng.",
+ "use_when": [
+  "Lời liệt kê 2–6 ý liền nhau (mỗi ý ≤ 2,5s): 'giúp tăng miễn dịch, hỗ trợ vị giác, …' → toggle; 'chống nước, không gỉ, dễ lau' → tick",
+  "Câu phủ định cách cũ: 'không cần khoan, không tốn thời gian, không lo nứt tường' → strike, chốt bằng conclude='Dán là xong'",
+  "Video sản phẩm không người (san-pham-thuan) và bán hàng (gdp-ban-hang)"
+ ],
+ "avoid_when": [
+  "Ý có số đếm rõ ('3 lý do') muốn số to — dùng Count & Reveal (C04)",
+  "Ý cách nhau > 3s hoặc cả chương — dùng Pinned Title (C03)",
+  "Ý không được nói ra (nhãn phải khớp lời)"
+ ],
+ "presets": {
+  "micro": {"dur": [1.5, 8.0], "default": 3, "covers": false, "captions": "keep",
+            "note": "thẻ nhỏ góc trên (≤4 mục, không tiêu đề) — chữ động vẫn chạy bên dưới"},
+  "standard": {"dur": [2.0, 10.0], "default": 4, "covers": false, "note": "nền tối nhẹ + thẻ giữa trên (tiêu đề tuỳ chọn), footage vẫn thấy"},
+  "full": {"dur": [3.0, 12.0], "default": 5, "covers": true, "note": "phủ khung nền trơn theo theme, tiêu đề to + danh sách lớn"}
+ },
+ "preset_auto": [[2.4, "micro"], [8.0, "standard"], [99, "full"]],
+ "items": {"max": 6, "term_max": 26, "note_max": 30, "lead": 0.12, "tail": 0.7, "micro": true, "required": true,
+           "note": "items=[(cụm lời | giây, 'Ý ngắn'[, '']), …]; 'Ý|icon' ép icon (không dùng ở list); mục hiện sớm 0,12s"},
+ "themes": {
+  "ui_dark": {"brand": "*", "trans": "cut", "look": "thẻ tối kính bo góc, hàng pill xám, tick / công tắc / gạch màu nhấn của shop (GDP vàng, PHALEDO champagne)"},
+  "ui_light": {"brand": "*", "trans": "cut", "look": "thẻ sáng trắng bo góc, chữ đen, nhấn màu shop — hợp phaledo-tap-chi"}
+ },
+ "theme_by_brand": {"*": "ui_dark"},
+ "params": {
+  "mode": {"note": "tick (mặc định) | toggle | strike"},
+  "title": {"max_chars": 24, "note": "tiêu đề màu nhấn trên thẻ (không hiện ở micro)"},
+  "eyebrow": {"max_chars": 28, "note": "dòng nhỏ trên tiêu đề: 'Telsa ZinC giúp', 'Thay vì'"},
+  "items": {"note": "[(cụm lời | giây, ý ≤ 26), …] 2–6 mục (micro ≤ 4)"},
+  "conclude": {"max_chars": 26, "note": "chip kết luận hiện sau mục cuối (hợp mode strike): 'Tiết kiệm nhiều năm tới'"},
+  "y": {"note": "standard: tâm danh sách theo chiều dọc (0.14–0.62, mặc định 0.30)"},
+  "side": {"note": "micro: left (mặc định) | right"},
+  "theme": {"note": "bỏ trống = theo phong cách (c.style) / ui_dark"},
+  "preset": {"note": "bỏ trống = theo thời lượng: < 2,4s micro · < 8s standard · còn lại full"}
+ },
+ "sfx": {
+  "ui_dark": [{"at": "enter", "file": "scene/soft_swell.wav", "gain_db": -24}, {"at": "item", "file": "click_003.ogg", "gain_db": -20}],
+  "ui_light": [{"at": "enter", "file": "scene/soft_swell.wav", "gain_db": -24}, {"at": "item", "file": "click2.ogg", "gain_db": -21}]
+ },
+ "qa": ["Motion Engine: tất định, khung cuối trong suốt",
+        "Template: mục tự thu chữ (QA overflow), danh sách không xuống quá 76% chiều cao",
+        "Lời: mỗi mục có cụm lời tương ứng; strike chỉ cho ý PHỦ ĐỊNH đã nói"],
+ "sample": {
+  "ui_dark": {"brand": "GIADUNGPLUS", "mode": "strike", "eyebrow": "thay vì", "title": "Khoan tường",
+              "items": "[{\"t\": 0.7, \"x\": \"Tốn thời gian\"}, {\"t\": 1.4, \"x\": \"Bụi bẩn, nứt gạch\"}, {\"t\": 2.1, \"x\": \"Cần thợ lắp\"}]",
+              "conclude": "Dán là xong", "dur": 4.2},
+  "ui_light": {"brand": "PHALEDO", "mode": "toggle", "eyebrow": "hũ thủy tinh giúp", "title": "Bếp gọn hơn",
+               "items": "[{\"t\": 0.8, \"x\": \"Kín hơi\"}, {\"t\": 1.5, \"x\": \"Không ám mùi\"}, {\"t\": 2.2, \"x\": \"Rửa máy được\"}, {\"t\": 2.9, \"x\": \"Xếp chồng gọn\"}]",
+               "dur": 4.5}
+ },
+ "examples": [
+  "c.graphic('scene-list-motion', at='không cần khoan', until='cần thợ', mode='strike', eyebrow='Thay vì', title='Khoan tường', items=[('không cần khoan', 'Khoan tường'), ('bụi', 'Bụi bẩn'), ('thợ', 'Cần thợ lắp')], conclude='Dán là xong')",
+  "c.graphic('scene-list-motion', at='giúp', until='lành thương', mode='toggle', eyebrow='Kẽm giúp', items=[('miễn dịch', 'Miễn dịch'), ('vị giác', 'Vị giác'), ('phát triển', 'Phát triển của trẻ'), ('lành thương', 'Lành thương')])",
+  "c.graphic('scene-list-motion', at='chống nước', dur=2.2, items=[('chống nước', 'Chống nước'), ('không gỉ', 'Không gỉ')])   # micro"
+ ],
+ "tags": ["danh sách", "checklist", "công tắc", "gạch", "lợi ích", "giao diện"],
+ "previews": "previews/<theme>-<preset>.jpg"
+}

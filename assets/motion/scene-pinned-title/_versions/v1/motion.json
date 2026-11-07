@@ -1,0 +1,73 @@
+{
+  "id": "scene-pinned-title",
+  "source": {
+    "kind": "html",
+    "entry": "src/pinned-title.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\pinned-title\\src\\pinned-title.html"
+  },
+  "version": 1,
+  "name": "Scene C03 Pinned Title",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "pinned_title"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "scene",
+    "tiêu đề ghim",
+    "nhãn con",
+    "danh sách",
+    "chữ sau người",
+    "editorial",
+    "journal"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 10,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "ghim tiêu đề",
+      "start": 0,
+      "end": 0.55
+    },
+    {
+      "name": "nhãn con theo lời",
+      "start": 0.55,
+      "end": 9.616666666666667
+    },
+    {
+      "name": "ra",
+      "start": 9.616666666666667,
+      "end": 10
+    }
+  ],
+  "params": {
+    "theme": "gdp_red",
+    "preset": "standard",
+    "title": "TIÊU ĐỀ",
+    "eyebrow": "",
+    "items": "[]",
+    "layout": "list",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "z": "top",
+  "variants": {},
+  "scene": "pinned-title",
+  "notes": "Scene Library C03 Pinned Title v1.0 — hồ sơ assets/scenes/pinned-title/scene.json. Nguồn assets/scenes/pinned-title/src (Claude viết 05/11). Tiêu đề ghim cả chương + nhãn con theo lời; đè footage; tiêu đề có thể sau người, nhãn con luôn trước. Dùng: c.graphic('scene-pinned-title', at=…, until=…, title=…, items=[…])."
+}

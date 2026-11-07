@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Detail Spotlight</title>
+<!-- Scene Library · C09 Detail Spotlight v1.0 (Claude viết 06/11/2026) — assets/scenes/detail-spotlight/scene.json.
+     Chỉ đúng MỘT chi tiết trên footage (x, y theo tỉ lệ khung — chọn bằng `vs.py edit frame`): khoanh tròn + mũi tên /
+     đường chỉ dẫn tới nhãn, phần còn lại tối nhẹ; bản full có KÍNH LÚP phóng to vùng đó (ảnh = khung RA đúng lúc chỉ,
+     build.py cắt sẵn → tham số loupe). Đè footage, nền trong suốt, 1–3s.
+     Hợp đồng Motion Engine: window.setTime(giây) vẽ ĐỒNG BỘ, không Internet, KHÔNG will-change.
+     Query: theme · preset (micro|standard|full) · dur · x · y · r (bán kính / bề ngang khung) · label · note ·
+     side (auto|left|right) · zoom (độ phóng kính lúp) · loupe (file:/// khung ra) · dim · seed. -->
+<style>
+  @font-face { font-family: "GdpBold"; src: url("fonts/UTM_AvoBold.ttf"); }
+  @font-face { font-family: "GdpReg"; src: url("fonts/UTM_Avo.ttf"); }
+  @font-face { font-family: "PhBold"; src: url("fonts/Averta-Bold.otf"); }
+  @font-face { font-family: "PhReg"; src: url("fonts/Averta-Regular.otf"); }
+  @font-face { font-family: "PhLight"; src: url("fonts/Averta-Light.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  #root { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .abs { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; white-space: nowrap; box-sizing: border-box; }
+  .bgimg { background-size: 100% 100%; background-repeat: no-repeat; }
+  svg { position: absolute; left: 0; top: 0; overflow: visible; }
+</style>
+<script src="assets.js"></script>
+<script src="themes.js"></script>
+</head>
+<body>
+<div id="stage"><div id="root"></div></div>
+<script>
+(function () {
+  const W = 1080, H = 1920, FPS = 30;
+  const Q = new URLSearchParams(location.search);
+  const TH_ID = Q.get("theme") || "gdp_red";
+  const T = window.SCENE_THEMES[TH_ID] || window.SCENE_THEMES.gdp_red;
+  const C = T.color, A = window.KIT_ASSETS, E = T.engine;
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const prog = (t, a, b) => b <= a ? (t >= b ? 1 : 0) : clamp((t - a) / (b - a));
+  const outBack = (x, s = 1.5) => 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2);
+  const outCubic = x => 1 - Math.pow(1 - x, 3);
+  const inCubic = x => x * x * x;
+  const inOut = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  const stop12 = t => Math.floor(t * 12 + 1e-6) / 12;
+  function rng(n) { let a = ((parseInt(Q.get("seed") || "1", 10) || 1) * 7919 + n * 104729) >>> 0;
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+  const PRESETS = { micro: { min: 0.8, def: 1.2 }, standard: { min: 1.4, def: 2.2 }, full: { min: 2.4, def: 3.2 } };
+  const PRESET = PRESETS[Q.get("preset")] ? Q.get("preset") : "standard";
+  const D = Math.max(PRESETS[PRESET].min, parseFloat(Q.get("dur") || PRESETS[PRESET].def) || PRESETS[PRESET].def);
+  const MICRO = PRESET === "micro", FULL = PRESET === "full";
+  const X = clamp(parseFloat(Q.get("x") || "0.5"), 0.02, 0.98) * W, Y = clamp(parseFloat(Q.get("y") || "0.5"), 0.02, 0.98) * H;
+  const R = clamp(parseFloat(Q.get("r") || "0.09"), 0.035, 0.22) * W;
+  const LABEL = MICRO ? "" : (Q.get("label") || "").trim(), NOTE = MICRO ? "" : (Q.get("note") || "").trim();
+  const ZOOM = FULL ? clamp(parseFloat(Q.get("zoom") || "2.2"), 1.2, 4) : 0;
+  const LOUPE = FULL && (Q.get("loupe") || "").startsWith("file:") ? Q.get("loupe") : null;
+  const DIM = clamp(parseFloat(Q.get("dim") ?? T.dim) || 0, 0, 0.7);
+  const SIDE = Q.get("side") === "left" ? -1 : Q.get("side") === "right" ? 1 : (X <= 0.46 * W ? 1 : -1);   // nhãn ra phía trống
+  const DE = D - 1 / FPS, EX = MICRO ? 0.22 : 0.3;
+  const QA = { theme: TH_ID, preset: PRESET, dur: D, overflow: [], warn: [], fontPx: {} };
+  const root = document.getElementById("root");
+  const imgs = [];
+  function node(tag, cls, parent) { const e = document.createElement(tag); if (cls) e.className = cls; (parent || root).appendChild(e); return e; }
+  function bgi(el, key) { const a = A[key]; const im = new Image(); im.src = a.src; imgs.push(im); el.style.backgroundImage = `url(${a.src})`; el.classList.add("bgimg"); return el; }
+  function place(el, x, y) { el.style.left = Math.round(x) + "px"; el.style.top = Math.round(y) + "px"; }
+  function rect(el) { const r = el.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; }
+  function fitFont(el, px, maxW, minK) { let k = 1; el.style.fontSize = px + "px";
+    while (el.offsetWidth > maxW && k > minK) { k -= 0.04; el.style.fontSize = Math.round(px * k) + "px"; } return el.offsetWidth <= maxW + 1; }
+  const svgNS = "http://www.w3.org/2000/svg";
+
+  // vùng sáng: ngoài vòng tối nhẹ (dồn mắt vào chi tiết)
+  const dim = node("div", "abs"); Object.assign(dim.style, { width: W + "px", height: H + "px",
+    background: `radial-gradient(circle at ${X}px ${Y}px, rgba(0,0,0,0) ${Math.round(R * 1.08)}px, rgba(0,0,0,${DIM}) ${Math.round(R * 1.08 + 70)}px)` });
+  // kính lúp (vẽ trước nhãn)
+  let loupe = null, RL = 0, LX = 0, LY = 0;
+  if (FULL) {
+    RL = Math.round(0.19 * W);
+    loupe = node("div", "abs");
+    const bw = E === "glass" ? 3 : 14;
+    Object.assign(loupe.style, { width: 2 * RL + "px", height: 2 * RL + "px", borderRadius: "50%", border: `${bw}px solid ${C.loupe}`,
+      background: LOUPE ? `url("${LOUPE}")` : "rgba(30,30,30,.4)", backgroundRepeat: "no-repeat",
+      filter: E === "glass" ? "none" : "drop-shadow(0 12px 14px rgba(0,0,0,.4))" });
+    if (LOUPE) { const im = new Image(); im.src = LOUPE; imgs.push(im); }
+    else QA.warn.push("chưa có ảnh kính lúp (build.py cắt khung RA → tham số loupe) — preview trang để trống");
+  }
+  const svg = document.createElementNS(svgNS, "svg"); svg.setAttribute("width", W); svg.setAttribute("height", H); root.appendChild(svg);
+  function path(d, color, w, op) { const p = document.createElementNS(svgNS, "path"); p.setAttribute("d", d);
+    Object.assign(p.style, { fill: "none", stroke: color, strokeWidth: w + "px", strokeLinecap: "round", strokeLinejoin: "round", opacity: op ?? 1 });
+    svg.appendChild(p); p.dataset.len = p.getTotalLength(); p.style.strokeDasharray = p.dataset.len; p.style.strokeDashoffset = p.dataset.len; return p; }
+  function circ(cx, cy, r, color, w) { const c = document.createElementNS(svgNS, "circle"); c.setAttribute("cx", cx); c.setAttribute("cy", cy); c.setAttribute("r", r);
+    Object.assign(c.style, { fill: "none", stroke: color, strokeWidth: w + "px" }); svg.appendChild(c); return c; }
+  // vòng khoanh theo theme
+  const rings = [];
+  function wobblyEllipse(rx, ry, loops, jit, start, n) {
+    const r = rng(n); let d = "";
+    const steps = Math.round(48 * loops);
+    for (let k = 0; k <= steps; k++) {
+      const a = start + k / steps * Math.PI * 2 * loops, w = 1 + jit * Math.sin(k * 0.9 + r() * 6) + (k / steps) * jit * 1.5;
+      d += (k ? " L " : "M ") + (X + rx * w * Math.cos(a)).toFixed(1) + " " + (Y + ry * w * Math.sin(a)).toFixed(1);
+    }
+    return d;
+  }
+  if (E === "paper") rings.push(path(wobblyEllipse(R * 1.08, R * 0.98, 1.85, 0.035, -2.1, 1), C.ring, 9));
+  else if (E === "glass") { rings.push(path(wobblyEllipse(R, R, 1.0, 0, -Math.PI / 2, 2), C.ring, 2));
+    var pulse = circ(X, Y, R, C.ring, 1.5); pulse.style.opacity = 0;
+    var dot = circ(X, Y, 5, C.ring, 0); dot.style.fill = C.ring; dot.style.opacity = 0; }
+  else { rings.push(path(wobblyEllipse(R * 1.12, R * 0.96, 1.15, 0.05, -1.9, 3), C.ring, 5, 0.95));
+    rings.push(path(wobblyEllipse(R * 1.06, R * 1.02, 1.05, 0.06, -2.4, 4), C.ring, 3, 0.5)); }
+  // nhãn
+  let lab = null, note = null, labBox = null;
+  if (LABEL) {
+    lab = node("div", "abs"); lab.textContent = LABEL;
+    Object.assign(lab.style, { fontFamily: T.fonts.label, fontSize: T.px.label + "px" });
+    if (E === "paper") { bgi(lab, "bang-giay-den-trong"); Object.assign(lab.style, { color: C.label, padding: "16px 40px 18px 36px", filter: "drop-shadow(0 6px 7px rgba(0,0,0,.35))" }); }
+    else if (E === "glass") { lab.textContent = LABEL.toLocaleUpperCase("vi");
+      Object.assign(lab.style, { color: C.label, letterSpacing: ".18em", padding: "12px 24px 13px calc(24px + .18em)", background: C.pill, borderRadius: "10px",
+        border: "1px solid rgba(184,154,106,.5)", textShadow: "0 1px 6px rgba(0,0,0,.6)" }); }
+    else { Object.assign(lab.style, { color: C.label, padding: "14px 30px 14px 28px", background: C.tag, borderRadius: "6px", filter: "drop-shadow(0 8px 10px rgba(50,28,12,.3))" }); }
+    if (NOTE) {
+      note = node("div", "abs"); note.textContent = NOTE;
+      Object.assign(note.style, { fontFamily: T.fonts.note, fontSize: T.px.note + "px", color: C.note });
+      if (E === "paper") { bgi(note, "nhan-tieu-de-trong"); Object.assign(note.style, { padding: "12px 30px 14px 26px", filter: "drop-shadow(0 5px 6px rgba(0,0,0,.3))" }); }
+      else if (E === "glass") Object.assign(note.style, { padding: "4px 2px", textShadow: "0 1px 8px rgba(0,0,0,.85), 0 0 3px rgba(0,0,0,.6)" });
+      else Object.assign(note.style, { padding: "8px 20px", background: C.tag, borderRadius: "5px", filter: "drop-shadow(0 6px 8px rgba(50,28,12,.25))" });
+    }
+  }
+  let washi = null;
+  if (E === "journal" && lab) { const a = A["bang-washi-be"]; washi = node("img", "abs"); washi.src = a.src; imgs.push(washi); washi.style.width = "120px"; washi.style.height = (120 * a.h / a.w) + "px"; }
+  let arrow = null, head = null, lead = null, tan = [];
+
+  function layout() {
+    // nhãn (+ ghi chú) ra phía trống, chếch lên; sát mép trên thì xuống dưới
+    let gx = X + SIDE * (R + 110), gy = Y - R * 0.9;     // điểm neo nhãn
+    if (FULL) {   // kính lúp phía trống, nhãn dưới kính
+      LX = clamp(X + SIDE * (R + RL + 60), 70 + RL, 900 - RL);
+      LY = clamp(Y - RL * 0.35, 0.13 * H + RL, 0.70 * H - RL);
+      if (Math.abs(LX - X) < R + RL * 0.6) LY = Y - R - RL - 60 > 0.13 * H + RL ? Y - R - RL - 60 : Y + R + RL + 60;   // không đè vòng
+      place(loupe, LX - RL, LY - RL);
+      if (LOUPE) { loupe.style.backgroundSize = `${W * ZOOM}px ${H * ZOOM}px`;
+        const bw = E === "glass" ? 3 : 14; loupe.style.backgroundPosition = `${(RL - bw - X * ZOOM).toFixed(1)}px ${(RL - bw - Y * ZOOM).toFixed(1)}px`; }
+      // 2 đường nối vòng ↔ kính (kiểu kính lúp)
+      const ang = Math.atan2(LY - Y, LX - X), nx = -Math.sin(ang), ny = Math.cos(ang);
+      [1, -1].forEach(sg => tan.push(path(`M ${(X + sg * nx * R).toFixed(1)} ${(Y + sg * ny * R).toFixed(1)} L ${(LX + sg * nx * RL).toFixed(1)} ${(LY + sg * ny * RL).toFixed(1)}`,
+        C.ring, E === "glass" ? 1.5 : E === "paper" ? 5 : 3.5, E === "glass" ? 0.9 : 0.85)));
+      gx = LX; gy = LY + RL + 24;
+    }
+    if (lab) {
+      fitFont(lab, T.px.label, 560, 0.6); if (note) fitFont(note, T.px.note, 560, 0.6);
+      QA.fontPx.label = parseFloat(lab.style.fontSize);
+      const lw = lab.offsetWidth, lh = lab.offsetHeight, nw = note ? note.offsetWidth : 0, nh = note ? note.offsetHeight + 8 : 0;
+      let lx, ly;
+      if (FULL) { lx = gx - lw / 2; ly = gy; }
+      else {
+        lx = SIDE > 0 ? gx : gx - lw; ly = gy - lh - nh;
+        if (ly < 0.12 * H) ly = Y + R * 0.9;                 // sát mép trên → nhãn xuống dưới
+      }
+      lx = clamp(lx, 70, 900 - Math.max(lw, nw));
+      ly = clamp(ly, 0.11 * H, 0.75 * H - lh - nh);
+      place(lab, lx, ly);
+      if (note) place(note, SIDE > 0 || FULL ? lx + (FULL ? (lw - nw) / 2 : 14) : lx + lw - nw - 14, ly + lh + 8);
+      labBox = { x: lx, y: ly, w: Math.max(lw, nw), h: lh + nh };
+      if (lx + Math.max(lw, nw) > 0.84 * W + 6 || lx < 0.06 * W - 6) QA.overflow.push("nhãn tràn ngang");
+      if (washi) place(washi, lx - 30, ly - 18);
+      if (!FULL) {   // nối vòng → nhãn
+        const ax = SIDE > 0 ? lx - 6 : lx + lw + 6, ay = ly + lh / 2;
+        const ang = Math.atan2(ay - Y, ax - X), ex = X + Math.cos(ang) * R * 1.12, ey = Y + Math.sin(ang) * R * 1.05;
+        if (E === "glass") lead = path(`M ${ex.toFixed(1)} ${ey.toFixed(1)} L ${ax.toFixed(1)} ${ay.toFixed(1)}`, C.arrow, 1.5);
+        else { const mx = (ax + ex) / 2 + SIDE * 20, my = Math.min(ay, ey) - 40;
+          arrow = path(`M ${ax.toFixed(1)} ${ay.toFixed(1)} Q ${mx.toFixed(1)} ${my.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`, C.arrow, E === "paper" ? 8 : 5);
+          const ha = Math.atan2(ey - my, ex - mx), hl = E === "paper" ? 34 : 26;
+          head = path(`M ${(ex - hl * Math.cos(ha - 0.5)).toFixed(1)} ${(ey - hl * Math.sin(ha - 0.5)).toFixed(1)} L ${ex.toFixed(1)} ${ey.toFixed(1)} L ${(ex - hl * Math.cos(ha + 0.5)).toFixed(1)} ${(ey - hl * Math.sin(ha + 0.5)).toFixed(1)}`, C.arrow, E === "paper" ? 8 : 5); }
+      }
+    } else if (MICRO && E !== "glass") {   // micro: mũi tên ngắn chỉ vào vòng từ phía trống
+      const sx = X + SIDE * (R + 150), sy = Y - R - 110, ang = Math.atan2(sy - Y, sx - X), ex = X + Math.cos(ang) * R * 1.15, ey = Y + Math.sin(ang) * R * 1.1;
+      const mx = (sx + ex) / 2 + SIDE * 30, my = Math.min(sy, ey) - 30;
+      arrow = path(`M ${sx.toFixed(1)} ${sy.toFixed(1)} Q ${mx.toFixed(1)} ${my.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`, C.arrow, E === "paper" ? 8 : 5);
+      const ha = Math.atan2(ey - my, ex - mx), hl = E === "paper" ? 34 : 26;
+      head = path(`M ${(ex - hl * Math.cos(ha - 0.5)).toFixed(1)} ${(ey - hl * Math.sin(ha - 0.5)).toFixed(1)} L ${ex.toFixed(1)} ${ey.toFixed(1)} L ${(ex - hl * Math.cos(ha + 0.5)).toFixed(1)} ${(ey - hl * Math.sin(ha + 0.5)).toFixed(1)}`, C.arrow, E === "paper" ? 8 : 5);
+    }
+    const parts = [{ x: X - R, y: Y - R, w: 2 * R, h: 2 * R }, ...(labBox ? [labBox] : []), ...(FULL ? [{ x: LX - RL, y: LY - RL, w: 2 * RL, h: 2 * RL }] : [])];
+    const x0 = Math.min(...parts.map(p => p.x)), y0 = Math.min(...parts.map(p => p.y));
+    const x1 = Math.max(...parts.map(p => p.x + p.w)), y1 = Math.max(...parts.map(p => p.y + p.h));
+    QA.area = { x: Math.round(x0), y: Math.round(y0), w: Math.round(x1 - x0), h: Math.round(y1 - y0) };
+    QA.box = { x: Math.round(X - R), y: Math.round(Y - R), w: Math.round(2 * R), h: Math.round(2 * R) };
+    if (X < 0.06 * W || X > 0.84 * W || Y < 0.12 * H || Y > 0.76 * H) QA.warn.push(`điểm chỉ (x ${(X / W).toFixed(2)}, y ${(Y / H).toFixed(2)}) ngoài vùng an toàn TikTok`);
+    QA.land = MICRO ? 0.45 : 0.8; QA.full_at = FULL ? 1.0 : QA.land;
+  }
+
+  function setTime(t0) {
+    const t = clamp(t0, 0, D), kx = inCubic(prog(t, DE - EX, DE));
+    dim.style.opacity = (outCubic(prog(t, 0, 0.3)) * (1 - kx)).toFixed(4);
+    rings.forEach((r, i) => { const k = inOut(prog(t, 0.05 + i * 0.12, (MICRO ? 0.38 : 0.45) + i * 0.12));
+      r.style.strokeDashoffset = ((1 - k) * r.dataset.len).toFixed(1); r.style.visibility = k > 0 ? "visible" : "hidden"; });
+    if (E === "glass") {
+      const kp = prog(t, 0.35, 1.15); pulse.setAttribute("r", (R * lerp(1, 1.45, outCubic(kp))).toFixed(1)); pulse.style.opacity = (kp > 0 && kp < 1 ? 0.7 * (1 - kp) : 0).toFixed(4);
+      dot.style.opacity = outCubic(prog(t, 0.3, 0.5)).toFixed(4);
+    }
+    [arrow, head, lead, ...tan].forEach((p, i) => { if (!p) return; const a0 = p === head ? 0.5 : 0.3, k = inOut(prog(t, a0, a0 + (p === head ? 0.12 : 0.3)));
+      p.style.strokeDashoffset = ((1 - k) * p.dataset.len).toFixed(1); p.style.visibility = k > 0 ? "visible" : "hidden"; });
+    if (lab) {
+      const l0 = FULL ? 0.75 : 0.45;
+      if (E === "paper") { const k = prog(stop12(Math.max(0, t - l0)), 0, 0.2); lab.style.opacity = t >= l0 ? 1 : 0;
+        lab.style.transform = `translateX(${(SIDE * (1 - outBack(k, 1.4)) * 60).toFixed(1)}px) rotate(-2deg)`;
+        if (note) { const kn = prog(stop12(Math.max(0, t - l0 - 0.12)), 0, 0.2); note.style.opacity = t >= l0 + 0.12 ? 1 : 0;
+          note.style.transform = `translateX(${(SIDE * (1 - outBack(kn, 1.4)) * 50).toFixed(1)}px) rotate(1deg)`; } }
+      else { const k = outCubic(prog(t, l0, l0 + 0.3)); lab.style.opacity = k.toFixed(4); lab.style.transform = `translateY(${((1 - k) * 14).toFixed(1)}px)`;
+        if (note) { const kn = outCubic(prog(t, l0 + 0.1, l0 + 0.4)); note.style.opacity = kn.toFixed(4); note.style.transform = `translateY(${((1 - kn) * 12).toFixed(1)}px)`; } }
+      if (washi) { washi.style.opacity = t >= l0 + 0.2 ? 1 : 0; washi.style.transform = "rotate(-24deg)"; }
+    }
+    if (loupe) { const k = outBack(prog(t, 0.55, 0.95), 1.2);   // kính lúp mở ra từ tâm (clip-path, không scale phần tử có bóng)
+      loupe.style.clipPath = `circle(${Math.max(0, k * 51).toFixed(2)}% at 50% 50%)`; loupe.style.opacity = t >= 0.55 ? 1 : 0; }
+    root.style.opacity = (t >= DE - 1e-6 ? 0 : 1 - kx).toFixed(4);
+    root.style.filter = kx > 0.001 ? `blur(${(6 * kx).toFixed(2)}px)` : "none";
+  }
+
+  const fams = [...new Set(Object.values(T.fonts))];
+  const ready = Promise.all([
+    ...fams.map(f => document.fonts.load(`40px "${f}"`, LABEL + NOTE + "Ợ0123456789")),
+    ...imgs.map(im => im.decode().catch(() => { throw new Error("thiếu ảnh " + im.src); })),
+  ]).then(() => { layout(); setTime(0); });
+
+  window.setTime = setTime;
+  window.SCENE_MOTION = { name: `Detail Spotlight · ${T.label} · ${PRESET}`, duration: D, width: W, height: H, fps: FPS,
+    ready, setTime, qa: QA,
+    scenes: [{ name: "khoanh", start: 0, end: 0.5 }, { name: "chỉ + nhãn", start: 0.5, end: DE - EX }, { name: "ra", start: DE - EX, end: D }] };
+  if (!Q.has("render")) {
+    const t0 = performance.now();
+    (function loop() { setTime(((performance.now() - t0) / 1000) % (D + 0.6)); requestAnimationFrame(loop); })();
+  }
+})();
+</script>
+</body>
+</html>

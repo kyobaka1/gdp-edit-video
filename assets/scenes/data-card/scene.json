@@ -1,0 +1,201 @@
+{
+ "id": "data-card",
+ "code": "C16",
+ "name": "Data Card — số tiền / % / so sánh thành thẻ số liệu dựng theo lời",
+ "version": "1.0.0",
+ "motion_id": "scene-data-card",
+ "status": "ready",
+ "uikit": true,
+ "brand_param": true,
+ "learned_from": "m2 không người (điện mặt trời): '1 tháng 2tr → 1 năm 24tr' thành cột lớn dần, 'giảm khoảng 80%' thành vòng tròn chạy tới %, cuối video tờ hoá đơn cộng dồn 'TỔNG: 300 TRIỆU' màu nhấn — số liệu nói ra miệng nhưng người xem NHÌN thấy được",
+ "purpose": "Khi lời đọc có PHÉP TÍNH / SO SÁNH / PHẦN TRĂM (tiết kiệm bao nhiêu, rẻ hơn bao nhiêu, dùng được bao lâu) thì con số phải thành hình: cột (so sánh 2–4 mức), vòng % (một tỉ lệ), hoá đơn (cộng dồn ra tổng). Khác Number Impact C07 (1 con số đếm lên giữa khung): Data Card là THẺ GIAO DIỆN nhiều mức, phủ mờ footage.",
+ "use_when": [
+  "Lời có 2–4 mức để so: '1 tháng 2 triệu, 1 năm 24 triệu, 5 năm 120 triệu' → bars",
+  "Lời có một tỉ lệ: 'giảm khoảng 80% tiền điện', 'chịu được 95% độ ẩm' → gauge",
+  "Lời cộng dồn ra tổng / tính tiền: 'mỗi tháng 5 triệu, 5 năm, tổng 300 triệu' → receipt",
+  "Phong cách gdp-ban-hang / san-pham-thuan / gdp-giai-thich"
+ ],
+ "avoid_when": [
+  "Chỉ có 1 con số không so sánh — dùng Number Impact (C07)",
+  "Số liệu KHÔNG có trong nguồn / không do Sếp cung cấp (luật: không thêm tuyên bố sản phẩm)",
+  "phaledo-tap-chi (tạp chí không tính tiền) — trừ khi Sếp yêu cầu"
+ ],
+ "presets": {
+  "standard": {
+   "dur": [
+    2.0,
+    10.0
+   ],
+   "default": 4,
+   "covers": false,
+   "note": "footage tối 55% + thẻ giữa khung, chữ động tạm ẩn"
+  },
+  "full": {
+   "dur": [
+    3.0,
+    12.0
+   ],
+   "default": 5,
+   "covers": true,
+   "note": "nền gradient đặc theo theme (không thấy footage), thẻ to hơn — đoạn dài toàn số"
+  }
+ },
+ "preset_auto": [
+  [
+   5.5,
+   "standard"
+  ],
+  [
+   99,
+   "full"
+  ]
+ ],
+ "items": {
+  "max": 5,
+  "term_max": 18,
+  "note_max": 14,
+  "lead": 0.1,
+  "tail": 0.8,
+  "required": false,
+  "note": "items=[(cụm lời | giây, 'nhãn', 'giá trị hiện'), …] — bars: 2–4 cột (giá trị phải có số để tính chiều cao) · gauge: 1 mục = lúc vòng bắt đầu chạy + nhãn trên số · receipt: 2–5 dòng"
+ },
+ "themes": {
+  "ui_dark": {
+   "brand": "*",
+   "trans": "dip",
+   "look": "footage tối, cột/vòng màu nhấn shop phát sáng, chữ trắng; hoá đơn giấy trắng ngà"
+  },
+  "ui_light": {
+   "brand": "*",
+   "trans": "dip",
+   "look": "như ui_dark; full = nền sáng xám nhạt, chữ tối"
+  }
+ },
+ "theme_by_brand": {
+  "*": "ui_dark"
+ },
+ "params": {
+  "mode": {
+   "required": true,
+   "note": "bars | gauge | receipt"
+  },
+  "title": {
+   "max_chars": 24,
+   "note": "tiêu đề trên thẻ (tuỳ chọn): 'Tiết kiệm sau 5 năm'"
+  },
+  "eyebrow": {
+   "max_chars": 28,
+   "note": "dòng nhỏ trên tiêu đề; receipt: tên tờ hoá đơn (mặc định 'HOÁ ĐƠN')"
+  },
+  "value": {
+   "note": "gauge: phần trăm 0–100 vòng chạy tới"
+  },
+  "unit": {
+   "note": "gauge: hậu tố sau số đếm ('%' — để trống nếu không phải %)"
+  },
+  "note": {
+   "max_chars": 30,
+   "note": "gauge: dòng đậm dưới vòng 'tiền điện mỗi tháng'"
+  },
+  "chip": {
+   "max_chars": 22,
+   "note": "gauge: nhãn tròn màu nhấn hiện cuối '70–80% mỗi tháng'"
+  },
+  "total": {
+   "max_chars": 16,
+   "note": "receipt: giá trị tổng '300 TRIỆU'"
+  },
+  "total_label": {
+   "max_chars": 10,
+   "note": "receipt: chữ trước tổng (mặc định 'TỔNG')"
+  },
+  "total_t": {
+   "when": true,
+   "note": "receipt: cụm lời | giây lúc gạch tổng (mặc định sau dòng cuối 0,7s)"
+  },
+  "y": {
+   "note": "tâm thẻ theo chiều dọc (0.25–0.60, mặc định 0.42)"
+  },
+  "theme": {
+   "note": "bỏ trống = theo phong cách / ui_dark"
+  },
+  "preset": {
+   "note": "bỏ trống = theo thời lượng: < 5,5s standard · còn lại full"
+  }
+ },
+ "sfx": {
+  "ui_dark": [
+   {
+    "at": "enter",
+    "file": "scene/soft_swell.wav",
+    "gain_db": -23
+   },
+   {
+    "at": "item",
+    "file": "click_003.ogg",
+    "gain_db": -20
+   }
+  ],
+  "ui_light": [
+   {
+    "at": "enter",
+    "file": "scene/soft_swell.wav",
+    "gain_db": -23
+   },
+   {
+    "at": "item",
+    "file": "click_003.ogg",
+    "gain_db": -20
+   }
+  ]
+ },
+ "qa": [
+  "Motion Engine: tất định, khung cuối trong suốt",
+  "Template: thẻ không xuống quá 76% chiều cao, chữ tự thu, dòng hoá đơn không tràn",
+  "Nội dung: mọi con số phải có trong lời / nguồn — không làm tròn đẹp hơn sự thật"
+ ],
+ "sample": {
+  "ui_dark": {
+   "brand": "GIADUNGPLUS",
+   "mode": "bars",
+   "eyebrow": "tiền điện tiết kiệm",
+   "title": "Càng dùng càng lời",
+   "items": "[{\"t\": 0.7, \"x\": \"1 tháng\", \"n\": \"2tr\"}, {\"t\": 1.5, \"x\": \"1 năm\", \"n\": \"24tr\"}, {\"t\": 2.3, \"x\": \"5 năm\", \"n\": \"120tr\"}]",
+   "dur": 4.2
+  },
+  "ui_light": {
+   "brand": "PHALEDO",
+   "mode": "gauge",
+   "value": "80",
+   "unit": "%",
+   "note": "tiền điện mỗi tháng",
+   "chip": "giảm 70–80%",
+   "items": "[{\"t\": 0.5, \"x\": \"giảm khoảng\"}]",
+   "dur": 4.0
+  },
+  "receipt": {
+   "brand": "GIADUNGPLUS",
+   "mode": "receipt",
+   "eyebrow": "tính thử 5 năm",
+   "items": "[{\"t\": 0.6, \"x\": \"Mỗi tháng\", \"n\": \"5 triệu\"}, {\"t\": 1.2, \"x\": \"Một năm\", \"n\": \"60 triệu\"}, {\"t\": 1.8, \"x\": \"Thời gian\", \"n\": \"5 năm\"}]",
+   "total": "300 TRIỆU",
+   "total_t": "2.5",
+   "dur": 4.2
+  }
+ },
+ "examples": [
+  "c.graphic('scene-data-card', at='một tháng', until='120 triệu', mode='bars', title='Tiết kiệm', items=[('một tháng', '1 tháng', '2tr'), ('một năm', '1 năm', '24tr'), ('5 năm', '5 năm', '120tr')])",
+  "c.graphic('scene-data-card', at='giảm khoảng', until='mỗi tháng', mode='gauge', value=80, unit='%', note='tiền điện mỗi tháng', items=[('giảm khoảng', 'giảm khoảng')])",
+  "c.graphic('scene-data-card', at='mỗi tháng', until='300 triệu', mode='receipt', items=[('mỗi tháng', 'Mỗi tháng', '5 triệu'), ('5 năm', 'Thời gian', '60 tháng')], total='300 TRIỆU', total_t='tổng cộng')"
+ ],
+ "tags": [
+  "số liệu",
+  "tiền",
+  "phần trăm",
+  "so sánh",
+  "biểu đồ",
+  "hoá đơn",
+  "giao diện"
+ ],
+ "previews": "previews/<theme>-<preset>.jpg"
+}

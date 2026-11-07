@@ -1,0 +1,71 @@
+{
+  "id": "scene-chapter-card",
+  "source": {
+    "kind": "html",
+    "entry": "src/chapter-card.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\chapter-card\\src\\chapter-card.html"
+  },
+  "version": 4,
+  "name": "Scene C02 Chapter Card",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "chapter_card"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "scene",
+    "chương",
+    "cắt dán",
+    "editorial",
+    "journal"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "vào",
+      "start": 0,
+      "end": 1.3
+    },
+    {
+      "name": "đứng đọc",
+      "start": 1.3,
+      "end": 3.05
+    },
+    {
+      "name": "ra",
+      "start": 3.05,
+      "end": 3.6
+    }
+  ],
+  "params": {
+    "theme": "gdp_red",
+    "preset": "full",
+    "title": "BƯỚC 1: TÊN CHƯƠNG",
+    "sub": "",
+    "eyebrow": "",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "notes": "Scene Library C02 Chapter Card v1.0 — hồ sơ: assets/scenes/chapter-card/scene.json. Nguồn: assets/scenes/chapter-card/src (Claude viết 05/11). 3 theme (gdp_red, phaledo_dark, phaledo_warm) × preset micro/standard/full. Dùng: c.graphic('scene-chapter-card', …).",
+  "opaque": true,
+  "z": "top",
+  "variants": {},
+  "scene": "chapter-card",
+  "duration": 3.6
+}

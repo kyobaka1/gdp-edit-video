@@ -1,0 +1,39 @@
+{
+ "id": "gdp-ban-hang",
+ "code": "S1",
+ "name": "Bán hàng TikTok — tối, nhấn hộp màu",
+ "version": "1.0.0",
+ "status": "ready",
+ "learned_from": "mẫu m2 có người (example/_phan-tich/m2_nguoi): hình hạ bão hoà + tối 4 góc, phụ đề 2 tầng (dòng dẫn trắng + cụm khoá NỀN VÀNG chữ đen), đạo cụ giao diện, chip tính năng, danh sách gạch dần, kết bằng ô bình luận",
+ "use_for": ["review sản phẩm có người nói", "mẹo nhà gọn / mẹo bếp", "video chốt đơn, khuyến mãi", "so sánh nhanh trước–sau"],
+ "avoid_for": ["video thương hiệu PHALEDO cao cấp (dùng phaledo-tap-chi)", "bài giảng dài nhiều bước (dùng gdp-giai-thich)"],
+ "kinetic": "cinematic",
+ "skin": {
+  "keyMode": "box",
+  "keyUpper": false,
+  "size": {"live": 0.034, "key": 0.045, "sub": 0.025, "big": 0.062},
+  "maxWidth": 0.76,
+  "boxRadius": 0.1,
+  "italicMode": "key"
+ },
+ "captions": {"y": 0.6, "y_opts": [0.6, 0.55, 0.65], "places": ["center"], "exit": "words",
+              "note": "chữ giữa khung, thấp hơn mặt (~60%); cụm khoá `!` = hộp màu nhấn của shop (GDP vàng #f1c40f, chữ đen)"},
+ "grade": "toi-vang",
+ "card_bg": "glass",
+ "pacing": {"tighten": 0.3, "note": "mẫu: không còn khoảng lặng > 0,3s, lời vào ngay giây đầu"},
+ "audio": {"music_lufs": -27},
+ "scene_theme": {"*": "ui_dark"},
+ "scenes": {
+  "prefer": ["list-motion", "feature-chips", "keyword-burst", "number-impact", "data-card", "cta-close", "label-zoom"],
+  "avoid": ["quote", "chapter-card"],
+  "why": {"quote": "thẻ câu nói chậm, hợp video kể chuyện hơn bán hàng", "chapter-card": "video bán hàng ngắn không chia chương"}
+ },
+ "rules": [
+  "Mỗi 2–4 giây có MỘT thứ mới trên hình (khối chữ mới, một mục danh sách bật, một chip, một con số) — nhưng chỉ 2–3 LOẠI hiệu ứng cả video (ít loại, nhiều bước)",
+  "Khối chữ 2 tầng: dòng dẫn thường + `!cụm khoá` (hộp màu) — cụm khoá 1–4 từ, là ý đắt nhất câu",
+  "Câu phủ định / bỏ cách cũ → scene-list-motion mode=strike; liệt kê lợi ích → mode=tick hoặc toggle; tính năng → scene-feature-chips",
+  "Câu tuyên bố lớn chuyển ý → c.card(...) (nền kính mờ tự có) với 1 dòng `~` to",
+  "Kết video: scene-cta-close cta=comment hoặc cart trước outro shop"
+ ],
+ "demo": "assets/styles/gdp-ban-hang/demo.jpg"
+}

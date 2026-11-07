@@ -3,12 +3,17 @@
 Hợp đồng mẫu: assets/shops/README.md. Shop không có mẫu riêng → `templates_from` trong shop.json trỏ sang shop khác.
 Renderer đặt --w/--h/--fs, dò cỡ chữ lớn nhất vừa khung, chụp #label nền trong suốt. Chữ < cỡ tối thiểu → nới ô
 (ngang trước, rồi dọc) — ô mới luôn phủ trọn ô gốc.
+
+Chữ hiện dần + chữ nhấn (Sếp 29/10, học từ skill brag): `*cụm từ*` trong text_vi/sub_vi = KHỐI NHẤN (nền màu
+`manifest.highlight`, chữ nghiêng nhẹ). Bật `fx` thì mỗi chữ là một khối riêng (`.u`) → `states()` chụp lần lượt
+0..n chữ hiện (chữ chưa hiện = visibility:hidden, bố cục + nền ô không đổi) + bản "bật" của khối nhấn.
 """
 
 import html
 import io
 import json
 import os
+import re
 from pathlib import Path
 
 from PIL import Image
@@ -50,6 +55,45 @@ _FIT_JS = """
 }
 """
 
+_HL = re.compile(r"\*([^*\n]+)\*")
+_JOIN = "⁠"  # giữ cụm nhấn thành MỘT từ khi chia dòng (split_two gom khoảng trắng bằng split())
+_FX_CSS = """
+.u { display: inline-block; }
+.u.off { visibility: hidden; }
+.hl { background: var(--hl-bg); color: var(--hl-fg); padding: 0 0.2em; margin: 0 0.04em; border-radius: 0.06em;
+      transform: skewX(-8deg); text-shadow: none; -webkit-text-stroke: 0; }
+.hl.punch { transform: skewX(-8deg) scale(1.08); }
+"""
+
+
+def strip_marks(text: str) -> str:
+    """Bỏ dấu nhấn `*...*` — chữ đếm/so sánh/xuất SRT."""
+    return _HL.sub(r"\1", text or "")
+
+
+def has_marks(text: str) -> bool:
+    return bool(_HL.search(text or ""))
+
+
+def _units_html(line: str) -> str:
+    """Một dòng → các khối chữ <span class="u">, cụm `*...*` thành MỘT khối nhấn."""
+    out, pos = "", 0
+
+    def plain(seg: str) -> None:
+        nonlocal out
+        for i, w in enumerate(seg.split(" ")):
+            if w:  # dấu câu dính liền khối nhấn ("*bừa bộn*,") thì không chèn khoảng trắng
+                glue = i == 0 and out and not seg.startswith(" ")
+                out += ("" if glue or not out else " ") + f'<span class="u">{html.escape(w)}</span>'
+
+    for m in _HL.finditer(line):
+        plain(line[pos:m.start()])
+        glue = out and m.start() > 0 and line[m.start() - 1] != " "
+        out += ("" if glue or not out else " ") + f'<span class="u hl">{html.escape(m.group(1).strip())}</span>'
+        pos = m.end()
+    plain(line[pos:])
+    return out
+
 
 def shop_profile(shop: str) -> dict:
     p = SHOPS / shop / "shop.json"
@@ -89,6 +133,8 @@ class TemplateRenderer:
         self.dir = template_dir(shop)
         self.man = json.loads((self.dir / "manifest.json").read_text(encoding="utf-8"))
         self._pw = self._browser = self._page = None
+        self._fx = False
+        self._slot = ""
 
     def __enter__(self):
         self._pw = sync_playwright().start()
@@ -113,8 +159,12 @@ class TemplateRenderer:
         # Font thiếu ký tự (UTM Avo/HelvetIns không có · – — •) → Chrome mượn font khác cho riêng ký tự đó → thay trước
         for a, b in self.man.get("replace", {}).items():
             lines, sub = [ln.replace(a, b) for ln in lines], sub.replace(a, b)
-        text_html = "<br>".join(html.escape(ln) for ln in lines)
-        filled = src.replace("{{text}}", text_html).replace("{{sub}}", html.escape(sub))
+        lines, sub = [ln.replace(_JOIN, " ") for ln in lines], sub.replace(_JOIN, " ")
+        if self._fx:
+            text_html, sub_html = "<br>".join(_units_html(ln) for ln in lines), _units_html(sub)
+        else:  # không nhấn, không hiện dần → HTML y như trước (job cũ render ra đúng ảnh cũ)
+            text_html, sub_html = "<br>".join(html.escape(ln) for ln in lines), html.escape(sub)
+        filled = src.replace("{{text}}", text_html).replace("{{sub}}", sub_html)
         # cùng thư mục để font tương đối tải được; tên riêng theo tiến trình → 2 job song song không ghi đè nhau
         tmp = self.dir / f"_render_tmp_{os.getpid()}_{id(self)}.html"
         self._tmp = tmp
@@ -135,6 +185,12 @@ class TemplateRenderer:
         # Luôn nowrap: chỗ xuống dòng do renderer chọn (tại dấu ngắt câu) — trình duyệt tự bẻ thì ra kiểu
         # "…khoan, Chịu / lực tốt" (Sếp chê 20/10).
         self._page.evaluate("() => { document.getElementById('text').style.whiteSpace = 'nowrap'; }")
+        if self._fx:
+            hl = {**self.man.get("highlight", {}), **spec.get("highlight", {})}
+            self._page.evaluate("""([css, bg, fg]) => {
+                const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+                const r = document.documentElement.style; r.setProperty('--hl-bg', bg); r.setProperty('--hl-fg', fg);
+            }""", [_FX_CSS, hl.get("bg", "#f1c40f"), hl.get("fg", "#111111")])
 
     def _fit(self, w: int, h: int, spec: dict, n_lines: int = 1) -> int:
         """Cỡ chữ lớn nhất vừa khung, -1 nếu không cỡ nào vừa. fs_min/fs_max (% chiều cao ô) là cho MỘT dòng →
@@ -150,10 +206,13 @@ class TemplateRenderer:
         return bool(self.man["slots"].get(slot, {}).get("covers", True))
 
     def render(self, slot: str, text: str, w: int, h: int, *, sub: str = "", min_px: int = 0,
-               max_w: int | None = None, max_h: int | None = None) -> tuple[Image.Image, int, int]:
-        """Trả (ảnh RGBA, w, h thực dùng). Nới w rồi h khi chữ < min_px hoặc không vừa."""
+               max_w: int | None = None, max_h: int | None = None, fx: bool = False) -> tuple[Image.Image, int, int]:
+        """Trả (ảnh RGBA, w, h thực dùng). Nới w rồi h khi chữ < min_px hoặc không vừa.
+        `fx` (hoặc có `*nhấn*`) = dựng chữ thành từng khối để gọi `states()` ngay sau."""
         spec = self.man["slots"][slot]
         max_w, max_h = max_w or w, max_h or h * 3
+        self._fx = fx or has_marks(text) or has_marks(sub)
+        text = _HL.sub(lambda m: "*" + m.group(1).replace(" ", _JOIN) + "*", text)
         explicit = [ln.strip() for ln in text.split("\n") if ln.strip()]
         if len(explicit) > 1:  # đạo diễn tự xuống dòng bằng "\n"
             lines = explicit
@@ -186,8 +245,41 @@ class TemplateRenderer:
             fs = self._fit(w, h, spec, nl)
         if fs < 0:
             raise ValueError(f"Chữ '{text}' không vừa mẫu {slot} kể cả khi nới tới {w}×{h} — rút câu")
+        return self._shot(), w, h
+
+    def _shot(self) -> Image.Image:
         png = self._page.locator("#label").screenshot(omit_background=True)
-        return Image.open(io.BytesIO(png)).convert("RGBA"), w, h
+        return Image.open(io.BytesIO(png)).convert("RGBA")
+
+    def units(self) -> list[bool]:
+        """Các khối chữ của ô vừa render(fx=True), theo thứ tự hiện: True = khối nhấn."""
+        return self._page.evaluate("() => [...document.querySelectorAll('.u')].map(u => u.classList.contains('hl'))")
+
+    def states(self, steps: list[int]) -> dict:
+        """Gọi NGAY sau render(fx=True). `steps` = số khối hiện ở mỗi bước (tăng dần, bước cuối = tất cả).
+        Trả {"units", "hl": [chỉ số khối nhấn], "shots": [ảnh 0 khối, ảnh mỗi bước…], "punch": {bước: ảnh khối nhấn
+        phóng}}. Cùng kích thước với ảnh render() (chỉ đổi visibility/transform, không đổi bố cục)."""
+        info = self.units()
+        n = len(info)
+        show = """([k, punch]) => document.querySelectorAll('.u').forEach((u, i) => {
+            u.classList.toggle('off', i >= k); u.classList.toggle('punch', i === punch); })"""
+        shots, punch, prev = [], {}, 0
+        for j, k in enumerate([0, *steps]):
+            k = min(k, n)
+            hit = [i for i in range(prev, k) if info[i]]
+            if hit:  # khối nhấn vừa hiện ở bước này → thêm bản "bật" (phóng 1,08×) chạy trước bản thường
+                self._page.evaluate(show, [k, hit[0]])
+                punch[j] = self._shot()
+            self._page.evaluate(show, [k, -1])
+            shots.append(self._shot())
+            prev = k
+        hl = [i for i, b in enumerate(info) if b]
+        punch_full = None
+        if hl:  # đủ chữ + khối nhấn đầu bật — khi ô quá ngắn phải bỏ hiện dần, vẫn còn nhịp nhấn
+            self._page.evaluate(show, [n, hl[0]])
+            punch_full = self._shot()
+        self._page.evaluate(show, [n, -1])
+        return {"units": n, "hl": hl, "shots": shots, "punch": punch, "punch_full": punch_full}
 
 
 _SEPARATORS = [" · ", " • ", " - ", " – ", " — ", ". ", "! ", "? ", "; ", ": ", ", "]

@@ -37,8 +37,16 @@ def probe(video: Path) -> dict:
 
 def extract_frame(video: Path, t: float, out: Path, width: int | None = None) -> Path:
     vf = ["-vf", f"scale={width}:-2"] if width else []
-    run([config.FFMPEG, "-y", "-v", "error", "-ss", f"{t:.3f}", "-i", str(video), "-frames:v", "1",
-         *vf, "-q:v", "3", str(out)])
+    # duration lấy từ container; luồng tiếng dài hơn luồng hình (vd hình 17,000s / file 17,02s) thì mốc cuối
+    # rơi sau khung hình cuối → ffmpeg không ra ảnh. Lùi dần tối đa ~0,3s.
+    for back in (0.0, 0.05, 0.1, 0.2, 0.3):
+        try:
+            run([config.FFMPEG, "-y", "-v", "error", "-ss", f"{max(0.0, t - back):.3f}", "-i", str(video),
+                 "-frames:v", "1", *vf, "-q:v", "3", str(out)])
+            return out
+        except RuntimeError:
+            if back == 0.3:
+                raise
     return out
 
 

@@ -1,5 +1,10 @@
 {
   "_note": "Gia Dụng Plus + — tone đỏ/trắng, font UTM Avo (Bold + Regular) mọi trường hợp (Sếp chốt 20/10). Màu ở ../shop.json. Hợp đồng: assets/shops/README.md",
+  "highlight": {
+    "bg": "#f1c40f",
+    "fg": "#7a1010",
+    "_note": "khối nhấn *...* (Sếp 29/10): nền + chữ; mẫu ghi đè bằng slots.<mẫu>.highlight"
+  },
   "replace": {
     " · ": " - ",
     "·": "-",
@@ -27,7 +32,11 @@
       "file": "badge.html",
       "use": "nhãn tính năng ngắn: chữ đỏ nền trắng viền đỏ, IN HOA",
       "fs_min": 36,
-      "fs_max": 64
+      "fs_max": 64,
+      "highlight": {
+        "bg": "#c01818",
+        "fg": "#ffffff"
+      }
     },
     "info": {
       "file": "info.html",

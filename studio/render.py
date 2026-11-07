@@ -9,7 +9,13 @@ from PIL import Image
 
 from studio import config, logo, media, motion, motiondirector, motionlib, outro, watermark
 from studio.overlay import grow_to_min_font, render_label
-from studio.templates import TemplateRenderer
+from studio.templates import TemplateRenderer, has_marks, strip_marks
+
+SFX = config.ROOT / "assets" / "sfx"
+# tiếng khẽ khi ô bật vào / khối nhấn bật (edl.audio.sfx, Kenney CC0 — assets/sfx/README.md); âm lượng tuyến tính
+SFX_LAND = {"hook": ("impactSoft_medium_001.ogg", 0.32), "badge": ("impactSoft_medium_004.ogg", 0.26),
+            "callout-left": ("impactSoft_medium_004.ogg", 0.22), "callout-right": ("impactSoft_medium_004.ogg", 0.22)}
+SFX_PUNCH = ("click_003.ogg", 0.22)
 
 
 class EdlError(ValueError):
@@ -38,8 +44,23 @@ def rotated_rect(w: int, h: int, angle: float) -> tuple[int, int]:
     return max(24, round(a)), max(24, round(b))
 
 
-def _draw_label(L: dict, renderer, W: int, H: int) -> tuple[Image.Image, int, int]:
-    """Vẽ một ô chữ (mẫu brand nếu có, không thì Pillow), xoay theo góc chữ gốc. Trả (ảnh, x, y) để overlay."""
+def _render_fx(renderer, tpl: str, text: str, w: int, h: int, *, sub: str = "", reveal: bool = False,
+               **kw) -> tuple[Image.Image, int, int, dict | None]:
+    """renderer.render + (nếu hiện dần hoặc có `*nhấn*`) ảnh từng bước cho motion.schedule."""
+    want = reveal and tpl not in motion.NO_REVEAL
+    on = want or has_marks(text) or has_marks(sub)
+    img, w, h = renderer.render(tpl, text, w, h, sub=sub, fx=on, **kw)
+    if not on:
+        return img, w, h, None
+    units = renderer.units()
+    fx = renderer.states(motion.reveal_steps(units) if want else [len(units)])
+    fx["reveal"] = want
+    return img, w, h, fx
+
+
+def _draw_label(L: dict, renderer, W: int, H: int) -> tuple[Image.Image, int, int, dict | None]:
+    """Vẽ một ô chữ (mẫu brand nếu có, không thì Pillow), xoay theo góc chữ gốc. Trả (ảnh, x, y, fx) để overlay;
+    fx = ảnh từng bước chữ hiện dần / khối nhấn (None nếu không có)."""
     min_px = round(H * 0.03)  # chữ Việt ≥ 3% chiều cao khung cho dễ đọc trên điện thoại
     angle = L["angle"]
     w, h = rotated_rect(L["w"], L["h"], angle) if angle else (L["w"], L["h"])
@@ -48,21 +69,27 @@ def _draw_label(L: dict, renderer, W: int, H: int) -> tuple[Image.Image, int, in
         if L.get("zh") and not renderer.covers(L["template"]):
             raise EdlError(f"Ô che chữ Trung '{L['zh']}' dùng mẫu '{L['template']}' KHÔNG nền (covers:false) — "
                            f"mẫu này chỉ để chèn chữ mới; chọn mẫu có nền")
-        img, w, h = renderer.render(L["template"], L["text"] or " ", w, h, sub=L["sub"], min_px=min_px,
-                                    max_w=max(max_w, w), max_h=h * 3)
+        img, w, h, fx = _render_fx(renderer, L["template"], L["text"] or " ", w, h, sub=L["sub"], reveal=L["reveal"],
+                                   min_px=min_px, max_w=max(max_w, w), max_h=h * 3)
     else:
-        st = L["style"]
-        _, _, w, h = grow_to_min_font(L["text"], 0, 0, w, h, max(max_w, w), H, min_px)
-        img = render_label(L["text"] or " ", w, h, bg=st.get("bg", "#FFFFFF"),
+        st, fx = L["style"], None
+        text = strip_marks(L["text"])
+        _, _, w, h = grow_to_min_font(text, 0, 0, w, h, max(max_w, w), H, min_px)
+        img = render_label(text or " ", w, h, bg=st.get("bg", "#FFFFFF"),
                            border=st.get("border", "#D7262E"), text_color=st.get("text", "#1A1A1A"))
     if angle:
-        img = img.rotate(angle, expand=True, resample=Image.BICUBIC)  # PIL: dương = ngược chiều kim đồng hồ
+        rot = lambda im: im.rotate(angle, expand=True, resample=Image.BICUBIC)  # noqa: E731
+        img = rot(img)  # PIL: dương = ngược chiều kim đồng hồ
+        if fx:
+            fx["shots"] = [rot(s) for s in fx["shots"]]
+            fx["punch"] = {j: rot(s) for j, s in fx["punch"].items()}
+            fx["punch_full"] = rot(fx["punch_full"]) if fx["punch_full"] is not None else None
     cx, cy = L["x"] + L["w"] / 2, L["y"] + L["h"] / 2
     ox, oy = round(cx - img.width / 2), round(cy - img.height / 2)
     if not angle:  # ô ngang nới rộng thì giữ trong khung
         ox = max(0, min(W - img.width, ox))
         oy = max(0, min(H - img.height, oy))
-    return img, ox, oy
+    return img, ox, oy, fx
 
 
 def measure_lufs(path: Path) -> float | None:
@@ -126,20 +153,22 @@ def _point_drift(video: Path, t0: float, t1: float, cx: int, cy: int) -> float:
     return float(np.hypot(moved[0] - cx, moved[1] - cy))
 
 
-def _draw_extra(e: dict, renderer, meta: dict, job_dir: Path) -> dict:
+def _draw_extra(e: dict, renderer, meta: dict, job_dir: Path, reveal: bool = False) -> dict:
     """Phần tử CHÈN MỚI (không che chữ Trung): lower third, callout chỉ vào sản phẩm."""
     W, H = meta["width"], meta["height"]
     tpl = e["template"]
     min_px = round(H * 0.026)
+    reveal = e["reveal"] if e.get("reveal") is not None else reveal
     if tpl == "lower-third":
         w, h = round(W * e.get("w_pct", 0.64)), round(H * 0.085)
-        img, w, h = renderer.render(tpl, e["text"], w, h, sub=e.get("sub", ""), min_px=min_px, max_w=round(W * 0.9))
+        img, w, h, fx = _render_fx(renderer, tpl, e["text"], w, h, sub=e.get("sub", ""), reveal=reveal,
+                                   min_px=min_px, max_w=round(W * 0.9))
         x = round(W * 0.04)
         y = round(H * {"lower-left": 0.66, "upper-left": 0.14}.get(e.get("position", "lower-left"), 0.66))
     elif tpl in ("callout-left", "callout-right"):
         tx, ty = (int(v) for v in e["target"])  # điểm trên sản phẩm (pixel khung gốc) mà chấm tròn chỉ vào
         w, h = round(W * e.get("w_pct", 0.5)), round(H * 0.07)
-        img, w, h = renderer.render(tpl, e["text"], w, h, min_px=min_px, max_w=round(W * 0.7))
+        img, w, h, fx = _render_fx(renderer, tpl, e["text"], w, h, reveal=reveal, min_px=min_px, max_w=round(W * 0.7))
         dot = round(img.height * 0.17)  # tâm chấm nằm sát mép (mẫu: chấm = 0,34×h)
         x = tx - img.width + dot if tpl == "callout-left" else tx - dot
         y = ty - img.height // 2
@@ -153,7 +182,8 @@ def _draw_extra(e: dict, renderer, meta: dict, job_dir: Path) -> dict:
     else:
         raise EdlError(f"extras: mẫu '{tpl}' không hỗ trợ (lower-third | callout-left | callout-right)")
     return {"img": img, "x": x, "y": y, "w": img.width, "h": img.height, "start": e["start"], "end": e["end"],
-            "anim": e.get("anim") or motion.DEFAULT_ANIM.get(tpl, "fade"), "template": tpl}
+            "anim": e.get("anim") or motion.DEFAULT_ANIM.get(tpl, "fade"), "template": tpl, "fx": fx,
+            "text": f"{e['text']} {e.get('sub', '')}".strip()}
 
 
 def validate(edl: dict, meta: dict, allow_empty: bool) -> list[dict]:
@@ -178,7 +208,7 @@ def validate(edl: dict, meta: dict, allow_empty: bool) -> list[dict]:
         layers.append({"start": o["start"], "end": o["end"], "x": x, "y": y, "w": w, "h": h,
                        "text": text, "sub": (o.get("sub_vi") or "").strip(), "mode": mode, "zh": o.get("zh", ""),
                        "angle": float(o.get("angle") or 0.0), "template": o.get("template"), "anim": o.get("anim"),
-                       "style": {**style, **o.get("style", {})}})
+                       "reveal": o.get("reveal"), "style": {**style, **o.get("style", {})}})
     sb = edl.get("subtitle_box", {"y_pct": 0.78, "h_pct": 0.075, "w_pct": 0.9})
     sw, sh = round(W * sb["w_pct"]), round(H * sb["h_pct"])
     sx, sy = (W - sw) // 2, round(H * sb["y_pct"])
@@ -190,10 +220,55 @@ def validate(edl: dict, meta: dict, allow_empty: bool) -> list[dict]:
             problems.append(f"phụ đề {i}: khung giờ {s['start']}–{s['end']} sai")
         layers.append({"start": s["start"], "end": s["end"], "x": sx, "y": sy, "w": sw, "h": sh,
                        "text": text, "sub": "", "mode": "label", "angle": 0.0, "template": "caption",
-                       "style": {**style, **edl.get("subtitle_style", {})}})
+                       "reveal": s.get("reveal"), "style": {**style, **edl.get("subtitle_style", {})}})
     if problems:
         raise EdlError("edl.json chưa hợp lệ:\n  - " + "\n  - ".join(problems))
     return layers
+
+
+def _poster(job_dir: Path, edl: dict, meta: dict, items: list[dict], inputs: list[str], chain: list[str],
+            final: bool) -> dict | None:
+    """Ảnh bìa (học từ brag): khung ĐÃ GHÉP ở lúc chữ đứng yên của ô mạnh nhất (hook > badge > ô đầu tiên),
+    ghi <final|preview>.jpg + PNG để gắn làm khung 0 — Shopee/TikTok/Zalo lấy khung 0 làm ảnh chờ.
+    Job khai `edl.poster = {"mode": "auto"}` hoặc `{"at": giây}` (chọn tay); không khai = flow cũ (khung 0 gốc).
+    Dùng đúng đồ thị lọc hình nên khớp từng điểm ảnh."""
+    cfg = edl.get("poster")
+    cfg = cfg if isinstance(cfg, dict) else {}
+    dur = meta["duration"]
+    if "at" in cfg:
+        at, why = float(cfg["at"]), "edl.poster.at"
+    else:
+        settled = lambda it: round(max(it["start"], it["full_at"]) + 0.3, 3)  # noqa: E731
+        ok = sorted((it for it in items if it["text"] and settled(it) < min(it["end"] - 0.05, dur)),
+                    key=lambda it: it["start"])
+        rank = {"hook": 0, "badge": 1}
+        pick = min(ok, key=lambda it: rank.get(it.get("template"), 2), default=None)
+        at, why = (settled(pick), f"ô {pick.get('template') or 'chữ'} '{pick['text'][:40]}' đủ chữ") if pick else \
+            (min(1.5, dur * 0.2), "không có ô chữ đứng đủ lâu — lấy 1,5s")
+    png = job_dir / ("poster_final.png" if final else "poster_preview.png")
+    filt = job_dir / "poster_filter.txt"
+    filt.write_text(";\n".join(chain), encoding="utf-8")
+    media.run([config.FFMPEG, "-y", "-v", "error", *inputs, "-/filter_complex", str(filt), "-map", "[vfin]",
+               "-ss", f"{at:.3f}", "-frames:v", "1", str(png)])
+    Image.open(png).convert("RGB").save(job_dir / ("final.jpg" if final else "preview.jpg"), quality=92)
+    return {"png": png, "at": at, "why": why}
+
+
+def _sfx_events(items: list[dict]) -> list[tuple[str, float, float]]:
+    """(file, âm lượng, giây) — tiếng khẽ khi hook/badge/callout bật vào + khi khối nhấn bật. Thưa, ≥0,3s cách nhau,
+    tối đa 16 tiếng / video (brag: hiệu ứng nằm dưới nhạc, lặp lại thì phải khẽ)."""
+    ev = []
+    for it in items:
+        land = SFX_LAND.get(it.get("template"))
+        if land:
+            ev.append((*land, it["s0"] + (motion.LEAD * 0.8 if it["anim_in"] != "none" else 0.0)))
+        ev += [(*SFX_PUNCH, t) for t in it.get("punch_at", [])]
+    out, last = [], -1.0
+    for e in sorted(ev, key=lambda e: e[2]):
+        if e[2] - last >= 0.3 and len(out) < 16:
+            out.append(e)
+            last = e[2]
+    return out
 
 
 def label_boxes(job_dir: Path, edl: dict, meta: dict) -> list[dict]:
@@ -229,8 +304,12 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
 
     labels_dir = job_dir / "labels"
     labels_dir.mkdir(exist_ok=True)
-    for old in labels_dir.glob("*.png"):
+    for old in [*labels_dir.glob("*.png"), *labels_dir.glob("*.ffconcat")]:
         old.unlink()
+    # chữ hiện dần (Sếp 29/10): job khai edl.reveal = {"mode": "auto"}; job cũ không khai = chữ ra cả câu như cũ.
+    # `*nhấn*` trong chữ thì luôn có khối nhấn. Từng ô ép bằng "reveal": true/false.
+    rv = edl.get("reveal")
+    reveal_on = bool(rv) and not (rv == "off" or (isinstance(rv, dict) and rv.get("mode") == "off"))
     W, H = meta["width"], meta["height"]
     shop = edl.get("shop") or ""
     extras = [e for e in edl.get("extras", []) if not e.get("skip")]
@@ -241,8 +320,10 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
     total = round(meta["duration"] + (op["duration"] if op else 0.0), 3)
     renderer = TemplateRenderer(shop).__enter__() if needs else None
     try:
+        for L in layers:
+            L["reveal"] = reveal_on if L.get("reveal") is None else bool(L["reveal"])
         drawn = {id(L): _draw_label(L, renderer, W, H) for L in layers if L["mode"] == "label"}
-        extra_items = [_draw_extra(e, renderer, meta, job_dir) for e in extras]
+        extra_items = [_draw_extra(e, renderer, meta, job_dir, reveal_on) for e in extras]
     finally:
         if renderer is not None:
             renderer.__exit__(None, None, None)
@@ -263,23 +344,54 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
         prev = out
 
     # 2) ô chữ + phần tử chèn (lower third, callout) — có hiệu ứng vào/ra theo motion.py (giữ che phủ chữ Trung)
+    def save_fx(fx: dict | None, png: Path) -> dict | None:
+        if not fx:
+            return None
+        shots = []
+        for j, im in enumerate(fx["shots"]):
+            shots.append(png.with_name(f"{png.stem}_s{j}.png"))
+            im.save(shots[-1])
+        punch = {}
+        for j, im in fx["punch"].items():
+            punch[j] = png.with_name(f"{png.stem}_p{j}.png")
+            im.save(punch[j])
+        full = None
+        if fx.get("punch_full") is not None:
+            full = png.with_name(f"{png.stem}_pf.png")
+            fx["punch_full"].save(full)
+        return {"shots": shots, "punch": punch, "punch_full": full, "reveal": fx["reveal"]}
+
     items = []
     for L in layers:
         if L["mode"] != "label":
             continue
-        img, ox, oy = drawn[id(L)]
+        img, ox, oy, fx = drawn[id(L)]
         n = len(items) + 1
         png = labels_dir / f"l{n:03}.png"
         img.save(png)
         items.append({"png": png, "x": ox, "y": oy, "w": img.width, "h": img.height, "start": L["start"],
-                      "end": L["end"], "covers": bool(L.get("zh")),
+                      "end": L["end"], "covers": bool(L.get("zh")), "template": L.get("template") or "",
+                      "text": strip_marks(f"{L['text']} {L['sub']}").strip(), "fx": save_fx(fx, png),
                       "anim": L.get("anim") or motion.DEFAULT_ANIM.get(L.get("template") or "", "fade")})
     for e in extra_items:
         n = len(items) + 1
         png = labels_dir / f"l{n:03}.png"
         e.pop("img").save(png)
-        items.append({**e, "png": png, "covers": False})
+        items.append({**e, "png": png, "covers": False, "fx": save_fx(e["fx"], png), "text": strip_marks(e["text"])})
     motion.plan_layers(items)
+    for it in items:
+        it["floor"] = motion.read_floor(it["text"])
+        motion.schedule(it)
+    # Chữ hiện không kịp đọc (học từ brag: ~0,25s/âm tiết, tối thiểu 0,8s, tính từ lúc đủ chữ) → chỉ CẢNH BÁO:
+    # mốc ô che chữ Trung theo video gốc, cách sửa là rút bản dịch / gộp ô, không kéo dài ô.
+    read_warn = []
+    for it in items:
+        shown = it["end"] - max(it["start"], it["full_at"])
+        if it["text"] and shown < it["floor"] - 0.05:
+            read_warn.append(f"'{it['text']}' {it['start']:.2f}–{it['end']:.2f}s: đọc được {max(0, shown):.2f}s, "
+                             f"cần ~{it['floor']:.1f}s → rút chữ / gộp ô")
+    for w in read_warn:
+        print(f"  ⚠ chữ hiện ngắn: {w}")
     boxes = [{"x": it["x"], "y": it["y"], "w": it["w"], "h": it["h"], "start": it["s0"], "end": it["e1"]} for it in items]
     boxes += [{"x": o["box"][0], "y": o["box"][1], "w": o["box"][2], "h": o["box"][3], "start": o["start"], "end": o["end"]}
               for o in edl.get("overlays", []) if o.get("mode") == "keep"]
@@ -345,6 +457,9 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
         prev = f"vm{n_png}"
 
     scale = ",scale=-2:960" if not final else ""
+    pc = edl.get("poster")  # ảnh bìa = khung 0: job khai mới có (job cũ: filter + khung y nguyên như trước)
+    poster_on = bool(pc) and pc != "off" and not (isinstance(pc, dict) and pc.get("mode") == "off")
+    vl = "vfin" if poster_on else "vout"
     n_in = n_png + 1
     if op:
         # nối video outro của shop sau video chính: đưa về cùng kích thước (giữ tỉ lệ, viền đen nếu lệch)/fps rồi concat.
@@ -353,14 +468,16 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
         chain.append(f"[{n_in}:v]scale={W}:{H}:force_original_aspect_ratio=decrease,"
                      f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color=black,fps={meta['fps']},format=yuv420p,setsar=1[ov]")
         chain.append(f"[{prev}]format=yuv420p,setsar=1[vm]")
-        chain.append(f"[vm][ov]concat=n=2:v=1:a=0,format=yuv420p{scale}[vout]")
+        chain.append(f"[vm][ov]concat=n=2:v=1:a=0,format=yuv420p{scale}[{vl}]")
         n_in += 1
     else:
-        chain.append(f"[{prev}]format=yuv420p{scale}[vout]")
+        chain.append(f"[{prev}]format=yuv420p{scale}[{vl}]")
+    poster = _poster(job_dir, edl, meta, items, inputs, chain, final) if poster_on else None
 
     audio = edl.get("audio", {})
     mode = audio.get("mode", "keep")
     a_args: list[str]
+    events: list = []
     if mode == "keep" and meta["has_audio"]:
         if op:  # tiếng gốc ngắn hơn bản có outro → đệm im lặng
             chain.append(f"[0:a]apad,atrim=0:{total:.3f}[aout]")
@@ -381,6 +498,8 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
         music_lufs = audio.get("music_lufs", -27)
         inputs += ["-i", str(job_dir / "narration.wav")]
         chain.append(f"[{n_in}:a]aresample=48000,loudnorm=I={voice_lufs}:TP=-2:LRA=11,apad,atrim=0:{dur:.3f}[vo]")
+        events = _sfx_events(items) if audio.get("sfx") else []
+        mx = "mix0" if events else "mix"  # không sfx → chuỗi lọc y như trước
         music = Path(audio.get("music") or job_dir / "music.mp3")
         if not music.is_absolute():
             music = job_dir / music
@@ -388,9 +507,18 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
             inputs += ["-stream_loop", "-1", "-i", str(music)]
             chain.append(f"[{n_in + 1}:a]atrim=0:{dur:.3f},aresample=48000,loudnorm=I={music_lufs}:TP=-8:LRA=11,"
                          f"afade=t=in:d=0.4,afade=t=out:st={max(0.0, dur - 1.8):.3f}:d=1.8[bg]")
-            chain.append("[vo][bg]amix=inputs=2:normalize=0:duration=first[mix]")
+            chain.append(f"[vo][bg]amix=inputs=2:normalize=0:duration=first[{mx}]")
         else:
-            chain.append("[vo]anull[mix]")
+            chain.append(f"[vo]anull[{mx}]")
+        k = n_in + (2 if music.exists() else 1)
+        for j, (f, vol, t) in enumerate(events):
+            ms = round(t * 1000)
+            inputs += ["-i", str(SFX / f)]
+            chain.append(f"[{k + j}:a]aresample=48000,aformat=channel_layouts=stereo,volume={vol},"
+                         f"adelay={ms}|{ms}[sfx{j}]")
+        if events:  # tiếng khẽ dưới nhạc + giọng; độ to cả bản vẫn bù về −14 sau khi render
+            chain.append(f"[mix0]{''.join(f'[sfx{j}]' for j in range(len(events)))}"
+                         f"amix=inputs={len(events) + 1}:normalize=0:duration=first[mix]")
         # độ to CẢ BẢN được bù sau khi render (_normalize_loudness) — đo thật rồi bù dB, chắc hơn loudnorm 1 lượt
         chain.append("[mix]alimiter=limit=0.95:level=0,aresample=48000[aout]")
         a_args = ["-map", "[aout]", "-c:a", "aac", "-b:a", "192k", "-ar", "48000"]
@@ -439,6 +567,10 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
         inputs += ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"]
         a_args = ["-map", f"{n_in}:a", "-c:a", "aac", "-b:a", "96k"]
 
+    if poster:  # ảnh bìa = khung 0 (thay đúng 1 khung, không thêm khung → độ dài + tiếng giữ nguyên)
+        inputs += ["-i", str(poster["png"])]
+        chain.append(f"[vfin][{inputs.count('-i') - 1}:v]overlay=0:0:enable='eq(n,0)'[vout]")
+
     out_path = job_dir / ("final.mp4" if final else "preview.mp4")
     # các lớp THẬT đã ghép (QA + test đọc file này — filter.txt không có tên file input)
     (job_dir / "layers.json").write_text(json.dumps({
@@ -447,7 +579,11 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
         "logo_hidden": (m_logo or {}).get("hidden", []) if lp else [],
         "watermark": f"motion:{m_wm['id']}" if m_wm else ("text" if wp else None),
         "watermark_segments": m_wm["segments"] if m_wm else None,
-        "motion": [it["id"] for it in m_items], "labels": len(items), "outro": bool(op), "final": final},
+        "motion": [it["id"] for it in m_items], "labels": len(items), "outro": bool(op), "final": final,
+        "reveal": sum(1 for it in items if it.get("revealed")),
+        "highlights": sum(len(it["punch_at"]) for it in items), "read_warnings": read_warn,
+        "poster": {"at": poster["at"], "why": poster["why"]} if poster else None,
+        "sfx": len(events) if mode == "narration" else 0},
         ensure_ascii=False, indent=2), encoding="utf-8")
     filter_file = job_dir / "filter.txt"
     filter_file.write_text(";\n".join(chain), encoding="utf-8")
@@ -461,7 +597,7 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
 
     subs = [s for s in edl.get("subtitles", []) if (s.get("text_vi") or "").strip() and not s.get("skip")]
     if subs:
-        srt = "\n".join(f"{i}\n{_srt_time(s['start'])} --> {_srt_time(s['end'])}\n{s['text_vi'].strip()}\n"
+        srt = "\n".join(f"{i}\n{_srt_time(s['start'])} --> {_srt_time(s['end'])}\n{strip_marks(s['text_vi']).strip()}\n"
                         for i, s in enumerate(subs, 1))
         out_path.with_suffix(".srt").write_text(srt, encoding="utf-8")
     return out_path

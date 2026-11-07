@@ -220,8 +220,11 @@ def _region_diff(cap: cv2.VideoCapture, t: float, box: list[int], ref: np.ndarra
     if not ok:
         return 0.0
     x0, y0, x1, y1 = (int(v * scale) for v in box)
-    crop = cv2.cvtColor(frame[y0:y1, x0:x1], cv2.COLOR_BGR2GRAY).astype(np.float32)
-    if crop.shape != ref.shape or crop.size == 0:
+    region = frame[max(0, y0):y1, max(0, x0):x1]
+    if region.size == 0:  # ô Gemini suy biến (rộng/cao 0 hoặc ngoài khung) → cvtColor sẽ crash
+        return 0.0
+    crop = cv2.cvtColor(region, cv2.COLOR_BGR2GRAY).astype(np.float32)
+    if crop.shape != ref.shape:
         return 0.0
     return float(np.mean(np.abs(crop - ref)))
 
@@ -237,7 +240,10 @@ def refine_timing(video: Path, ev: dict, interval: float, fps: float, duration: 
         if not ok:
             return None
         x0, y0, x1, y1 = (int(v * scale) for v in box)
-        return cv2.cvtColor(frame[y0:y1, x0:x1], cv2.COLOR_BGR2GRAY).astype(np.float32)
+        region = frame[max(0, y0):y1, max(0, x0):x1]
+        if region.size == 0:  # ô suy biến → boundary() lấy mốc an toàn (che dư)
+            return None
+        return cv2.cvtColor(region, cv2.COLOR_BGR2GRAY).astype(np.float32)
 
     def boundary(t_out: float, t_in: float, box: list[int]) -> float:
         ref = ref_at(t_in, box)

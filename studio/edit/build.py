@@ -143,7 +143,8 @@ def shots(e: dict, src: dict) -> tuple[list[dict], list[tuple[float, str]]]:
         m = (a + b) / 2
         cards = [k for k, c in enumerate(e["cards"]) if c["t0"] <= m < c["t1"]]
         covers = [k for k, c in enumerate(e["covers"]) if c["t0"] <= m < c["t1"]]
-        if cards:
+        glass = bool(cards) and e["cards"][cards[-1]].get("bg") == "glass"
+        if cards and not glass:
             s = {"kind": "card", "ref": f"card{cards[-1]}", "bg": e["cards"][cards[-1]]["bg"]}
         elif covers:
             c = e["covers"][covers[-1]]
@@ -159,6 +160,8 @@ def shots(e: dict, src: dict) -> tuple[list[dict], list[tuple[float, str]]]:
                 s = {"kind": "piece", "ref": f"g{p['group']}", "src": p["src"], "s0": p["in"] + (a - p["t0"]), "speed": 1.0,
                      "fit": "fill", "focus": p.get("focus") or [0.5, 0.42], "group": p["group"],
                      "z0": p["zoom"], "z1": p["zoom"] * (1 + (p.get("push") or 0)), "za": g0, "zb": g1}
+        if glass and s["kind"] != "card":   # kính mờ = hình bên dưới vẫn chạy, nhoè + tối (ref riêng → tách đoạn)
+            s["glass"], s["ref"] = True, s["ref"] + f"-glass{cards[-1]}"
         s.update(t0=round(a, 4), t1=round(b, 4))
         prev = out[-1] if out else None
         if (prev and prev["ref"] == s["ref"] and prev["kind"] != "card" and
@@ -205,7 +208,15 @@ def focus_faces(job: Path, e: dict, src: dict) -> None:
 
 
 # ───────────────────────────── chữ động ─────────────────────────────
+def _cap_cfg(e: dict) -> tuple[list, list, float]:
+    """Vị trí đặt chữ động: mặc định cinematic (giữa ~47%) · phong cách đổi (vd giải thích: 1 dòng nhỏ ~74%)."""
+    c = (e.get("style_cfg") or {}).get("captions") or {}
+    places = [pl for pl in PLACES if pl[0] in c["places"]] if c.get("places") else PLACES
+    return places or PLACES, c.get("y_opts") or Y_OPTS, float(c.get("y", 0.47))
+
+
 def _js_blocks(e: dict) -> list[dict]:
+    y_def = _cap_cfg(e)[2]
     out = []
     for b in e["captions"]:
         lines = [{"role": ln["role"], "italic": ln.get("italic", False), "accent": ln.get("accent", False),
@@ -213,7 +224,7 @@ def _js_blocks(e: dict) -> list[dict]:
                   "words": [{"text": w["text"], "t": w["t"]} for w in ln["words"]]} for ln in b["lines"]]
         out.append({"id": b["id"], "end": b["end"], "exit": b["exit"], "card": b["card"], "lines": lines,
                     **({"stagger": b["stagger"]} if b.get("stagger") else {}),
-                    "align": "center", "x": 0.46, "y": b.get("y") or 0.47})
+                    "align": "center", "x": 0.46, "y": b.get("y") or y_def})
     return out
 
 
@@ -243,6 +254,7 @@ def plan_captions(job: Path, e: dict, src: dict, sh: list[dict], kin: Kinetic, W
     avoid = [(t0, t1, (x, y, w, h))] vùng đồ hoạ đang hiện mà chữ động vẫn chạy (tiêu đề ghim) → khối chữ né ra."""
     js = _js_blocks(e)
     boxes = kin.load(js)
+    places, y_opts, y_def = _cap_cfg(e)
     report = []
     for b, jb, bx in zip(e["captions"], js, boxes):
         times = [b["first"] + 0.05, (b["first"] + b["end"]) / 2, max(b["first"] + 0.05, b["end"] - 0.05)]
@@ -258,14 +270,14 @@ def plan_captions(job: Path, e: dict, src: dict, sh: list[dict], kin: Kinetic, W
             cands = [("center", 0.5, b.get("y") or 0.47)]
         elif b["pos"] != "auto":
             x = dict(PLACES)[b["pos"]]
-            cands = [(b["pos"], x, b.get("y") or yy) for yy in ([b["y"]] if b.get("y") else Y_OPTS)]
+            cands = [(b["pos"], x, b.get("y") or yy) for yy in ([b["y"]] if b.get("y") else y_opts)]
         else:
-            cands = [(m, x, b.get("y") or yy) for m, x in PLACES for yy in ([b["y"]] if b.get("y") else Y_OPTS)]
+            cands = [(m, x, b.get("y") or yy) for m, x in places for yy in ([b["y"]] if b.get("y") else y_opts)]
 
         def score(c):
             r = _rect(c[0], c[1], c[2], w, h, W, H)
             return (10 * _overlap(r, fb) + 10 * _outside(r, W, H) + 10 * _overlap(r, gb) + (0.15 if c[0] != "center" else 0)
-                    + abs(c[2] - 0.47) * 1.0)
+                    + abs(c[2] - y_def) * 1.0)
         m, x, y = min(cands, key=score)
         jb.update(align=m, x=x, y=y)
         r = _rect(m, x, y, w, h, W, H)
@@ -387,18 +399,49 @@ def _bleach(f: np.ndarray, a: float) -> np.ndarray:
     return (f.astype(np.float32) * (1 - a) + g * a).astype(np.uint8)
 
 
-def _grade(W: int, H: int):
-    """Chỉnh màu "cinematic" như mẫu: tối viền (góc ×0,72) + nén vùng sáng (đường cong mềm, trắng tối đa ~94%).
+GRADES = {   # vig = độ tối góc · sat = độ bão hoà (1 = giữ) · warm = ấm (+) · gamma · white = trắng tối đa
+    "cinematic": {"vig": 0.28, "sat": 1.0, "warm": 0.0, "gamma": 1.06, "white": 0.94},   # mẫu vlog 05/11
+    "toi-vang": {"vig": 0.42, "sat": 0.72, "warm": 0.05, "gamma": 1.12, "white": 0.90},  # mẫu m2: hạ bão hoà, tối 4 góc
+    "sach": {"vig": 0.12, "sat": 1.02, "warm": 0.0, "gamma": 1.0, "white": 0.97},       # mẫu Blue 1: sáng, sạch, nhẹ viền
+}
+
+
+def _grade(W: int, H: int, kind: str = "cinematic"):
+    """Chỉnh màu theo phong cách (GRADES): tối viền + nén vùng sáng (+ hạ bão hoà / ấm cho "toi-vang").
     Áp cho người nói + cảnh minh hoạ, không áp màn chữ. Trả hàm f(frame) → frame."""
+    g = GRADES.get(kind) or GRADES["cinematic"]
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
     r = np.sqrt(((xx - W / 2) / (W / 2)) ** 2 + ((yy - H / 2) / (H / 2)) ** 2) / np.sqrt(2)
-    vig = (1 - 0.28 * np.clip((r - 0.35) / 0.65, 0, 1) ** 1.6)[..., None].astype(np.float32)
+    vig = (1 - g["vig"] * np.clip((r - 0.35) / 0.65, 0, 1) ** 1.6)[..., None].astype(np.float32)
     x = np.arange(256, dtype=np.float32) / 255
-    lut = np.clip(255 * (0.94 * x ** 1.06 + 0.02 * np.sin(np.pi * x)), 0, 255).astype(np.uint8)
+    lut = np.clip(255 * (g["white"] * x ** g["gamma"] + 0.02 * np.sin(np.pi * x)), 0, 255).astype(np.uint8)
+    tint = np.array([1 - g["warm"], 1.0, 1 + g["warm"] * 0.8], np.float32)   # BGR: ấm = bớt xanh dương, thêm đỏ
+    plain = g["sat"] == 1.0 and not g["warm"]
 
     def apply(f: np.ndarray) -> np.ndarray:
-        return (cv2.LUT(f, lut).astype(np.float32) * vig).astype(np.uint8)
+        o = cv2.LUT(f, lut).astype(np.float32)
+        if plain:
+            return (o * vig).astype(np.uint8)
+        if g["sat"] != 1.0:
+            gray = o.mean(axis=2, keepdims=True)
+            o = gray + (o - gray) * g["sat"]
+        if g["warm"]:
+            o *= tint
+        return np.clip(o * vig, 0, 255).astype(np.uint8)
     return apply
+
+
+def _glass(f: np.ndarray, k: float = 1.0) -> np.ndarray:
+    """Màn chữ nền KÍNH MỜ (mẫu Blue 1 "thì đây là 4 điều"): hình đang chạy nhoè mạnh + tối, chữ đứng giữa.
+    k = mức kính 0..1 (vào/ra nhoè dần 0,2s thay cho tối dần)."""
+    h, w = f.shape[:2]
+    small = cv2.resize(f, (max(8, w // 8), max(8, h // 8)), interpolation=cv2.INTER_AREA)
+    small = cv2.GaussianBlur(small, (0, 0), 6)
+    b = cv2.resize(small, (w, h), interpolation=cv2.INTER_LINEAR).astype(np.float32)
+    g = np.clip(b * 0.52 + 6, 0, 255)
+    if k >= 1:
+        return g.astype(np.uint8)
+    return (f.astype(np.float32) * (1 - k) + g * k).astype(np.uint8)
 
 
 def _logo(e: dict, W: int, H: int):
@@ -719,8 +762,8 @@ def plan_behind(job: Path, e: dict, src: dict, sh: list[dict]) -> None:
 def _out_still(job: Path, e: dict, src: dict, sh: list[dict], t: float, W: int, H: int) -> np.ndarray:
     """Khung RA tại giây t đúng như bản dựng (đặt khung/zoom theo cảnh + chỉnh màu), chưa có chữ/đồ hoạ."""
     f = still(job, src, shot_at(sh, t), t, W, H)
-    if e.get("grade", "cinematic") == "cinematic":
-        f = _grade(W, H)(f)
+    if e.get("grade", "cinematic"):
+        f = _grade(W, H, e.get("grade", "cinematic"))(f)
     return f
 
 
@@ -897,7 +940,7 @@ def run(job_id: str, final: bool = False) -> dict:
         if g.get("captions_keep") and ar:
             cw, ch = g["info"]["canvas"]
             avoid.append((g["t0"], g["t1"], (ar["x"] * W / cw, ar["y"] * H / ch, ar["w"] * W / cw, ar["h"] * H / ch)))
-    with Kinetic(e.get("style", "cinematic"), W, H) as kin:
+    with Kinetic(e.get("style", "cinematic"), W, H, (e.get("style_cfg") or {}).get("skin")) as kin:
         placements = plan_captions(job, e, src, sh, kin, W, H, avoid)
         t_cap = time.time()
         cap_idx = kin.frames(T, fps, work / "captions")
@@ -920,7 +963,7 @@ def run(job_id: str, final: bool = False) -> dict:
                                "-c:v", "libx264", *enc, "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
                                "-ar", str(SR), "-movflags", "+faststart", "-shortest", str(tmp)], stdin=subprocess.PIPE)
     logo = _logo(e, W, H)
-    grade = _grade(W, H) if e.get("grade", "cinematic") == "cinematic" else None
+    grade = _grade(W, H, e.get("grade", "cinematic")) if e.get("grade", "cinematic") else None
     card_ranges = [(c["t0"], c["t1"]) for c in e["cards"]]
     # logo ẩn trong lúc đồ hoạ phủ kín (trừ đoạn nhoè cuối 0,3s)
     card_ranges += [(g["t0"], g["t1"] - 0.12) for g in graphics if g.get("covers", True)]   # micro (không phủ) giữ logo
@@ -962,6 +1005,8 @@ def run(job_id: str, final: bool = False) -> dict:
                     f = place(reader.read(), W, H, zoom_at(s, t), s["focus"], s["fit"], interp)
                     if grade:
                         f = grade(f)
+                    if s.get("glass"):   # màn chữ kính mờ (phong cách): hình vẫn chạy, nhoè + tối, vào/ra 0,2s
+                        f = _glass(f, min(1.0, (t - s["t0"]) / 0.2, (s["t1"] - t) / 0.2))
                 m_full = None
                 act = [gi for gi in behind if graphics[gi]["t0"] <= t < graphics[gi]["t1"]]
                 if act:   # mặt nạ người trên khung CHƯA đè đồ hoạ; đổi cảnh / đổi đồ hoạ → trạng thái mô hình làm lại

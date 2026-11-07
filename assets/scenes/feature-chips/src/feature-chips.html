@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Feature Chips</title>
+<!-- Scene Library · C14 Feature Chips v1.0 (Claude viết 07/11/2026) — assets/scenes/feature-chips/scene.json.
+     Chip tính năng có ICON bật lần lượt theo lời, xếp hàng (2–3) hoặc lưới 2×2 (học mẫu m2: Typography / Graphic /
+     Motion / Âm thanh; Blue 1: chip thiết bị MacBook / iPad / iPhone). Mỗi chip: icon + nhãn đậm + ghi chú nhỏ.
+     Hợp đồng Motion Engine: window.setTime(giây) vẽ ĐỒNG BỘ, không Internet, KHÔNG will-change, khung cuối trong suốt.
+     Query: theme (ui_dark|ui_light) · preset (micro|standard|full) · dur · brand · accent · title · eyebrow ·
+     items (JSON [{t, x: "Nhãn|icon", n}]) · y · seed. -->
+<style>
+  @font-face { font-family: "GdpBold"; src: url("fonts/UTM_AvoBold.ttf"); }
+  @font-face { font-family: "GdpReg"; src: url("fonts/UTM_Avo.ttf"); }
+  @font-face { font-family: "PhBold"; src: url("fonts/Averta-Bold.otf"); }
+  @font-face { font-family: "PhReg"; src: url("fonts/Averta-Regular.otf"); }
+  @font-face { font-family: "PhLight"; src: url("fonts/Averta-Light.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  #root { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .abs { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; white-space: nowrap; box-sizing: border-box; }
+  svg { overflow: visible; }
+</style>
+</head>
+<body>
+<div id="stage"><div id="root"></div></div>
+<script src="uikit.js"></script>
+<script>
+(function () {
+  const U = window.UIKIT, { Q, W, H, FPS, T, F, ACC, clamp, prog, outCubic, outBack, node, place, fitFont, show } = U;
+  const PRESETS = { micro: { min: 1.4, def: 2.5 }, standard: { min: 2.0, def: 3.5 }, full: { min: 3.0, def: 5 } };
+  const PRESET = PRESETS[Q.get("preset")] ? Q.get("preset") : "standard";
+  const D = Math.max(PRESETS[PRESET].min, parseFloat(Q.get("dur") || PRESETS[PRESET].def) || PRESETS[PRESET].def);
+  const MICRO = PRESET === "micro", FULL = PRESET === "full";
+  const DE = D - 1 / FPS, EX = MICRO ? 0.22 : 0.3;
+  const QA = { theme: U.THEME_ID, preset: PRESET, dur: D, overflow: [], warn: [], fontPx: {} };
+  let ITEMS = U.items().slice(0, 4);
+  if (U.items().length > 4) QA.warn.push("tối đa 4 chip");
+  if (!ITEMS.length) ITEMS = [{ t: 0.5, x: "Tính năng" }];
+  ITEMS.forEach((it, i) => { it.t = clamp(+it.t || (0.5 + i * 0.45), 0.2, DE - EX - 0.4); const s = U.splitIcon(it.x);
+    it.label = s.text; it.ic = U.iconFor(it.x, "sparkle"); it.note = MICRO ? "" : (it.n || "").trim(); });
+  const N = ITEMS.length, GRID = N === 4 && !FULL;   // 4 chip → lưới 2×2; 2–3 → một hàng (3 chip → cột); full = cột to giữa khung
+  const TITLE = MICRO ? "" : (Q.get("title") || "").trim(), EYEBROW = MICRO ? "" : (Q.get("eyebrow") || "").trim();
+  const S = MICRO ? { px: 34, npx: 0, ic: 40, padX: 22, padY: 16, gap: 14, r: 22 }
+          : FULL ? { px: 54, npx: 32, ic: 78, padX: 34, padY: 28, gap: 26, r: 30 }
+                 : { px: 44, npx: 28, ic: 62, padX: 28, padY: 22, gap: 20, r: 26 };
+  const sc = FULL ? node("div", { width: W + "px", height: H + "px",
+    background: U.THEME_ID === "ui_dark" ? "linear-gradient(180deg,#141416,#0b0b0c)" : "linear-gradient(180deg,#f6f6f8,#e9eaef)" })
+    : MICRO ? null : U.scrim(0.28);
+  const head = (TITLE || EYEBROW) ? U.heading(EYEBROW, TITLE, { y: FULL ? 0.22 * H : 0.14 * H, tPx: FULL ? 96 : 78 }) : null;
+  const chips = ITEMS.map((it, i) => {
+    const c = U.card({ padding: `${S.padY}px ${S.padX}px`, borderRadius: S.r + "px", display: "flex", alignItems: "center", gap: (S.ic * 0.3) + "px" });
+    const ib = node("div", { position: "relative", width: S.ic + "px", height: S.ic + "px", borderRadius: (S.ic * 0.28) + "px",
+      background: U.rgba(ACC, 0.16), border: `1.5px solid ${U.rgba(ACC, 0.55)}`, display: "flex", alignItems: "center",
+      justifyContent: "center", flex: "0 0 auto" }, c);
+    ib.innerHTML = U.icon(it.ic, ACC, S.ic * 0.6, 2.2);
+    const tx = node("div", { position: "relative" }, c);
+    const l = node("div", { position: "relative", fontFamily: F.bold, fontSize: S.px + "px", color: T.text, lineHeight: "1.1" }, tx, it.label);
+    const n = it.note ? node("div", { position: "relative", fontFamily: F.reg, fontSize: S.npx + "px", color: T.sub, marginTop: "4px" }, tx, it.note) : null;
+    return { it, c, ib, l, n };
+  });
+
+  function layout() {
+    const maxRowW = 0.8 * W;
+    let colW;
+    const col = FULL || (!GRID && N === 3 && !MICRO), oneRow = !GRID && !col;   // 3 chip / full: cột dọc (đủ chỗ ghi chú)
+    if (GRID) colW = (maxRowW - S.gap) / 2; else if (col) colW = (FULL ? 0.72 : 0.66) * W; else colW = (maxRowW - S.gap * (N - 1)) / N;
+    chips.forEach(ch => { const inner = colW - 2 * S.padX - S.ic - S.ic * 0.3;
+      if (!fitFont(ch.l, S.px, inner, 0.6)) QA.overflow.push(`chip '${ch.it.label}' dài`);
+      if (ch.n && !fitFont(ch.n, S.npx, inner, 0.6)) QA.overflow.push(`ghi chú '${ch.it.note}' dài`);
+      ch.c.style.width = colW + "px"; });
+    QA.fontPx.chip = Math.min(...chips.map(c => parseFloat(c.l.style.fontSize)));
+    const ch0 = Math.max(...chips.map(c => c.c.offsetHeight));
+    chips.forEach(c => c.c.style.height = ch0 + "px");
+    const rowsN = GRID ? 2 : col ? N : 1, colsN = GRID ? 2 : col ? 1 : N;
+    const gw = colsN * colW + (colsN - 1) * S.gap, gh = rowsN * ch0 + (rowsN - 1) * S.gap;
+    let y0 = MICRO ? 0.13 * H : clamp(parseFloat(Q.get("y") || "0.2"), 0.13, 0.66) * H;
+    if (FULL) {   // tiêu đề + cột chip đứng giữa khung (tâm ~44% — trên vùng tên/mô tả TikTok)
+      const tot = (head ? head.h + 70 : 0) + gh;
+      y0 = Math.max(0.13 * H + (head ? head.h + 70 : 0), 0.44 * H - tot / 2 + (head ? head.h + 70 : 0));
+      if (head) place(head.wrap, (W - 0.78 * W) / 2, y0 - head.h - 70);
+    }
+    if (head && !FULL) { place(head.wrap, (W - 0.78 * W) / 2, y0); y0 += head.h + 34; }
+    const x0 = (0.06 * W + 0.84 * W) / 2 - gw / 2;   // giữa vùng an toàn (lệch trái vì cột nút TikTok)
+    chips.forEach((c, i) => { const r = GRID ? Math.floor(i / 2) : col ? i : 0, k = GRID ? i % 2 : col ? 0 : i;
+      place(c.c, x0 + k * (colW + S.gap), y0 + r * (ch0 + S.gap)); });
+    const top = head && !FULL ? y0 - head.h - 34 : y0;
+    if (y0 + gh > 0.76 * H) QA.overflow.push("chip xuống quá vùng an toàn");
+    QA.area = { x: Math.round(x0), y: Math.round(top), w: Math.round(gw), h: Math.round(y0 + gh - top) };
+    QA.land = 0.45;
+  }
+
+  function setTime(t0) {
+    const t = clamp(t0, 0, D);
+    if (sc) sc.style.opacity = outCubic(prog(t, 0, 0.3)).toFixed(4);
+    if (head) { show(head.e, outCubic(prog(t, 0.05, 0.35)), 16); show(head.t, outCubic(prog(t, 0.1, 0.42)), 24); }
+    chips.forEach(ch => { const k = outBack(prog(t, ch.it.t - 0.1, ch.it.t + 0.22), 1.7);
+      ch.c.style.opacity = clamp(k * 1.6).toFixed(3);
+      ch.c.style.transform = `translateY(${Math.round((1 - k) * 34)}px)`;   // không scale thẻ có chữ (Chrome giữ ảnh raster cũ → vẽ lại lệch)
+      const ki = outBack(prog(t, ch.it.t + 0.06, ch.it.t + 0.34), 2.2);
+      // xong hiệu ứng → transform none (SVG trong lớp đã biến đổi Chrome giữ ảnh raster cũ → vẽ lại cùng thời điểm lệch)
+      ch.ib.style.transform = prog(t, ch.it.t + 0.06, ch.it.t + 0.34) >= 1 ? "none"
+        : `scale(${(0.5 + 0.5 * ki).toFixed(4)}) rotate(${((1 - ki) * -18).toFixed(1)}deg)`; });
+    U.exitAll(t, D, EX);
+  }
+
+  const ready = U.ready(TITLE + EYEBROW + ITEMS.map(i => i.label + i.note).join(""), () => { layout(); setTime(0); });
+  window.setTime = setTime;
+  window.SCENE_MOTION = { name: `Feature Chips · ${T.label} · ${PRESET}`, duration: D, width: W, height: H, fps: FPS, ready, setTime, qa: QA,
+    scenes: [{ name: "vào", start: 0, end: 0.4 }, { name: "chip theo lời", start: 0.4, end: DE - EX }, { name: "ra", start: DE - EX, end: D }] };
+  if (!Q.has("render")) { const t0 = performance.now();
+    (function loop() { setTime(((performance.now() - t0) / 1000) % (D + 0.6)); requestAnimationFrame(loop); })(); }
+})();
+</script>
+</body>
+</html>

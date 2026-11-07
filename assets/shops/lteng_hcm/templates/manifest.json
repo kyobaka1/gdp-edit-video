@@ -1,5 +1,10 @@
 {
   "_note": "LTENG HCM — đen / đỏ sậm. Tiêu đề UTM HelvetIns, chữ thường UTM Avo (Sếp chốt 20/10). Màu/gradient theo brand kit prod (../shop.json). Hợp đồng: assets/shops/README.md",
+  "highlight": {
+    "bg": "#ffffff",
+    "fg": "#a83030",
+    "_note": "khối nhấn *...* (Sếp 29/10): nền + chữ; mẫu ghi đè bằng slots.<mẫu>.highlight"
+  },
   "replace": {
     " · ": " - ",
     "·": "-",

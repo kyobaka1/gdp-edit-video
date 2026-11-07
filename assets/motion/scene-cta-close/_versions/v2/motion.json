@@ -1,0 +1,82 @@
+{
+  "id": "scene-cta-close",
+  "source": {
+    "kind": "html",
+    "entry": "src/cta-close.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\cta-close\\src\\cta-close.html"
+  },
+  "version": 2,
+  "name": "Scene C17 CTA Close",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "cta_close"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "bình luận",
+    "chốt",
+    "cta",
+    "giao diện",
+    "giỏ hàng",
+    "kêu gọi",
+    "scene",
+    "theo dõi",
+    "thương hiệu",
+    "uikit"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 3,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "tên thương hiệu",
+      "start": 0,
+      "end": 0.8
+    },
+    {
+      "name": "kêu gọi",
+      "start": 1.25,
+      "end": 2.666666666666667
+    },
+    {
+      "name": "ra",
+      "start": 2.666666666666667,
+      "end": 3
+    }
+  ],
+  "params": {
+    "theme": "ui_dark",
+    "preset": "standard",
+    "brand": "GIADUNGPLUS",
+    "accent": "",
+    "mode": "",
+    "name": "",
+    "sub": "",
+    "cta": "",
+    "cta_text": "",
+    "cta_t": "",
+    "y": "",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "opaque": true,
+  "z": "top",
+  "variants": {},
+  "scene": "cta-close",
+  "notes": "Scene Library C17 CTA Close — tên thương hiệu phát sáng + nút kêu gọi ở câu chốt v1.0.0 — hồ sơ assets/scenes/cta-close/scene.json. UI Kit chung (assets/scenes/_uikit). Dùng: c.graphic('scene-cta-close', at='bình luận', until='nhận link', sub='Kệ inox lắp 5 phút', cta='comment')"
+}

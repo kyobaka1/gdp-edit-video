@@ -139,6 +139,17 @@ c.graphic("scene-timeline", at="đầu tiên", until="treo đồ", title="4 bư�
           items=[("lau sạch", "Lau sạch tường"), ("bóc", "Bóc lớp keo"), ("ép", "Ép thật chặt"), ("treo", "Treo đồ")])  # C10
 c.graphic("scene-quote", at="đồ tốt", until="phải nghĩ", quote="Đồ tốt là đồ *dùng mỗi ngày không phải nghĩ*",
           by="Anh Vương · GIADUNGPLUS")                                  # C11: câu nói đắt thành thẻ riêng
+# ── C13–C17 thẻ GIAO DIỆN (theme ui_dark / ui_light, font + màu nhấn tự theo shop) ──
+c.graphic("scene-list-motion", at="không cần khoan", until="cần thợ", mode="strike", title="Khoan tường",
+          items=[("không cần khoan", "Khoan tường"), ("bụi", "Bụi bẩn")], conclude="Dán là xong")   # C13 tick|toggle|strike
+c.graphic("scene-feature-chips", at="inox", until="chống nước",
+          items=[("inox", "Inox 304|shield", "không gỉ"), ("mười lăm", "Chịu 15kg")])            # C14 chip có icon
+c.graphic("scene-label-zoom", at="mỗi 5ml", until="kẽm", photo="src:c04@3.2", crop="0.12,0.30,0.76,0.22",
+          marks="0.10:0.30,0.40:0.62", items=[("50mg", "50mg", "vitamin C"), ("36mg", "36mg", "kẽm")])  # C15 soi nhãn thật
+c.graphic("scene-data-card", at="một tháng", until="120 triệu", mode="bars",
+          items=[("một tháng", "1 tháng", "2tr"), ("5 năm", "5 năm", "120tr")])                  # C16 bars|gauge|receipt
+c.graphic("scene-cta-close", at="bình luận", until="nhận link", sub="Kệ inox lắp 5 phút", cta="comment")  # C17 câu kêu gọi
+c.style("gdp-ban-hang")    # PHONG CÁCH cả video (gọi TRƯỚC say): da phụ đề, màu, màn chữ, nhịp, nhạc, theme thẻ — xem dưới
 c.theme("phaledo_warm")                                  # (tuỳ) ép theme Scene Library cả video
 c.cap("!NHƯNG NHƯỢC ĐIỂM LÀ / .giá thuê của nó / rất là / ~CAO")
 c.audio(music=None)        # mẫu KHÔNG có nhạc nền rõ; có nhạc thì music_lufs −30 (dưới giọng xa)
@@ -232,6 +243,45 @@ c.save()
   Preset: < 1,8s micro (thẻ gọn đè footage vùng phụ đề, `y` 0,66) · còn lại standard phủ khung · có `photo` → tự nâng full
   (≥ 3s). QA "đứng đọc ngắn" → kéo dài thẻ / rút câu. ⛔ Câu NGUYÊN VĂN, người nói / lời khách có thật (không bịa lời chứng
   thực, không thêm tuyên bố sản phẩm).
+- **C13–C17 = thẻ GIAO DIỆN** (học từ mẫu khoá "Edit Video Pro" 07/11 — `docs/2026-11-07-hoc-hoi-khoa-skill-edit-video-pro.md`):
+  theme `ui_dark` (thẻ kính tối) / `ui_light` (thẻ sáng — phaledo-tap-chi) KHÔNG gắn shop; font (GDP/LTENG UTM Avo · PHALEDO
+  Averta) + màu nhấn tự lấy theo shop của `c.logo()` (cutlib điền `brand`/`accent`). UI Kit chung `assets/scenes/_uikit/uikit.js`
+  (icon nét, thẻ, tiêu đề, hiện dần pixel nguyên) — sửa xong chạy `tools\ui_scenes_sync.py` rồi `tools\scene_previews.py <family>`.
+- `scene-list-motion` (C13): danh sách dựng theo lời — `mode` tick (✓ từng dòng) · toggle (công tắc bật) · strike (gạch bỏ cách
+  cũ, kèm `conclude` = viên chốt cách mới). `items` ≤ 6 (bắt buộc), `title`/`eyebrow`, `side`. Preset: < 2,4s micro (đè footage,
+  chữ động giữ) · < 8s standard (footage tối) · full (nền đặc).
+- `scene-feature-chips` (C14): chip tính năng có ICON bật đúng lời — `items=[(cụm lời, "Nhãn|icon", "ghi chú")]` ≤ 4 (icon tự
+  đoán theo chữ: inox→khiên, chống nước→giọt, kg→khiên…; ép bằng `|tên`: check x star bolt drop shield leaf clock box home
+  ruler sparkle hand heart cart chat fire tag money sun layers chef wrench). 4 chip → lưới 2×2, full = cột giữa to.
+- `scene-label-zoom` (C15): SOI NHÃN THẬT — `photo="src:<clip>@<giây>"` (bắt buộc) + `crop="x,y,w,h"` (tỉ lệ khung nguồn
+  `jobs/<id>/assets/frames/…`) thành thẻ nổi; `marks="y0:y1,…"` dòng cần tô (tỉ lệ trong vùng crop) ↔ mục thứ k; `items=[(cụm
+  lời, "số to", "dòng nhỏ")]` số nhắc lại to dưới thẻ. ⛔ Số phải ĐỌC ĐƯỢC trên nhãn đã cắt — không phóng số không có thật.
+- `scene-data-card` (C16): số liệu thành THẺ — `mode="bars"` (2–4 cột lớn dần, `items=[(cụm lời, "nhãn", "giá trị có số")]`,
+  chiều cao theo số) · `"gauge"` (`value` 0–100 + `unit="%"`, `note`, `chip`; items[0] = lúc vòng chạy) · `"receipt"` (dòng hoá
+  đơn theo lời + `total`, `total_t` = cụm lời gạch tổng). Preset < 5,5s standard (footage tối) · full nền đặc. Khác C07 (1 số
+  đếm giữa khung): C16 là so sánh / cộng dồn nhiều mức. ⛔ Mọi số có trong lời / nguồn.
+- `scene-cta-close` (C17): CÂU KÊU GỌI cuối lời — tên thương hiệu phát sáng (`mode` glow | type gõ LED; `name` mặc định theo
+  shop) + `sub` + nút `cta` comment|cart|follow|none (`cta_text` đổi chữ, `cta_t` cụm lời nút hiện). KHÔNG thay outro shop (outro
+  mp4 vẫn chạy sau). ⛔ Chữ trên nút khớp câu kêu gọi trong lời; phaledo-tap-chi chỉ follow / none.
+- Tham số khai `"when": true` trong scene.json (`total_t`, `cta_t`) nhận **cụm lời | giây** như `at` → cutlib đổi ra giây trong thẻ.
+
+## Phong cách — Style Pack (Sếp 07/11: "tách ra thành các phong cách khác nhau")
+
+Một phong cách = `assets/styles/<id>/style.json` (+ `demo.jpg`): da phụ đề (font theo shop, màu nhấn shop, hộp nhấn / nghiêng
+mảnh / bóng), vị trí chữ, kiểu rút chữ, chỉnh màu (`grade`), nền màn chữ (`card_bg` black | **glass** = kính mờ footage sau),
+nhịp cắt lặng (`pacing.tighten`), mức nhạc, theme thẻ Scene ưu tiên + family nên dùng / tránh. Gọi `c.style("<id>")` **trước**
+`say()`; mọi thứ ghi tay trong cut.py (`card(bg=)`, `cap(exit=)`, `say(tighten=)`, `c.grade()`, `c.audio()`, `theme=`) vẫn thắng.
+Xem danh sách: `vs.py styles`. Ảnh mẫu: `tools\style_previews.py` → `assets/styles/<id>/demo.jpg`.
+
+| Mã | id | Hợp với | Đặc điểm |
+|---|---|---|---|
+| S1 | `gdp-ban-hang` | review / mẹo nhà / chốt đơn có người nói (GDP, LTENG) | hình tối-vàng, phụ đề 2 tầng: dòng dẫn trắng + cụm khoá HỘP màu nhấn, chữ ~60% H, màn chữ kính, nhịp gắt (lặng 0,3s), thẻ ui_dark |
+| S2 | `gdp-giai-thich` | hướng dẫn, nhiều bước, kiến thức | phụ đề 1 dòng nhỏ đậm ~74% H, rút mờ, màu cinematic, nhạc rất nhỏ (−30), ưu tiên C03/C10/C04 |
+| S3 | `phaledo-tap-chi` | PHALEDO cao cấp, series, câu chuyện chất liệu | sáng sạch, cụm nhấn hộp + nghiêng mảnh, chữ trôi lên, thẻ ui_light, kính mờ cho câu tuyên bố; KHÔNG hô bán |
+| S4 | `san-pham-thuan` | video không người: footage + giọng đọc (skill gdp-video-product khi có) | như S1 nhưng KHÔNG cắt lặng (giọng AI đều), nhạc to hơn (−25), ưu tiên C15/C09/C13/C14/C16 |
+
+Chọn: có người nói + bán → S1 · dạy / giải thích → S2 · PHALEDO → S3 · không người → S4. Không gọi `c.style` = như cũ (đen,
+cinematic). Thêm phong cách = thêm 1 thư mục style.json (khuôn theo 4 cái có sẵn) → `tools\style_previews.py <id>` soát mắt.
 
 ## Luật chữ động (đo từ mẫu — `references/mau-phan-tich.md`)
 
@@ -278,6 +328,12 @@ c.save()
 | Scene C10 Timeline / Process — mốc theo lời + đường nối; micro = thanh tiến độ giữ chữ động | ✅ v1.0 (06/11) | `assets/scenes/timeline/` |
 | Scene C11 Quote / Insight — câu nói đắt thành thẻ riêng, chữ hiện từng từ, cụm khoá gạch chân | ✅ v1.0 (06/11) | `assets/scenes/quote/` |
 | Scene C12 Brand Outro | ⛔ bỏ (Sếp 06/11: outro / intro thương hiệu đã có sẵn ở `assets/shops/<shop>/outro/` + Motion) | |
+| Phong cách S1–S4 (Style Pack: da phụ đề hộp nhấn / nghiêng mảnh, chỉnh màu, màn chữ kính mờ, nhịp, nhạc, theme thẻ) | ✅ v1 (07/11) — chưa chạy job thật | `assets/styles/`, `c.style()` |
+| Scene C13 List Motion — tick / công tắc / gạch bỏ + viên chốt | ✅ v1.0 (07/11) | `assets/scenes/list-motion/` |
+| Scene C14 Feature Chips — chip icon tính năng bật theo lời | ✅ v1.0 (07/11) | `assets/scenes/feature-chips/` |
+| Scene C15 Label Zoom — cắt vùng nhãn thật thành thẻ, tô dòng đang đọc | ✅ v1.0 (07/11) | `assets/scenes/label-zoom/` |
+| Scene C16 Data Card — cột lớn dần / vòng % / hoá đơn tổng | ✅ v1.0 (07/11) | `assets/scenes/data-card/` |
+| Scene C17 CTA Close — tên thương hiệu phát sáng + nút kêu gọi | ✅ v1.0 (07/11) | `assets/scenes/cta-close/` |
 
 ## Scene Library + Story Library (05/11 — đề xuất ChatGPT, Sếp bảo làm)
 
@@ -292,7 +348,7 @@ kiểm mọi theme × preset + ảnh preview). Theme PHALEDO theo `shop.json`: A
 ## Chọn hiệu ứng — THƯ VIỆN HIỆU ỨNG (Sếp 07/11: gọi đúng tên, ít mà tinh)
 
 Trang **`hieu-ung.html`** (gốc repo, mở thẳng bằng Chrome) = thư viện có MÃ + TÊN GỌI + demo thật cho mọi hiệu ứng:
-T chữ (T01–T07) · C thẻ cảnh (C01–C11, chạy trực tiếp template, đổi theme/preset/chữ) · X chuyển cảnh · K khung & nhịp ·
+T chữ (T01–T07) · C thẻ cảnh (C01–C17, chạy trực tiếp template, đổi theme/preset/chữ) · X chuyển cảnh · K khung & nhịp ·
 A âm thanh · B thương hiệu · I/G/P ý tưởng chưa làm. Nguồn sự thật: **`assets/effects/catalog.json`** (nhóm, mức nặng nhẹ,
 liều lượng, vai trò → gợi ý, nguyên tắc, ngân sách); thẻ C lấy chi tiết từ scene.json. Thêm hiệu ứng / family mới → thêm mục
 catalog (+ demo) → `.\.venv\Scripts\python.exe tools\effects_page.py` (cắt clip demo 360×640 từ video đã dựng + ảnh thu nhỏ

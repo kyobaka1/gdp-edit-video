@@ -1,0 +1,179 @@
+{
+ "id": "cta-close",
+ "code": "C17",
+ "name": "CTA Close — tên thương hiệu phát sáng + nút kêu gọi ở câu chốt",
+ "version": "1.0.0",
+ "motion_id": "scene-cta-close",
+ "status": "ready",
+ "uikit": true,
+ "brand_param": true,
+ "learned_from": "m2 (cả bản người nói và không người): câu chốt cuối 'Gia Dụng Plus — bình luận MUA để nhận link' thành tên thương hiệu phát sáng có tia + lấp lánh, dòng phụ, nút màu nhấn gợn vòng mời bấm; series ghi 'theo dõi xem phần 2'",
+ "purpose": "2–4 giây CUỐI LỜI NÓI có câu kêu gọi: tên thương hiệu đóng dấu + một hành động rõ (bình luận / giỏ hàng / theo dõi). KHÔNG thay outro mp4 của shop (outro vẫn chạy sau, C12 đã bỏ vì có sẵn) — C17 gắn vào câu kêu gọi trong lời.",
+ "use_when": [
+  "Lời có câu kêu gọi: 'bình luận MUA để nhận link', 'bấm vào giỏ hàng', 'theo dõi để xem phần 2'",
+  "Video bán hàng (gdp-ban-hang / san-pham-thuan) — chốt đơn",
+  "Video series (gdp-giai-thich) — cta='follow'"
+ ],
+ "avoid_when": [
+  "Lời không có câu kêu gọi (đừng bịa lời mời mua)",
+  "Ngay sát outro shop mà outro đã có tên thương hiệu to — dùng preset standard ngắn hoặc bỏ",
+  "phaledo-tap-chi: chỉ dùng mode glow + cta='none' hoặc 'follow' (tạp chí không hô bán)"
+ ],
+ "presets": {
+  "standard": {
+   "dur": [
+    1.8,
+    6.0
+   ],
+   "default": 3,
+   "covers": false,
+   "note": "footage tối 60% + quầng sáng, chữ động tạm ẩn"
+  },
+  "full": {
+   "dur": [
+    2.5,
+    8.0
+   ],
+   "default": 4,
+   "covers": true,
+   "note": "nền đặc + quầng màu nhấn (ui_light: nền sáng) — kết video không người"
+  }
+ },
+ "preset_auto": [
+  [
+   3.5,
+   "standard"
+  ],
+  [
+   99,
+   "full"
+  ]
+ ],
+ "themes": {
+  "ui_dark": {
+   "brand": "*",
+   "trans": "dip",
+   "look": "tên thương hiệu trắng phát sáng màu nhấn, tia quét chậm, lấp lánh, nút màu nhấn"
+  },
+  "ui_light": {
+   "brand": "*",
+   "trans": "dip",
+   "look": "như ui_dark; full = nền sáng ấm, chữ tối, ánh màu nhấn dịu — hợp PHALEDO"
+  }
+ },
+ "theme_by_brand": {
+  "*": "ui_dark"
+ },
+ "params": {
+  "mode": {
+   "note": "glow (mặc định: từng chữ bật lên + loé sáng) | type (gõ từng ký tự kiểu LED, con trỏ)"
+  },
+  "name": {
+   "max_chars": 18,
+   "note": "chữ to; bỏ trống = tên thương hiệu của shop (GIA DỤNG PLUS / PHALEDO / LTENG)"
+  },
+  "sub": {
+   "max_chars": 34,
+   "note": "dòng phụ dưới tên: 'Giá kệ inox — lắp 5 phút'"
+  },
+  "cta": {
+   "note": "comment | cart | follow | none (mặc định comment)"
+  },
+  "cta_text": {
+   "max_chars": 30,
+   "note": "chữ trên nút; bỏ trống = câu mặc định theo cta"
+  },
+  "cta_t": {
+   "when": true,
+   "note": "cụm lời | giây lúc nút hiện (mặc định ngay sau tên)"
+  },
+  "y": {
+   "note": "tâm tên theo chiều dọc (0.25–0.60, mặc định 0.40)"
+  },
+  "theme": {
+   "note": "bỏ trống = theo phong cách / ui_dark"
+  },
+  "preset": {
+   "note": "bỏ trống = theo thời lượng: < 3,5s standard · còn lại full"
+  }
+ },
+ "sfx": {
+  "ui_dark": [
+   {
+    "at": "enter",
+    "file": "scene/air_shimmer.wav",
+    "gain_db": -22
+   },
+   {
+    "at": "land",
+    "file": "scene/glass_ting.wav",
+    "gain_db": -24
+   },
+   {
+    "at": "cta",
+    "file": "click_003.ogg",
+    "gain_db": -20
+   }
+  ],
+  "ui_light": [
+   {
+    "at": "enter",
+    "file": "scene/air_shimmer.wav",
+    "gain_db": -23
+   },
+   {
+    "at": "land",
+    "file": "scene/glass_ting.wav",
+    "gain_db": -25
+   },
+   {
+    "at": "cta",
+    "file": "click2.ogg",
+    "gain_db": -21
+   }
+  ]
+ },
+ "qa": [
+  "Motion Engine: tất định (tia = conic-gradient đổi góc, không transform), khung cuối trong suốt",
+  "Template: tên tự thu chữ ≤ 86% bề ngang, nút không xuống quá 76%",
+  "Nội dung: câu trên nút phải KHỚP câu kêu gọi trong lời (bình luận gì, bấm đâu)"
+ ],
+ "sample": {
+  "ui_dark": {
+   "brand": "GIADUNGPLUS",
+   "sub": "Kệ inox lắp 5 phút",
+   "cta": "comment",
+   "dur": 3.2
+  },
+  "ui_light": {
+   "brand": "PHALEDO",
+   "sub": "Thủy tinh và gỗ sồi",
+   "cta": "follow",
+   "cta_text": "Theo dõi PHALEDO",
+   "dur": 3.2
+  },
+  "type": {
+   "brand": "GIADUNGPLUS",
+   "mode": "type",
+   "sub": "Bấm giỏ hàng để xem giá",
+   "cta": "cart",
+   "dur": 3.4
+  }
+ },
+ "examples": [
+  "c.graphic('scene-cta-close', at='bình luận', until='nhận link', sub='Kệ inox lắp 5 phút', cta='comment')",
+  "c.graphic('scene-cta-close', at='giỏ hàng', dur=3, mode='type', cta='cart', cta_text='Bấm giỏ hàng góc trái')",
+  "c.graphic('scene-cta-close', at='phần 2', dur=3, cta='follow', cta_text='Theo dõi xem phần 2')"
+ ],
+ "tags": [
+  "kêu gọi",
+  "cta",
+  "chốt",
+  "thương hiệu",
+  "bình luận",
+  "giỏ hàng",
+  "theo dõi",
+  "giao diện"
+ ],
+ "previews": "previews/<theme>-<preset>.jpg"
+}

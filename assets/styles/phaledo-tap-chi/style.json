@@ -1,0 +1,41 @@
+{
+ "id": "phaledo-tap-chi",
+ "code": "S3",
+ "name": "Tạp chí — sáng sạch, nghiêng mảnh, kính mờ",
+ "version": "1.0.0",
+ "status": "ready",
+ "learned_from": "mẫu Blue 1 (example/_phan-tich/blue1): chữ lai đậm + nghiêng, hộp nhấn từ khoá, thẻ KÍNH MỜ toàn khung cho câu tuyên bố, số chương to, series 'những điều cần biết'. PHALEDO không dùng serif (luật thương hiệu) → nghiêng = Averta Light Italic",
+ "use_for": ["PHALEDO cao cấp: câu chuyện chất liệu, phong cách sống", "series 'những điều cần biết' / 'phần 1-2-3'", "review sản phẩm tài trợ trong video người nói"],
+ "avoid_for": ["video chốt đơn dồn dập", "LTENG / GDP muốn tông đỏ-vàng mạnh"],
+ "kinetic": "cinematic",
+ "skin": {
+  "keyMode": "text",
+  "keyUpper": false,
+  "accentMode": "box",
+  "italicMode": "light",
+  "size": {"live": 0.032, "key": 0.043, "sub": 0.024, "big": 0.058},
+  "maxWidth": 0.74,
+  "shadow": "soft",
+  "boxRadius": 0.14
+ },
+ "skin_by_brand": {"PHALEDO": {"boxText": "#161616"}},
+ "captions": {"y": 0.56, "y_opts": [0.56, 0.5, 0.62], "places": ["center", "left"], "exit": "rise",
+              "note": "`!!cụm` = nghiêng mảnh màu nhấn (champagne PHALEDO) · `^` = hộp nhấn · `!` = đậm thường"},
+ "grade": "sach",
+ "card_bg": "glass",
+ "pacing": {"tighten": 0.3},
+ "audio": {"music_lufs": -29},
+ "scene_theme": {"PHALEDO": ["ui_light", "phaledo_dark"], "*": ["ui_light"]},
+ "scenes": {
+  "prefer": ["chapter-card", "quote", "a-vs-b", "evidence-frame", "feature-chips", "label-zoom", "cta-close"],
+  "avoid": ["keyword-burst"],
+  "why": {"keyword-burst": "chữ bật to gắt, không hợp nhịp tạp chí — dùng màn kính mờ c.card()"}
+ },
+ "rules": [
+  "Câu tuyên bố / chuyển ý → c.card(...) nền kính mờ, 2 dòng: dòng dẫn nhỏ + `!!cụm nghiêng`",
+  "Chương / phần → scene-chapter-card (số chương to); series ghi 'phần N' ở dòng nhỏ",
+  "Thông số sản phẩm → scene-feature-chips hoặc scene-label-zoom, không nhồi chữ",
+  "Nhịp thở: 1 đồ hoạ mỗi 4–8s, để hình đẹp tự nói"
+ ],
+ "demo": "assets/styles/phaledo-tap-chi/demo.jpg"
+}

@@ -70,4 +70,23 @@ tiếng Việt, chữ tràn, khung lệch.
 | C10 | Timeline / Process — các bước / mốc nối nhau theo lời | `timeline/` | ✅ v1.0 — 3 theme × micro/standard/full (micro = thanh tiến độ giữ chữ động — ghi đè `captions`/`hide_logo` theo preset) |
 | C11 | Quote / Insight — câu nói đắt thành thẻ riêng | `quote/` | ✅ v1.0 — 3 theme × micro/standard/full (full + ảnh thật) |
 | C12 | Brand Outro | — | ⛔ bỏ (Sếp 06/11: outro / intro đã có sẵn) |
+| C13 | List Motion — danh sách tick / công tắc / gạch bỏ theo lời | `list-motion/` | ✅ v1.0 (07/11) — ui_dark/ui_light × micro/standard/full |
+| C14 | Feature Chips — chip icon tính năng bật theo lời | `feature-chips/` | ✅ v1.0 (07/11) — ui_dark/ui_light × micro/standard/full |
+| C15 | Label Zoom — cắt vùng nhãn thật thành thẻ, tô dòng đang đọc | `label-zoom/` | ✅ v1.0 (07/11) — ui_dark/ui_light × standard/full (đè footage) |
+| C16 | Data Card — cột lớn dần / vòng % / hoá đơn tổng | `data-card/` | ✅ v1.0 (07/11) — ui_dark/ui_light × standard/full × 3 mode |
+| C17 | CTA Close — tên thương hiệu phát sáng + nút kêu gọi | `cta-close/` | ✅ v1.0 (07/11) — ui_dark/ui_light × standard/full, glow / type (không thay outro shop) |
+
+## Thẻ GIAO DIỆN C13+ (UI Kit, 07/11 — học từ mẫu khoá "Edit Video Pro")
+
+- Theme `ui_dark` (thẻ kính tối) / `ui_light` (thẻ sáng) **không gắn shop**: font (GDP/LTENG UTM Avo · PHALEDO Averta) và màu
+  nhấn lấy từ query `brand` / `accent` — scene.json khai `"brand_param": true` thì cutlib tự điền theo shop của `c.logo()`.
+  Theme mặc định theo **phong cách** (`assets/styles/<id>/style.json` → `scene_theme`), không có phong cách thì `ui_dark`.
+- Code chung ở `_uikit/uikit.js` (bản gốc DUY NHẤT): token theme, easing, `node/place/fitFont`, icon nét 24px + đoán icon theo
+  chữ Việt, `card/scrim/heading/show/exitAll/ready`. scene.json khai `"uikit": true` → `tools\ui_scenes_sync.py [family]` chép
+  uikit.js + 5 font vào `src/`, nhập lại Motion Engine, ghi motion.json chuẩn → `tools\scene_previews.py <family>` (thêm
+  `--sample <khoá>` để thử chữ mẫu khác trong `sample`, vd `receipt`, `type`).
+- ⚠ Tất định: phần tử xong hiệu ứng phải về `transform: none`, dịch theo pixel NGUYÊN; xoay / quét liên tục thì đổi thuộc tính
+  vẽ (conic-gradient `from Xdeg`, `stroke-dashoffset`) thay vì transform; nền phủ khung phải ĐẶC (dùng `color-mix`, không
+  rgba giữa chừng). Lỗi "vẽ lại cùng thời điểm ra khung khác" đo 07/11: icon SVG trong lớp còn transform lệch 187 mức.
+- Tham số khai `"when": true` (vd `total_t`, `cta_t`) nhận cụm lời | giây như `at` → cutlib đổi ra giây tính từ đầu thẻ.
 | G01–G12 / P01–P10 | riêng GDP / PHALEDO (đề xuất) | — | ⏳ đợt 2 |

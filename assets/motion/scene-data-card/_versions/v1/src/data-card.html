@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Data Card</title>
+<!-- Scene Library · C16 Data Card v1.0 (Claude viết 07/11/2026) — assets/scenes/data-card/scene.json.
+     Số liệu tiền / tiết kiệm / phần trăm thành THẺ dựng theo lời (học mẫu m2 không người — điện mặt trời):
+       bars    = cột lớn dần từng cột theo lời ("1 tháng 2tr → 1 năm 24tr → 5 năm 120tr")
+       gauge   = đồng hồ vòng tròn chạy tới % + số đếm lên ("giảm khoảng 80" · "70–80% mỗi tháng")
+       receipt = tờ hoá đơn: từng dòng hiện theo lời, cuối gạch TỔNG màu nhấn ("TỔNG: 300 TRIỆU")
+     Hợp đồng Motion Engine: window.setTime(giây) vẽ ĐỒNG BỘ, không Internet, KHÔNG will-change, khung cuối trong suốt.
+     Query: theme · preset (standard|full) · dur · brand · accent · mode · title · eyebrow · items (JSON [{t, x: nhãn,
+     n: giá trị hiện}]) · value (gauge: 0–100) · unit · note · chip · total · total_label · total_t · y · seed. -->
+<style>
+  @font-face { font-family: "GdpBold"; src: url("fonts/UTM_AvoBold.ttf"); }
+  @font-face { font-family: "GdpReg"; src: url("fonts/UTM_Avo.ttf"); }
+  @font-face { font-family: "PhBold"; src: url("fonts/Averta-Bold.otf"); }
+  @font-face { font-family: "PhReg"; src: url("fonts/Averta-Regular.otf"); }
+  @font-face { font-family: "PhLight"; src: url("fonts/Averta-Light.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  #root { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .abs { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; white-space: nowrap; box-sizing: border-box; }
+  svg { position: absolute; left: 0; top: 0; overflow: visible; }
+</style>
+</head>
+<body>
+<div id="stage"><div id="root"></div></div>
+<script src="uikit.js"></script>
+<script>
+(function () {
+  const U = window.UIKIT, { Q, W, H, FPS, T, F, ACC, clamp, lerp, prog, outCubic, outBack, inOut, node, place, fitFont, show } = U;
+  const PRESETS = { standard: { min: 2.0, def: 4 }, full: { min: 3.0, def: 5 } };
+  const PRESET = PRESETS[Q.get("preset")] ? Q.get("preset") : "standard";
+  const D = Math.max(PRESETS[PRESET].min, parseFloat(Q.get("dur") || PRESETS[PRESET].def) || PRESETS[PRESET].def);
+  const FULL = PRESET === "full";
+  const MODE = ["bars", "gauge", "receipt"].includes(Q.get("mode")) ? Q.get("mode") : "bars";
+  const DE = D - 1 / FPS, EX = 0.3;
+  const QA = { theme: U.THEME_ID, preset: PRESET, mode: MODE, dur: D, overflow: [], warn: [], fontPx: {} };
+  let ITEMS = U.items().slice(0, MODE === "receipt" ? 5 : 4);
+  ITEMS.forEach((it, i) => { it.t = clamp(+it.t || (0.6 + i * 0.6), 0.3, DE - EX - 0.5); it.lab = (it.x || "").trim(); it.val = (it.n || "").trim(); });
+  const TITLE = (Q.get("title") || "").trim(), EYEBROW = (Q.get("eyebrow") || "").trim();
+  const svgNS = "http://www.w3.org/2000/svg";
+  const sc = FULL ? node("div", { width: W + "px", height: H + "px",
+    background: U.THEME_ID === "ui_dark" ? "radial-gradient(ellipse at 50% 42%, #1d1d20 0%, #0b0b0c 75%)" : "radial-gradient(ellipse at 50% 42%, #ffffff 0%, #e6e7ec 80%)" })
+    : U.scrim(0.55);
+  const head = (TITLE || EYEBROW) ? U.heading(EYEBROW, TITLE, { tPx: FULL ? 90 : 76 }) : null;
+  const TXT = FULL ? T.text : "#ffffff", SUB = FULL ? T.sub : "rgba(255,255,255,.72)";
+  const shadow = FULL && U.THEME_ID === "ui_light" ? "none" : "0 2px 14px rgba(0,0,0,.6)";
+  let draw = () => {}, area = null;
+  const num = s => { const m = String(s).replace(/\./g, "").replace(",", ".").match(/-?\d+(\.\d+)?/); return m ? parseFloat(m[0]) : 0; };
+
+  if (MODE === "bars") {
+    if (!ITEMS.length) ITEMS = [{ t: 0.6, lab: "1 tháng", val: "2tr" }, { t: 1.3, lab: "1 năm", val: "24tr" }];
+    const vmax = Math.max(...ITEMS.map(i => num(i.val)), 1);
+    const BW = FULL ? 150 : 132, GAP = FULL ? 70 : 60, BH = (FULL ? 0.34 : 0.28) * H;
+    const n = ITEMS.length, gw = n * BW + (n - 1) * GAP, x0 = (0.06 * W + 0.84 * W) / 2 - gw / 2;
+    const axis = node("div", { height: "4px", width: (gw + 80) + "px", background: SUB, borderRadius: "2px" });
+    const yaxis = node("div", { width: "4px", height: (BH + 40) + "px", background: SUB, borderRadius: "2px" });
+    const bars = ITEMS.map(it => ({ it, h: Math.max(8, BH * num(it.val) / vmax),
+      bar: node("div", { width: BW + "px", borderRadius: "14px 14px 4px 4px", background: `linear-gradient(180deg, ${ACC}, ${U.rgba(ACC, 0.75)})`,
+        transformOrigin: "50% 100%", boxShadow: `0 0 30px ${U.rgba(ACC, 0.35)}` }),
+      v: node("div", { fontFamily: F.bold, fontSize: (FULL ? 52 : 46) + "px", color: TXT, textShadow: shadow }, null, it.val),
+      l: node("div", { fontFamily: F.reg, fontSize: (FULL ? 38 : 34) + "px", color: SUB, textShadow: shadow }, null, it.lab) }));
+    draw = (yTop) => {
+      const base = yTop + BH + 70;
+      place(axis, x0 - 40, base); place(yaxis, x0 - 40, base - BH - 40);
+      bars.forEach((b, i) => { const x = x0 + i * (BW + GAP);
+        b.bar.style.height = b.h + "px"; place(b.bar, x, base - b.h);
+        fitFont(b.v, FULL ? 52 : 46, BW + GAP - 10, 0.55); fitFont(b.l, FULL ? 38 : 34, BW + GAP - 10, 0.55);
+        place(b.v, x + BW / 2 - b.v.offsetWidth / 2, base - b.h - b.v.offsetHeight - 12);
+        place(b.l, x + BW / 2 - b.l.offsetWidth / 2, base + 18); });
+      area = { x: x0 - 40, y: yTop, w: gw + 80, h: BH + 140 };
+      return BH + 140;
+    };
+    var tick = t => { show(axis, outCubic(prog(t, 0.1, 0.4)), 0); show(yaxis, outCubic(prog(t, 0.1, 0.4)), 0);
+      bars.forEach(b => { const k = outBack(prog(t, b.it.t - 0.1, b.it.t + 0.35), 1.25), done = prog(t, b.it.t - 0.1, b.it.t + 0.35) >= 1;
+        b.bar.style.opacity = prog(t, b.it.t - 0.1, b.it.t).toFixed(3);
+        b.bar.style.transform = done ? "none" : `scaleY(${Math.max(0, k).toFixed(4)})`;
+        show(b.v, outCubic(prog(t, b.it.t + 0.15, b.it.t + 0.4)), 14); show(b.l, outCubic(prog(t, b.it.t - 0.1, b.it.t + 0.15)), 0); }); };
+  } else if (MODE === "gauge") {
+    const VAL = clamp(parseFloat(Q.get("value") || "80") || 0, 0, 100), UNIT = Q.get("unit") ?? "";
+    const NOTE = (Q.get("note") || "").trim(), CHIP = (Q.get("chip") || "").trim(), LAB = ITEMS[0] ? ITEMS[0].lab : (Q.get("label") || "");
+    const R = FULL ? 250 : 215, SW = FULL ? 30 : 26, T0 = ITEMS[0] ? ITEMS[0].t : 0.5;
+    const svg = document.createElementNS(svgNS, "svg"); svg.setAttribute("width", 2 * R + 2 * SW); svg.setAttribute("height", 2 * R + 2 * SW);
+    svg.style.position = "absolute"; U.root.appendChild(svg);
+    const mk = (col, w) => { const c = document.createElementNS(svgNS, "circle"); c.setAttribute("cx", R + SW); c.setAttribute("cy", R + SW);
+      c.setAttribute("r", R); Object.assign(c.style, { fill: "none", stroke: col, strokeWidth: w + "px", strokeLinecap: "round" }); svg.appendChild(c); return c; };
+    const track = mk(FULL ? T.off : "rgba(255,255,255,.2)", SW), ring = mk(ACC, SW);
+    const L = 2 * Math.PI * R; ring.style.strokeDasharray = L; ring.style.strokeDashoffset = L;
+    ring.setAttribute("transform", `rotate(-90 ${R + SW} ${R + SW})`);
+    const lab = node("div", { fontFamily: F.reg, fontSize: (FULL ? 40 : 36) + "px", color: SUB, textShadow: shadow }, null, LAB);
+    const big = node("div", { fontFamily: F.bold, fontSize: (FULL ? 190 : 165) + "px", color: TXT, lineHeight: "1", textShadow: shadow }, null, `${Math.round(VAL)}${UNIT}`);
+    const note = NOTE ? node("div", { fontFamily: F.bold, fontSize: (FULL ? 50 : 44) + "px", color: TXT, textShadow: shadow }, null, NOTE) : null;
+    const chip = CHIP ? node("div", { fontFamily: F.bold, fontSize: "32px", color: U.onAcc, background: ACC, borderRadius: "999px", padding: "10px 26px" }, null, "✓ " + CHIP) : null;
+    draw = (yTop) => {
+      const cxp = (0.06 * W + 0.84 * W) / 2, size = 2 * R + 2 * SW;
+      place(svg, cxp - size / 2, yTop); const cy = yTop + size / 2;
+      fitFont(big, FULL ? 190 : 165, 2 * R - 60, 0.5); fitFont(lab, FULL ? 40 : 36, 2 * R - 80, 0.6);
+      place(big, cxp - big.offsetWidth / 2, cy - big.offsetHeight / 2 + 10); place(lab, cxp - lab.offsetWidth / 2, cy - big.offsetHeight / 2 - lab.offsetHeight + 6);
+      let yb = yTop + size + 36;
+      if (note) { fitFont(note, FULL ? 50 : 44, 0.78 * W, 0.6); place(note, cxp - note.offsetWidth / 2, yb); yb += note.offsetHeight + 22; }
+      if (chip) { place(chip, cxp - chip.offsetWidth / 2, yb); yb += chip.offsetHeight; }
+      area = { x: cxp - size / 2, y: yTop, w: size, h: yb - yTop };
+      return yb - yTop;
+    };
+    var tick = t => { const k = inOut(prog(t, T0, T0 + 1.1));
+      show(svg, outCubic(prog(t, 0.05, 0.4)), 0, 0.08); if (prog(t, 0.05, 0.4) >= 1) svg.style.transform = "none";
+      track.style.opacity = 1; ring.style.strokeDashoffset = (L * (1 - k * VAL / 100)).toFixed(2);
+      big.textContent = `${Math.round(VAL * k)}${UNIT}`; big.style.opacity = prog(t, T0 - 0.1, T0 + 0.1).toFixed(3);
+      show(lab, outCubic(prog(t, 0.2, 0.5)), 10);
+      if (note) show(note, outCubic(prog(t, T0 + 0.9, T0 + 1.25)), 18);
+      if (chip) { const kc = outBack(prog(t, T0 + 1.3, T0 + 1.6), 1.8); chip.style.opacity = clamp(kc * 1.5).toFixed(3);
+        chip.style.transform = prog(t, T0 + 1.3, T0 + 1.6) >= 1 ? "none" : `scale(${(0.6 + 0.4 * kc).toFixed(4)})`; } };
+    QA.gauge_t = T0;
+  } else {   // receipt
+    if (!ITEMS.length) ITEMS = [{ t: 0.6, lab: "Mỗi tháng", val: "5 triệu" }, { t: 1.2, lab: "Thời gian", val: "5 năm" }];
+    const TOTAL = (Q.get("total") || "").trim(), TL = (Q.get("total_label") || "TỔNG").trim();
+    const TT = clamp(parseFloat(Q.get("total_t") || "") || (ITEMS[ITEMS.length - 1].t + 0.7), 0.4, DE - EX - 0.4);
+    const RW = (FULL ? 0.72 : 0.66) * W, pad = FULL ? 46 : 40, rowH = FULL ? 74 : 66, px = FULL ? 42 : 38;
+    const paper = node("div", { width: RW + "px", background: "#fbfaf6", borderRadius: "10px 10px 0 0", padding: `${pad}px ${pad}px ${pad * 0.7}px`,
+      boxShadow: "0 22px 50px rgba(0,0,0,.45)" });
+    const zig = node("div", { width: RW + "px", height: "26px", background: "linear-gradient(-45deg, transparent 13px, #fbfaf6 0) 0 0 / 26px 26px repeat-x, linear-gradient(45deg, transparent 13px, #fbfaf6 0) 0 0 / 26px 26px repeat-x" });
+    const hd = node("div", { position: "relative", fontFamily: F.bold, fontSize: (px * 0.85) + "px", color: "#2a2a2a", letterSpacing: ".12em",
+      textAlign: "center", paddingBottom: "16px", borderBottom: "2px dashed #c9c5b8", marginBottom: "10px" }, paper, (EYEBROW || "HOÁ ĐƠN").toLocaleUpperCase("vi"));
+    const rows = ITEMS.map(it => { const r = node("div", { position: "relative", height: rowH + "px", display: "flex", justifyContent: "space-between",
+      alignItems: "center", fontFamily: F.reg, fontSize: px + "px", color: "#3a3a3a" }, paper);
+      r.innerHTML = `<span style="position:static">${it.lab}</span><span style="position:static;font-family:${F.bold}">${it.val}</span>`; return { it, r }; });
+    const tot = TOTAL ? node("div", { position: "relative", marginTop: "14px", paddingTop: "18px", borderTop: "3px solid #2a2a2a", display: "flex",
+      justifyContent: "space-between", alignItems: "center", fontFamily: F.bold, fontSize: (px * 1.18) + "px", color: "#2a2a2a" }, paper) : null;
+    if (tot) tot.innerHTML = `<span style="position:static">${TL}:</span><span style="position:static;color:${U.lum(ACC) > 0.6 ? "#c0392b" : ACC}">${TOTAL}</span>`;
+    draw = (yTop) => { const x = (0.06 * W + 0.84 * W) / 2 - RW / 2; place(paper, x, yTop); place(zig, x, yTop + paper.offsetHeight);
+      rows.forEach(o => { if (o.r.scrollWidth > RW - 2 * pad + 2) QA.overflow.push(`dòng '${o.it.lab}' dài`); });
+      area = { x, y: yTop, w: RW, h: paper.offsetHeight + 26 }; return paper.offsetHeight + 26; };
+    var tick = t => { const k = outCubic(prog(t, 0.05, 0.4)); paper.style.opacity = zig.style.opacity = k.toFixed(3);
+      const dy = Math.round((1 - k) * 70); paper.style.transform = zig.style.transform = dy ? `translateY(${dy}px)` : "none";
+      show(hd, outCubic(prog(t, 0.15, 0.4)), 0);
+      rows.forEach(o => { const kr = outCubic(prog(t, o.it.t - 0.1, o.it.t + 0.2)); o.r.style.opacity = kr.toFixed(3);
+        const dx = Math.round((1 - kr) * -30); o.r.style.transform = dx ? `translateX(${dx}px)` : "none"; });
+      if (tot) { const kt = outBack(prog(t, TT, TT + 0.35), 1.6); tot.style.opacity = prog(t, TT, TT + 0.15).toFixed(3);
+        tot.style.transform = prog(t, TT, TT + 0.35) >= 1 ? "none" : `scale(${(0.85 + 0.15 * kt).toFixed(4)})`; tot.style.transformOrigin = "50% 50%"; } };
+    QA.total_t = TT;
+  }
+
+  function layout() {
+    const est = MODE === "gauge" ? 620 : MODE === "bars" ? (FULL ? 0.34 : 0.28) * H + 140 : 520;
+    const headH = head ? head.h + 40 : 0;
+    let y = clamp(parseFloat(Q.get("y") || "0.42"), 0.25, 0.6) * H - (est + headH) / 2 + headH;
+    y = Math.max(0.13 * H + headH, y);
+    const h = draw(y);
+    if (head) place(head.wrap, (W - 0.78 * W) / 2, y - headH);
+    if (y + h > 0.76 * H) QA.overflow.push(`thẻ số liệu xuống quá vùng an toàn (${((y + h) / H).toFixed(2)}H)`);
+    QA.area = { x: Math.round(area.x), y: Math.round(y - headH), w: Math.round(area.w), h: Math.round(h + headH) };
+    QA.land = 0.45;
+  }
+
+  function setTime(t0) {
+    const t = clamp(t0, 0, D);
+    sc.style.opacity = outCubic(prog(t, 0, 0.3)).toFixed(4);
+    if (head) { show(head.e, outCubic(prog(t, 0.05, 0.35)), 16); show(head.t, outCubic(prog(t, 0.1, 0.42)), 22); }
+    tick(t);
+    U.exitAll(t, D, EX);
+  }
+
+  const ready = U.ready(TITLE + EYEBROW + ITEMS.map(i => i.lab + i.val).join("") + (Q.get("note") || "") + (Q.get("total") || ""),
+                        () => { layout(); setTime(0); });
+  window.setTime = setTime;
+  window.SCENE_MOTION = { name: `Data Card · ${MODE} · ${T.label} · ${PRESET}`, duration: D, width: W, height: H, fps: FPS, ready, setTime, qa: QA,
+    scenes: [{ name: "vào", start: 0, end: 0.45 }, { name: "số theo lời", start: 0.45, end: DE - EX }, { name: "ra", start: DE - EX, end: D }] };
+  if (!Q.has("render")) { const t0 = performance.now();
+    (function loop() { setTime(((performance.now() - t0) / 1000) % (D + 0.6)); requestAnimationFrame(loop); })(); }
+})();
+</script>
+</body>
+</html>

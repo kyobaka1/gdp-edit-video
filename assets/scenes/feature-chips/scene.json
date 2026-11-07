@@ -1,0 +1,62 @@
+{
+ "id": "feature-chips",
+ "code": "C14",
+ "name": "Feature Chips — chip tính năng có icon bật theo lời",
+ "version": "1.0.0",
+ "motion_id": "scene-feature-chips",
+ "status": "ready",
+ "uikit": true,
+ "brand_param": true,
+ "learned_from": "m2 (lưới 2×2 Typography / Graphic / Motion / Âm thanh dựng dần), Blue 1 (chip thiết bị cho đoạn review sạc UGREEN)",
+ "purpose": "Tóm 2–4 tính năng / thông số thành chip có icon, mỗi chip bật đúng lúc nói. Gọn hơn danh sách, hợp thông số ngắn (chất liệu, kích thước, công suất, thiết bị tương thích).",
+ "use_when": [
+  "Lời kể 2–4 tính năng ngắn liền nhau: 'inox 304, chịu lực 15kg, không cần khoan'",
+  "Thông số / thiết bị tương thích: 'sạc được MacBook, iPad, điện thoại'",
+  "Video review / sản phẩm (gdp-ban-hang, san-pham-thuan, phaledo-tap-chi)"
+ ],
+ "avoid_when": [
+  "Ý dài > 22 ký tự hoặc cần câu giải thích — dùng List Motion (C13) / Pinned Title (C03)",
+  "Chỉ 1 tính năng — dùng Keyword Burst (C01) hoặc Detail Spotlight (C09)",
+  "Thông số không có trên sản phẩm / tài liệu NCC (không bịa)"
+ ],
+ "presets": {
+  "micro": {"dur": [1.4, 6.0], "default": 2.5, "covers": false, "captions": "keep", "note": "chip nhỏ tầm trên, không ghi chú, chữ động vẫn chạy"},
+  "standard": {"dur": [2.0, 8.0], "default": 3.5, "covers": false, "note": "nền tối nhẹ, chip có ghi chú, tiêu đề tuỳ chọn"},
+  "full": {"dur": [3.0, 10.0], "default": 5, "covers": true, "note": "phủ khung nền trơn theo theme, tiêu đề to, chip lớn"}
+ },
+ "preset_auto": [[2.2, "micro"], [7.0, "standard"], [99, "full"]],
+ "items": {"max": 4, "term_max": 22, "note_max": 26, "lead": 0.1, "tail": 0.6, "micro": true, "required": true,
+           "note": "items=[(cụm lời | giây, 'Nhãn|icon', 'ghi chú'), …] 2–4 chip; icon tự đoán theo chữ nếu không ép"},
+ "themes": {
+  "ui_dark": {"brand": "*", "trans": "cut", "look": "chip tối bo góc, ô icon viền màu nhấn của shop"},
+  "ui_light": {"brand": "*", "trans": "cut", "look": "chip trắng bo góc, icon màu nhấn"}
+ },
+ "theme_by_brand": {"*": "ui_dark"},
+ "params": {
+  "title": {"max_chars": 24, "note": "tiêu đề màu nhấn (không hiện ở micro)"},
+  "eyebrow": {"max_chars": 28, "note": "dòng nhỏ: 'Combo creator', 'Thông số'"},
+  "items": {"note": "[(cụm lời | giây, 'Nhãn ≤ 22|icon', 'ghi chú ≤ 26'), …] — icon: check star bolt drop shield leaf clock box home ruler sparkle hand heart cart chat fire tag money sun layers chef wrench"},
+  "y": {"note": "standard: mép trên khối chip (0.13–0.66, mặc định 0.20)"},
+  "theme": {"note": "bỏ trống = theo phong cách / ui_dark"},
+  "preset": {"note": "bỏ trống = theo thời lượng: < 2,2s micro · < 7s standard · còn lại full"}
+ },
+ "sfx": {
+  "ui_dark": [{"at": "item", "file": "click_003.ogg", "gain_db": -20}],
+  "ui_light": [{"at": "item", "file": "click2.ogg", "gain_db": -21}]
+ },
+ "qa": ["Motion Engine: tất định, khung cuối trong suốt", "Template: chip tự thu chữ, cùng chiều cao, nằm trong vùng an toàn"],
+ "sample": {
+  "ui_dark": {"brand": "GIADUNGPLUS", "eyebrow": "móc dán", "title": "Thông số",
+              "items": "[{\"t\": 0.6, \"x\": \"Inox 304|shield\", \"n\": \"không gỉ\"}, {\"t\": 1.2, \"x\": \"Chịu 15kg\", \"n\": \"treo nồi chảo\"}, {\"t\": 1.8, \"x\": \"Không khoan|wrench\", \"n\": \"dán 5 phút\"}, {\"t\": 2.4, \"x\": \"Chống nước\", \"n\": \"nhà tắm ok\"}]",
+              "dur": 4},
+  "ui_light": {"brand": "PHALEDO", "eyebrow": "hũ thủy tinh", "title": "Chất liệu",
+               "items": "[{\"t\": 0.7, \"x\": \"Thủy tinh dày|layers\", \"n\": \"4mm, chịu nhiệt\"}, {\"t\": 1.4, \"x\": \"Nắp gỗ sồi|leaf\", \"n\": \"kín hơi\"}, {\"t\": 2.1, \"x\": \"Rửa máy được|drop\", \"n\": \"tiện mỗi ngày\"}]",
+               "dur": 4}
+ },
+ "examples": [
+  "c.graphic('scene-feature-chips', at='inox', until='chống nước', items=[('inox', 'Inox 304|shield', 'không gỉ'), ('mười lăm', 'Chịu 15kg'), ('khoan', 'Không khoan|wrench'), ('chống nước', 'Chống nước')])",
+  "c.graphic('scene-feature-chips', at='sạc được', dur=2.0, items=[('macbook', 'MacBook|bolt'), ('ipad', 'iPad|bolt'), ('điện thoại', 'iPhone|bolt')])   # micro"
+ ],
+ "tags": ["chip", "tính năng", "thông số", "icon", "giao diện"],
+ "previews": "previews/<theme>-<preset>.jpg"
+}

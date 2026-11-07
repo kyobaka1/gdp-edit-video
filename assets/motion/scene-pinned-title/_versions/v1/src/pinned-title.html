@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Pinned Title</title>
+<!-- Scene Library · C03 Pinned Title v1.0 (Claude viết 05/11/2026) — assets/scenes/pinned-title/scene.json.
+     Tiêu đề GHIM ở tầm đầu suốt một chương (5–20s) trong lúc người nói giảng; nhãn con hiện lần lượt đúng lúc được
+     nhắc tới, mục đang nói nổi bật, mục đã qua mờ đi (mẫu M3 "Bước 2 / S-T-P", "P1: Sản phẩm"…). Đè footage, nền trong
+     suốt. Tiêu đề có thể nằm SAU người (build.py khoét theo mặt nạ); nhãn con + dòng nhỏ + dấu nặng KHÔNG bao giờ bị khoét
+     (qa.keep / qa.dots) — tránh lỗi mẫu "Positioning" bị đầu che.
+     Hợp đồng Motion Engine: window.setTime(giây) vẽ ĐỒNG BỘ, không Internet, KHÔNG will-change.
+     Query: theme · preset (micro|standard|full) · dur · title · eyebrow · items (JSON [{t: giây từ lúc vào, x: nhãn,
+     n: ghi chú}]) · layout (list|sides) · side (list: left|right) · numbered (1|0) · y (tâm tiêu đề) · seed. -->
+<style>
+  @font-face { font-family: "GdpBold"; src: url("fonts/UTM_AvoBold.ttf"); }
+  @font-face { font-family: "GdpReg"; src: url("fonts/UTM_Avo.ttf"); }
+  @font-face { font-family: "PhBold"; src: url("fonts/Averta-Bold.otf"); }
+  @font-face { font-family: "PhReg"; src: url("fonts/Averta-Regular.otf"); }
+  @font-face { font-family: "PhLight"; src: url("fonts/Averta-Light.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  #root { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .abs { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; white-space: nowrap; box-sizing: border-box; }
+  .bgimg { background-size: 100% 100%; background-repeat: no-repeat; }
+  .item { display: flex; align-items: center; }
+  .txt { display: flex; flex-direction: column; }
+  .term, .note { white-space: nowrap; line-height: 1.12; }
+  .num { flex: none; display: flex; align-items: center; justify-content: center; }
+  .mask { overflow: hidden; padding: 30px 36px; margin: -30px -36px; }
+  .fill, .sh { padding: .24em .04em .2em; margin: -.24em -.04em -.2em; }
+  .fill { position: relative; display: inline-block; -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sh { position: absolute; left: 0; top: 0; }
+  svg { position: absolute; left: 0; top: 0; overflow: visible; }
+</style>
+<script src="assets.js"></script>
+<script src="themes.js"></script>
+</head>
+<body>
+<div id="stage"><div id="root"></div></div>
+<script>
+(function () {
+  const W = 1080, H = 1920, FPS = 30;
+  const Q = new URLSearchParams(location.search);
+  const TH_ID = Q.get("theme") || "gdp_red";
+  const T = window.SCENE_THEMES[TH_ID] || window.SCENE_THEMES.gdp_red;
+  const C = T.color, A = window.KIT_ASSETS;
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const prog = (t, a, b) => b <= a ? (t >= b ? 1 : 0) : clamp((t - a) / (b - a));
+  const outBack = (x, s = 1.5) => 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2);
+  const outCubic = x => 1 - Math.pow(1 - x, 3);
+  const inCubic = x => x * x * x;
+  const inOut = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  const stop12 = t => Math.floor(t * 12 + 1e-6) / 12;
+
+  const PRESETS = { micro: { min: 2.0, def: 6 }, standard: { min: 3.0, def: 10 }, full: { min: 4.0, def: 12 } };
+  const PRESET = PRESETS[Q.get("preset")] ? Q.get("preset") : "standard";
+  const D = Math.max(PRESETS[PRESET].min, parseFloat(Q.get("dur") || PRESETS[PRESET].def) || PRESETS[PRESET].def);
+  const MICRO = PRESET === "micro", FULL = PRESET === "full";
+  const TITLE = (Q.get("title") || "TIÊU ĐỀ").toLocaleUpperCase("vi").trim();
+  const EYEBROW = (Q.get("eyebrow") || "").trim();
+  const LAYOUT = Q.get("layout") === "sides" ? "sides" : "list";
+  const SIDE = Q.get("side") === "right" ? "right" : "left";
+  const NUM = Q.has("numbered") ? ["1", "true", "yes"].includes(Q.get("numbered")) : LAYOUT === "list";
+  const Y = clamp(parseFloat(Q.get("y") || T.y) || T.y, 0.12, 0.42);
+  const SEED = parseInt(Q.get("seed") || "1", 10) || 1;
+  const DE = D - 1 / FPS, EX = MICRO ? 0.25 : 0.35, HIN = MICRO ? 0.3 : 0.55;
+  const QA = { theme: TH_ID, preset: PRESET, dur: D, overflow: [], warn: [], fontPx: {} };
+  let ITEMS = [];
+  try { ITEMS = JSON.parse(Q.get("items") || "[]"); } catch (e) { QA.overflow.push("items JSON lỗi"); }
+  ITEMS = MICRO ? [] : (Array.isArray(ITEMS) ? ITEMS : []).filter(it => it && it.x).slice(0, 6)
+    .map(it => ({ t: clamp(+it.t || HIN + 0.1, HIN + 0.05, Math.max(HIN + 0.05, DE - EX - 0.45)), x: String(it.x).trim(),
+                  n: FULL && it.n ? String(it.n).trim() : "" }))
+    .sort((a, b) => a.t - b.t);
+  const LX = 76, RX = 896, CX = 486;          // vùng an toàn TikTok ngang 6–84%: giữa vùng = 486
+  const ALIGN = MICRO ? "left" : LAYOUT === "sides" ? "center" : SIDE;
+  const MAXW = ALIGN === "center" ? 820 : 760;
+  const root = document.getElementById("root");
+  const imgs = [];
+  function node(tag, cls, parent) { const e = document.createElement(tag); if (cls) e.className = cls; (parent || root).appendChild(e); return e; }
+  function bg(el, key) { const a = A[key]; const im = new Image(); im.src = a.src; imgs.push(im); el.style.backgroundImage = `url(${a.src})`; return el; }
+  function image(key, w, parent) { const a = A[key], im = node("img", "abs", parent); im.src = a.src; imgs.push(im);
+    im.style.width = w + "px"; im.style.height = (w * a.h / a.w) + "px"; return im; }
+  function rect(el) { const r = el.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; }
+  function place(el, x, y) { el.style.left = Math.round(x) + "px"; el.style.top = Math.round(y) + "px"; }
+  function shrink(el, sizeEls, maxW, minPx) {   // thu chữ tới khi vừa bề ngang
+    let k = 1;
+    while (el.offsetWidth > maxW && k > minPx) { k -= 0.04; sizeEls.forEach(([s, px]) => s.style.fontSize = Math.round(px * k) + "px"); }
+    return el.offsetWidth <= maxW + 1;
+  }
+
+  // ═════════ dựng khung tiêu đề (3 theme) ═════════
+  const E = T.engine;
+  let card = null, ttlSpan = null, ttlWrap = null, eb = null, clip = null, washi = null, hair = null;
+  const PX = T.px;
+  if (MICRO) {   // chip ghim gọn ở góc trên: "BƯỚC 2 · S-T-P" — cả chương, chiếm ít chỗ
+    card = node("div", "abs");
+    ttlSpan = node("span", "", card);
+    const ebTxt = EYEBROW ? EYEBROW.toLocaleUpperCase("vi") + "  ·  " : "";
+    if (E === "paper") {
+      bg(card, T.tape); card.classList.add("bgimg");
+      Object.assign(card.style, { padding: "16px 40px 18px 34px", fontFamily: T.fonts.title, color: C.eyebrow, fontSize: PX.micro + "px",
+        filter: "drop-shadow(0 6px 8px rgba(0,0,0,.35))" });
+      clip = image(T.clip, 92);
+    } else if (E === "glass") {
+      Object.assign(card.style, { padding: "12px 28px 13px 26px", background: C.pill, border: `1px solid ${C.edgeOn}`, borderRadius: "999px",
+        fontFamily: T.fonts.title, color: C.title, fontSize: PX.micro + "px", letterSpacing: ".06em", textShadow: "0 1px 6px rgba(0,0,0,.5)" });
+    } else {
+      Object.assign(card.style, { padding: "14px 30px 14px 28px", background: C.tag, borderRadius: "6px", fontFamily: T.fonts.title,
+        color: C.title, fontSize: PX.micro + "px", filter: "drop-shadow(0 8px 12px rgba(50,28,12,.32))" });
+      washi = image(T.washi, 130);
+    }
+    if (ebTxt) { const s = node("span", "", card); card.insertBefore(s, ttlSpan); s.textContent = ebTxt;
+      if (E === "glass") s.style.color = C.eyebrow; if (E === "journal") s.style.color = C.eyebrow; if (E === "paper") s.style.opacity = ".8"; }
+    ttlSpan.textContent = TITLE;
+  } else if (E === "paper") {   // GDP: thẻ giấy be (nhãn xé) + kẹp giấy ghim, dòng nhỏ trên băng giấy đen
+    card = bg(node("div", "abs bgimg"), T.card);
+    Object.assign(card.style, { padding: "26px 60px 30px 58px", filter: "drop-shadow(0 10px 10px rgba(0,0,0,.38))" });
+    ttlSpan = node("span", "", card);
+    Object.assign(ttlSpan.style, { fontFamily: T.fonts.title, color: C.title, fontSize: PX.title + "px", display: "inline-block" });
+    ttlSpan.textContent = TITLE;
+    clip = image(T.clip, 118);
+    clip.style.filter = "drop-shadow(0 4px 4px rgba(0,0,0,.35))";
+    if (EYEBROW) {
+      eb = bg(node("div", "abs bgimg"), T.tape);
+      Object.assign(eb.style, { padding: "14px 38px 16px 34px", fontFamily: T.fonts.eyebrow, color: C.eyebrow, fontSize: "36px",
+        filter: "drop-shadow(0 4px 5px rgba(0,0,0,.3))" });
+      eb.textContent = EYEBROW.toLocaleUpperCase("vi");
+    }
+  } else if (E === "glass") {   // PHALEDO Dark: tiêu đề editorial trồi lên trong mặt nạ + ánh sáng quét, nét mảnh champagne
+    if (EYEBROW) {
+      eb = node("div", "abs");
+      // viên kính tối mảnh: đọc được cả trên nền sáng mà vẫn đúng chất Dark Glass
+      Object.assign(eb.style, { fontFamily: T.fonts.eyebrow, color: C.eyebrow, fontSize: "32px", letterSpacing: ".34em",
+        padding: "10px 26px 11px calc(26px + .34em)", background: C.pill, border: `1px solid ${C.line}`, borderRadius: "999px",
+        textShadow: "0 1px 6px rgba(0,0,0,.6)" });
+      eb.textContent = EYEBROW.toLocaleUpperCase("vi");
+    }
+    card = node("div", "abs");
+    ttlWrap = node("div", "mask", card);
+    const w = node("span", "", ttlWrap); w.style.position = "relative"; w.style.display = "inline-block";
+    const sh = node("span", "sh", w); sh.textContent = TITLE;
+    Object.assign(sh.style, { color: C.shadow, filter: "blur(14px)", transform: "translateY(8px)" });
+    ttlSpan = node("span", "fill", w); ttlSpan.textContent = TITLE;
+    ttlSpan.style.backgroundImage = `linear-gradient(100deg, rgba(255,255,255,0) 40%, ${C.shine} 50%, rgba(255,255,255,0) 60%), linear-gradient(180deg, ${C.title} 0%, ${C.title} 55%, ${C.bottom} 100%)`;
+    ttlSpan.style.backgroundSize = "340% 100%, 100% 100%"; ttlSpan.style.backgroundPosition = "100% 0, 0 0";
+    [sh, ttlSpan].forEach(s => { s.style.fontFamily = T.fonts.title; s.style.letterSpacing = ".04em"; });
+    w.style.fontSize = PX.title + "px"; ttlWrap.dataset.w = "1";
+    hair = node("div", "abs"); Object.assign(hair.style, { height: "2px", background: C.line });
+  } else {   // PHALEDO Warm: mẩu trang sổ tay + washi, dòng nhỏ trong trang
+    card = node("div", "abs");
+    bg(card, T.page);
+    Object.assign(card.style, { backgroundSize: "cover", backgroundPosition: "center 38%", borderRadius: "5px", padding: "24px 48px 26px 46px",
+      filter: "drop-shadow(0 12px 16px rgba(50,28,12,.34))" });
+    if (EYEBROW) {
+      eb = node("div", "", card);
+      Object.assign(eb.style, { fontFamily: T.fonts.eyebrow, color: C.eyebrow, fontSize: "28px", letterSpacing: ".22em", marginBottom: "6px" });
+      eb.textContent = EYEBROW.toLocaleUpperCase("vi");
+    }
+    ttlSpan = node("div", "", card);
+    Object.assign(ttlSpan.style, { fontFamily: T.fonts.title, color: C.title, fontSize: PX.title + "px", lineHeight: "1.06" });
+    ttlSpan.textContent = TITLE;
+    washi = image(T.washi, 170);
+  }
+
+  // ═════════ nhãn con ═════════
+  const items = ITEMS.map((it, i) => {
+    const el = node("div", "abs item");
+    let num = null;
+    const txt = node("div", "txt", el), term = node("span", "term", txt);
+    term.textContent = it.x;
+    const note = it.n ? node("span", "note", txt) : null;
+    if (note) note.textContent = it.n;
+    if (NUM) { num = node("div", "num", el); el.insertBefore(num, txt); }
+    const sizes = [[term, PX.term], ...(note ? [[note, PX.note]] : [])];
+    sizes.forEach(([s, px]) => s.style.fontSize = px + "px");
+    term.style.fontFamily = T.fonts.term; term.style.color = C.term;
+    if (note) { note.style.fontFamily = T.fonts.note; note.style.color = C.note; }
+    if (E === "paper") {
+      bg(el, T.strip); el.classList.add("bgimg");
+      Object.assign(el.style, { padding: "16px 38px 18px 28px", gap: "14px", filter: "drop-shadow(0 6px 7px rgba(0,0,0,.32))" });
+      if (num) { bg(num, T.stamp); Object.assign(num.style, { width: "58px", height: "58px", backgroundSize: "100% 100%", fontFamily: T.fonts.term,
+        color: C.num, fontSize: "30px" }); num.textContent = i + 1; }
+      term.style.padding = "0 6px"; term.style.margin = "0 -6px";   // chỗ cho vệt bút dạ vàng (mục đang nói)
+    } else if (E === "glass") {
+      Object.assign(el.style, { padding: "12px 26px 13px 20px", gap: "16px", background: C.pill, border: `1px solid ${C.edge}`,
+        borderRadius: "16px", textShadow: "0 1px 6px rgba(0,0,0,.5)" });
+      if (num) { Object.assign(num.style, { fontFamily: T.fonts.title, color: C.num, fontSize: "26px", letterSpacing: ".08em",
+        borderRight: `1px solid ${C.edge}`, paddingRight: "14px", height: "34px" }); num.textContent = String(i + 1).padStart(2, "0"); }
+    } else {
+      Object.assign(el.style, { padding: "14px 30px 15px 22px", gap: "12px", background: C.tag, borderRadius: "6px",
+        filter: "drop-shadow(0 8px 10px rgba(50,28,12,.3))" });
+      if (num) { Object.assign(num.style, { fontFamily: T.fonts.eyebrow, color: C.num, fontSize: "30px" }); num.textContent = (i + 1) + "."; }
+    }
+    return { ...it, el, term, note, num, sizes, i };
+  });
+  let svg = null;
+  if (E === "journal" && items.length) {   // gạch chân mục đang nói + tick mục đã qua (vẽ tay, tất định theo seed)
+    svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); root.appendChild(svg);
+    svg.setAttribute("width", W); svg.setAttribute("height", H);
+  }
+
+  let TBOX = null, AREA = null;
+  function layout() {
+    // tiêu đề: thu chữ cho vừa
+    const tSizes = MICRO ? [[card, PX.micro]] : E === "glass" ? [[ttlWrap.firstChild, PX.title]] : [[ttlSpan, PX.title]];
+    if (!shrink(card, tSizes, MICRO ? 760 : MAXW, 0.5)) QA.overflow.push("title");
+    QA.fontPx.title = parseFloat((tSizes[0][0]).style.fontSize);
+    const tw = card.offsetWidth, th = card.offsetHeight;
+    const tx = ALIGN === "left" ? LX : ALIGN === "right" ? RX - tw : CX - tw / 2;
+    const ty = Y * H - th / 2;
+    place(card, tx, ty);
+    let bottom = ty + th;
+    if (clip) { const cw = parseFloat(clip.style.width);
+      place(clip, ALIGN === "right" ? tx + tw - cw * 0.62 : tx - cw * 0.38, ty - cw * 0.5); clip.dataset.r = ALIGN === "right" ? 38 : -38; }
+    if (washi) { const ww = parseFloat(washi.style.width); place(washi, ALIGN === "right" ? tx + tw - ww * 0.8 : tx - ww * 0.2, ty - 22);
+      washi.dataset.r = ALIGN === "right" ? 22 : -22; }
+    if (eb && E !== "journal") {
+      const ew = eb.offsetWidth, eh = eb.offsetHeight;
+      const ex = ALIGN === "left" ? tx + (E === "paper" ? 40 : 0) : ALIGN === "right" ? tx + tw - ew - (E === "paper" ? 40 : 0) : CX - ew / 2;
+      place(eb, ex, E === "paper" ? ty - eh + 14 : ty - eh - 4);
+    }
+    if (hair) { const hw = Math.min(240, tw * 0.36); hair.style.width = hw + "px";
+      place(hair, ALIGN === "left" ? tx + 4 : ALIGN === "right" ? tx + tw - hw - 4 : CX - hw / 2, bottom + 4); bottom += 16; }
+    TBOX = { x: Math.round(tx), y: Math.round(ty), w: Math.round(tw), h: Math.round(th) };
+    // nhãn con
+    const maxW = LAYOUT === "sides" ? 380 : 720;
+    let y = bottom + 30, rowH = 0;
+    items.forEach((it, i) => {
+      if (!shrink(it.el, it.sizes, maxW, 0.62)) QA.overflow.push(`mục ${i + 1} dài`);
+      const w = it.el.offsetWidth, h = it.el.offsetHeight;
+      let x;
+      if (LAYOUT === "sides") {
+        const right = i % 2 === 1;
+        if (!right && i > 0) { y += rowH + 16; rowH = 0; }
+        x = right ? RX - w : LX; rowH = Math.max(rowH, h); it.right = right;
+      } else {
+        if (i > 0) y += rowH + 14;
+        x = SIDE === "right" ? RX - w : LX; rowH = h; it.right = SIDE === "right";
+      }
+      place(it.el, x, y); it.box = { x, y, w, h };
+      it.rot = (((SEED * 31 + i * 17) % 7) - 3) * 0.45 * (E === "glass" ? 0 : 1);   // giấy hơi lệch, kính thẳng
+    });
+    // dấu nặng trong tiêu đề (tiêu đề có thể nằm sau người — dấu không được khoét)
+    const DOTS = "ẠẶẬẸỆỊỌỘỢỤỰỴ"; QA.dots = [];
+    const tn = (E === "glass" ? ttlSpan : ttlSpan).firstChild;
+    if (tn && tn.nodeType === 3) for (let i = 0; i < tn.length; i++) if (DOTS.includes(tn.data[i])) {
+      const r = document.createRange(); r.setStart(tn, i); r.setEnd(tn, i + 1); const b = r.getBoundingClientRect();
+      QA.dots.push({ x: Math.round(b.left + b.width * 0.2), y: Math.round(b.bottom - b.height * 0.28), w: Math.round(b.width * 0.6), h: Math.round(b.height * 0.28) });
+    }
+    if (svg) items.forEach(it => {   // gạch chân dưới nhãn + dấu tick bên trái
+      const r = rect(it.term), rr = { x: r.x + (it.right ? 0 : 0), y: r.y };
+      const u = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      const x0 = rr.x, x1 = rr.x + r.w, yy = r.y + r.h - 2;
+      u.setAttribute("d", `M ${x0} ${yy + 2} Q ${(x0 + x1) / 2} ${yy + 7} ${x1} ${yy}`);
+      Object.assign(u.style, { fill: "none", stroke: C.ink, strokeWidth: "6px", strokeLinecap: "round" });
+      const c = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      const cx = it.box.x + (it.right ? it.box.w + 14 : -46), cy = it.box.y + it.box.h / 2;
+      c.setAttribute("d", `M ${cx} ${cy} L ${cx + 12} ${cy + 13} L ${cx + 34} ${cy - 16}`);
+      Object.assign(c.style, { fill: "none", stroke: C.check, strokeWidth: "7px", strokeLinecap: "round", strokeLinejoin: "round" });
+      svg.appendChild(u); svg.appendChild(c);
+      it.ul = u; it.ulLen = u.getTotalLength(); it.ck = c; it.ckLen = c.getTotalLength();
+      u.style.strokeDasharray = it.ulLen.toFixed(1); c.style.strokeDasharray = it.ckLen.toFixed(1);
+    });
+    // QA: vùng chiếm, vùng KHÔNG được khoét, vùng an toàn
+    const parts = [TBOX, ...items.map(it => it.box)];
+    if (eb && E !== "journal") parts.push(rect(eb));
+    const x0 = Math.min(...parts.map(p => p.x)), y0 = Math.min(...parts.map(p => p.y));
+    const x1 = Math.max(...parts.map(p => p.x + p.w)), y1 = Math.max(...parts.map(p => p.y + p.h));
+    AREA = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    QA.box = TBOX; QA.area = AREA; QA.items = items.map(it => it.box);
+    QA.keep = [...QA.items, ...(eb && E !== "journal" ? [rect(eb)] : [])];
+    QA.items_t = items.map(it => +it.t.toFixed(3));
+    QA.land = HIN; QA.full_at = +(items.length ? Math.min(DE - EX - 0.05, items[items.length - 1].t + 0.5) : HIN + 0.1).toFixed(3);
+    if (x0 < 0.06 * W - 4 || x1 > 0.84 * W + 4 || y0 < 0.10 * H - 4) QA.warn.push(`ra ngoài vùng an toàn TikTok (x ${x0}–${x1}, y ${y0})`);
+    if (y1 > 0.5 * H) QA.warn.push(`nhãn con xuống tới ${(y1 / H * 100).toFixed(0)}% khung — chồng vùng chữ động; bớt mục / bỏ ghi chú`);
+    if (y1 > 0.62 * H) QA.overflow.push("nhãn con quá thấp (> 62% khung)");
+  }
+
+  function setTime(t0) {
+    const t = clamp(t0, 0, D), kx = inCubic(prog(t, DE - EX, DE));
+    // ── tiêu đề ──
+    if (MICRO) {
+      const k = E === "paper" ? prog(stop12(t), 0, 0.25) : outCubic(prog(t, 0, HIN));
+      card.style.transform = E === "paper" ? `translateX(${((1 - outBack(k, 1.4)) * -70).toFixed(1)}px) rotate(-2deg)`
+        : `translateY(${((1 - k) * (E === "glass" ? 18 : -24)).toFixed(1)}px)${E === "journal" ? " rotate(-1.5deg)" : ""}`;
+      card.style.opacity = E === "paper" ? (t > 0 ? 1 : 0) : Math.min(1, k * 2).toFixed(4);
+      if (clip) { clip.style.transform = `rotate(-38deg)`; clip.style.opacity = t >= 0.2 ? 1 : 0; }
+      if (washi) { washi.style.transform = `rotate(-22deg)`; washi.style.opacity = t >= 0.22 ? 1 : 0; }
+    } else if (E === "paper") {
+      const k = prog(stop12(t), 0, HIN * 0.72);
+      card.style.transform = `translateY(${((1 - outBack(k, 1.3)) * -90).toFixed(1)}px) rotate(-1.2deg)`;
+      card.style.opacity = t > 0 ? 1 : 0;
+      const kc = prog(stop12(t), HIN * 0.7, HIN);
+      clip.style.transform = `translate(${((1 - kc) * -16).toFixed(1)}px, ${((1 - kc) * -16).toFixed(1)}px) rotate(${clip.dataset.r}deg)`;
+      clip.style.opacity = t >= HIN * 0.7 ? 1 : 0;
+      if (eb) { const ke = prog(stop12(t - 0.16), 0, 0.2);
+        eb.style.transform = `translateX(${((1 - outBack(ke, 1.4)) * -60).toFixed(1)}px) rotate(-3deg)`; eb.style.opacity = t >= 0.16 ? 1 : 0; }
+    } else if (E === "glass") {
+      if (eb) { const ke = outCubic(prog(t, 0, 0.5)); eb.style.opacity = ke.toFixed(4); eb.style.letterSpacing = lerp(0.6, 0.34, ke).toFixed(3) + "em"; }
+      const k = prog(t, 0.08, 0.62), kc = outCubic(k), w = ttlWrap.firstChild;
+      w.style.transform = `translateY(${((1 - kc) * 112).toFixed(2)}%)`;
+      w.style.filter = kc < 1 ? `blur(${((1 - kc) * 8).toFixed(2)}px)` : "none";
+      w.style.opacity = Math.min(1, k * 4).toFixed(4);
+      ttlSpan.style.backgroundPosition = `${lerp(100, 0, prog(t, 0.65, 1.45)).toFixed(2)}% 0, 0 0`;
+      hair.style.transform = `scaleX(${inOut(prog(t, 0.3, 0.85)).toFixed(4)})`;
+    } else {
+      const k = outCubic(prog(t, 0, HIN * 0.8));
+      card.style.transform = `translateY(${((1 - k) * 46).toFixed(1)}px) rotate(-1deg)`;
+      card.style.opacity = Math.min(1, k * 2).toFixed(4);
+      washi.style.transform = `rotate(${washi.dataset.r}deg)`; washi.style.opacity = t >= HIN * 0.75 ? 1 : 0;
+    }
+    // ── nhãn con: vào đúng lúc được nhắc, mục đang nói nổi bật, mục đã qua mờ ──
+    items.forEach((it, i) => {
+      const nx = items[i + 1], kin = prog(t, it.t, it.t + 0.35);
+      const knext = nx ? prog(t, nx.t, nx.t + 0.3) : 0, cur = 1 - knext, dim = lerp(1, 0.6, knext);
+      const dir = it.right ? 1 : -1;
+      if (E === "paper") {
+        const ks = prog(stop12(Math.max(0, t - it.t)), 0, 0.25);
+        it.el.style.transform = `translateX(${(dir * (1 - outBack(ks, 1.4)) * 110).toFixed(1)}px) rotate(${it.rot}deg)`;
+        it.el.style.opacity = (t >= it.t ? dim : 0).toFixed(4);
+        const kh = prog(t, it.t + 0.2, it.t + 0.4) * cur;   // vệt bút dạ vàng dưới chữ mục đang nói
+        it.term.style.background = kh > 0.001 ? `linear-gradient(180deg, rgba(0,0,0,0) 52%, rgba(241,196,15,${(0.85 * kh).toFixed(3)}) 52%, rgba(241,196,15,${(0.85 * kh).toFixed(3)}) 92%, rgba(0,0,0,0) 92%)` : "none";
+      } else if (E === "glass") {
+        const kc = outCubic(kin);
+        it.el.style.transform = `translateY(${((1 - kc) * 16).toFixed(2)}px)`;
+        it.el.style.filter = kc < 1 && kin > 0 ? `blur(${((1 - kc) * 6).toFixed(2)}px)` : "none";
+        it.el.style.opacity = (Math.min(1, kin * 2.5) * dim).toFixed(4);
+        it.el.style.borderColor = `rgba(184,154,106,${lerp(0.38, 1, cur * prog(t, it.t + 0.15, it.t + 0.45)).toFixed(3)})`;
+      } else {
+        const kd = outBack(kin, 1.3);
+        it.el.style.transform = `translateY(${((1 - kd) * -26).toFixed(2)}px) rotate(${it.rot}deg)`;
+        it.el.style.opacity = (Math.min(1, kin * 2.5) * dim).toFixed(4);
+        if (it.ul) {
+          const ku = inOut(prog(t, it.t + 0.25, it.t + 0.6));
+          it.ul.style.strokeDashoffset = ((1 - ku) * it.ulLen).toFixed(1); it.ul.style.opacity = (ku > 0 ? cur : 0).toFixed(4);
+          const kk = nx ? inOut(prog(t, nx.t, nx.t + 0.35)) : 0;
+          it.ck.style.strokeDashoffset = ((1 - kk) * it.ckLen).toFixed(1); it.ck.style.opacity = kk > 0 ? 1 : 0;
+        }
+      }
+    });
+    // ── ra ──
+    root.style.opacity = (t >= DE - 1e-6 ? 0 : 1 - kx).toFixed(4);
+    root.style.transform = E === "paper" ? `translateY(${(-22 * kx).toFixed(2)}px)` : E === "journal" ? `translateY(${(14 * kx).toFixed(2)}px)` : "none";
+    root.style.filter = E === "glass" && kx > 0.001 ? `blur(${(8 * kx).toFixed(2)}px)` : "none";
+  }
+
+  const fams = [...new Set(Object.values(T.fonts))];
+  const sample = TITLE + EYEBROW + ITEMS.map(it => it.x + it.n).join("") + "Ợ0123456789";
+  const ready = Promise.all([
+    ...fams.map(f => document.fonts.load(`60px "${f}"`, sample)),
+    ...imgs.map(im => im.decode().catch(() => { throw new Error("thiếu ảnh " + im.src); })),
+  ]).then(() => { layout(); setTime(0); });
+
+  window.setTime = setTime;
+  window.SCENE_MOTION = { name: `Pinned Title · ${T.label} · ${PRESET}`, duration: D, width: W, height: H, fps: FPS,
+    ready, setTime, qa: QA,
+    scenes: [{ name: "ghim tiêu đề", start: 0, end: HIN }, { name: "nhãn con theo lời", start: HIN, end: DE - EX },
+             { name: "ra", start: DE - EX, end: D }] };
+  if (!Q.has("render")) {
+    const t0 = performance.now();
+    (function loop() { setTime(((performance.now() - t0) / 1000) % (D + 0.6)); requestAnimationFrame(loop); })();
+  }
+})();
+</script>
+</body>
+</html>

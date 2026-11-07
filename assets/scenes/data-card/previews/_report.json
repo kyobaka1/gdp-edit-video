@@ -1,0 +1,90 @@
+[
+ {
+  "theme": "ui_dark",
+  "preset": "full",
+  "ok": true,
+  "duration": 4.2333,
+  "frames": 127,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "ui_dark",
+  "preset": "standard",
+  "ok": true,
+  "duration": 4.2333,
+  "frames": 127,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 186.5) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "ui_dark/receipt",
+  "preset": "full",
+  "ok": true,
+  "duration": 4.2333,
+  "frames": 127,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "ui_dark/receipt",
+  "preset": "standard",
+  "ok": true,
+  "duration": 4.2333,
+  "frames": 127,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 249.8) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "ui_light",
+  "preset": "full",
+  "ok": true,
+  "duration": 4.0333,
+  "frames": 121,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "ui_light",
+  "preset": "standard",
+  "ok": true,
+  "duration": 4.0333,
+  "frames": 121,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 157.5) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "ui_light/receipt",
+  "preset": "full",
+  "ok": true,
+  "duration": 4.2333,
+  "frames": 127,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "ui_light/receipt",
+  "preset": "standard",
+  "ok": true,
+  "duration": 4.2333,
+  "frames": 127,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 249.8) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ }
+]

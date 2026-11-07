@@ -1,0 +1,68 @@
+{
+ "id": "label-zoom",
+ "code": "C15",
+ "name": "Label Zoom — soi nhãn thật, tô dòng đang đọc",
+ "version": "1.0.0",
+ "motion_id": "scene-label-zoom",
+ "status": "ready",
+ "uikit": true,
+ "brand_param": true,
+ "learned_from": "m2 không người (Telsa ZinC): cắt vùng bảng thành phần trên tờ hướng dẫn thành thẻ nổi, tô vàng dòng đang đọc, số to bên dưới '50mg vitamin C' / 'tương đương 5,16mg kẽm', footage tối + mờ phía sau",
+ "purpose": "Biến THÔNG SỐ IN TRÊN BAO BÌ thành bằng chứng dễ đọc: thẻ là ảnh thật (không gõ lại chữ), lời đọc tới dòng nào thì dòng đó được tô + con số được nhắc lại to. Hợp video sản phẩm GDP (kích thước, chất liệu, tải trọng in trên hộp) và Việt hoá (nhãn tiếng Việt / tiếng Anh trên sản phẩm).",
+ "use_when": [
+  "Lời đọc thông số CÓ IN trên bao bì / tem / tờ hướng dẫn trong clip: 'mỗi 5ml chứa 50mg vitamin C', 'dung tích 800ml', 'chịu nhiệt 120 độ'",
+  "Có khung clip thấy rõ vùng nhãn (đủ nét khi phóng ~2 lần)",
+  "Phong cách san-pham-thuan / gdp-giai-thich / phaledo-tap-chi"
+ ],
+ "avoid_when": [
+  "Nhãn mờ / chữ Trung không có bản Việt (người xem không đọc được) — dùng Feature Chips (C14)",
+  "Thông số KHÔNG in trên sản phẩm (không được 'phóng' một con số không có thật)",
+  "Đoạn < 2s — không kịp đọc"
+ ],
+ "presets": {
+  "standard": {"dur": [2.0, 10.0], "default": 3.5, "covers": false, "note": "footage tối 55%, thẻ nhãn giữa trên, số to dưới thẻ"},
+  "full": {"dur": [3.0, 12.0], "default": 5, "covers": false, "note": "thẻ lớn hơn, footage tối 66%, tiêu đề to — nhiều dòng (3–4) cần đọc"}
+ },
+ "preset_auto": [[4.5, "standard"], [99, "full"]],
+ "items": {"max": 4, "term_max": 22, "note_max": 22, "lead": 0.1, "tail": 0.7, "required": true,
+           "note": "items=[(cụm lời | giây, 'số to', 'dòng nhỏ trên số'), …] — mục thứ k tô dòng marks thứ k"},
+ "themes": {
+  "ui_dark": {"brand": "*", "trans": "cut", "look": "footage tối, thẻ ảnh nhãn viền trắng bo góc, thanh tô màu nhấn shop, số to màu nhấn"},
+  "ui_light": {"brand": "*", "trans": "cut", "look": "như ui_dark (thẻ là ảnh thật) — tiêu đề tối hơn cho phaledo-tap-chi"}
+ },
+ "theme_by_brand": {"*": "ui_dark"},
+ "params": {
+  "photo": {"required": true, "note": "src:<clip>@<giây> — khung clip thấy rõ nhãn (hoặc lib:<id> ảnh thật đã duyệt)"},
+  "crop": {"note": "'x,y,w,h' tỉ lệ (0–1) của KHUNG NGUỒN đã cắt (jobs/<id>/assets/frames/<clip>_<giây>.jpg) — vùng nhãn cần soi; mặc định cả ảnh"},
+  "marks": {"note": "'y0:y1,y0:y1,…' tỉ lệ dọc TRONG vùng crop của từng dòng cần tô, theo thứ tự lời"},
+  "items": {"note": "[(cụm lời | giây, 'số to ≤ 22', 'dòng nhỏ ≤ 22'), …] 1–4 mục"},
+  "title": {"max_chars": 24, "note": "tiêu đề trên thẻ (tuỳ chọn): 'Cụ thể mỗi 5ml chứa'"},
+  "eyebrow": {"max_chars": 28, "note": "dòng nhỏ trên tiêu đề"},
+  "y": {"note": "tâm thẻ theo chiều dọc (0.25–0.60, mặc định 0.40)"},
+  "theme": {"note": "bỏ trống = theo phong cách / ui_dark"},
+  "preset": {"note": "bỏ trống = theo thời lượng: < 4,5s standard · còn lại full"}
+ },
+ "sfx": {
+  "ui_dark": [{"at": "enter", "file": "scene/soft_swell.wav", "gain_db": -23}, {"at": "item", "file": "scene/pencil_scribble.wav", "gain_db": -24}],
+  "ui_light": [{"at": "enter", "file": "scene/soft_swell.wav", "gain_db": -23}, {"at": "item", "file": "scene/pencil_scribble.wav", "gain_db": -24}]
+ },
+ "qa": ["Motion Engine: tất định, khung cuối trong suốt",
+        "Template: thẻ ≤ 36–42% chiều cao, số to tự thu chữ, không xuống quá 76%",
+        "Nội dung: số to phải ĐỌC ĐƯỢC trong vùng nhãn đã cắt (soát mắt ảnh preview `vs.py edit frame`)"],
+ "sample": {
+  "ui_dark": {"brand": "GIADUNGPLUS", "eyebrow": "trên hộp ghi rõ", "title": "Thông số thật", "crop": "0.06,0.18,0.88,0.63",
+              "marks": "0.15:0.25,0.30:0.40,0.59:0.69",
+              "items": "[{\"t\": 0.9, \"x\": \"Thủy tinh 4mm\", \"n\": \"borosilicate\"}, {\"t\": 1.9, \"x\": \"Nắp gỗ sồi\", \"n\": \"đường kính 9cm\"}, {\"t\": 2.9, \"x\": \"800 ml\", \"n\": \"dung tích\"}]",
+              "dur": 4.2},
+  "ui_light": {"brand": "PHALEDO", "eyebrow": "chất liệu", "title": "Đọc trên nhãn", "crop": "0.06,0.18,0.88,0.63",
+               "marks": "0.15:0.25,0.44:0.54",
+               "items": "[{\"t\": 1.0, \"x\": \"Thủy tinh 4mm\", \"n\": \"borosilicate\"}, {\"t\": 2.2, \"x\": \"Chịu 120°C\", \"n\": \"gioăng silicone\"}]",
+               "dur": 4.5}
+ },
+ "examples": [
+  "c.graphic('scene-label-zoom', at='mỗi 5ml', until='kẽm gluconate', photo='src:c04@3.2', crop='0.12,0.30,0.76,0.22', marks='0.10:0.30,0.40:0.62', items=[('50mg', '50mg vitamin C'), ('36mg', '36mg kẽm gluconat')])",
+  "c.graphic('scene-label-zoom', at='trên hộp', until='800 ml', photo='src:c02@1.5', crop='0.2,0.4,0.6,0.25', marks='0.55:0.75', title='Thông số', items=[('tám trăm', '800 ml', 'dung tích')])"
+ ],
+ "tags": ["nhãn", "bao bì", "thông số", "bằng chứng", "zoom", "giao diện"],
+ "previews": "previews/<theme>-<preset>.jpg"
+}

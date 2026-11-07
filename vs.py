@@ -329,6 +329,18 @@ def cmd_templates(a) -> None:
     print(f"→ {preview_sheet(a.shop)}")
 
 
+def cmd_styles(a) -> None:
+    """Phong cách dựng (assets/styles/): kiểu chữ, màu hình, Scene ưu tiên — dùng trong cut.py: c.style("<id>")."""
+    from studio.edit import styles
+    for s in styles.summary():
+        d = styles.load(s["id"])
+        print(f"  {s['id']:18} {d.get('code', ''):3} {s['name']}")
+        print(f"      dùng cho: {'; '.join(s['use_for'])}")
+        print(f"      học từ: {s['learned_from'][:150]}")
+        print(f"      chữ y≈{d.get('captions', {}).get('y')} · màu {d.get('grade')} · màn chữ {d.get('card_bg')} · "
+              f"Scene ưu tiên: {', '.join(d.get('scenes', {}).get('prefer', []))}")
+
+
 def cmd_shops(a) -> None:
     """Bảng tình trạng tài nguyên từng shop: màu, mẫu chữ, logo, intro/outro, nhạc."""
     from studio import motionlib
@@ -670,6 +682,7 @@ def main() -> None:
     s = sub.add_parser("patch"); s.add_argument("id"); s.set_defaults(fn=cmd_patch)
     s = sub.add_parser("templates"); s.add_argument("shop"); s.set_defaults(fn=cmd_templates)
     s = sub.add_parser("shops"); s.set_defaults(fn=cmd_shops)
+    s = sub.add_parser("styles"); s.set_defaults(fn=cmd_styles)
     s = sub.add_parser("siblings"); s.add_argument("id"); s.set_defaults(fn=cmd_siblings)
     s = sub.add_parser("narrate"); s.add_argument("id"); s.set_defaults(fn=cmd_narrate)
     s = sub.add_parser("audiocheck"); s.add_argument("id"); s.add_argument("--final", action="store_true"); s.set_defaults(fn=cmd_audiocheck)

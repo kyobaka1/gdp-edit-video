@@ -1,0 +1,68 @@
+[
+ {
+  "theme": "ui_dark",
+  "preset": "full",
+  "ok": true,
+  "duration": 4.0333,
+  "frames": 121,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "ui_dark",
+  "preset": "micro",
+  "ok": true,
+  "duration": 4.0333,
+  "frames": 121,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 234.8) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "ui_dark",
+  "preset": "standard",
+  "ok": true,
+  "duration": 4.0333,
+  "frames": 121,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 233.7) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "ui_light",
+  "preset": "full",
+  "ok": true,
+  "duration": 4.0333,
+  "frames": 121,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ },
+ {
+  "theme": "ui_light",
+  "preset": "micro",
+  "ok": true,
+  "duration": 4.0333,
+  "frames": 121,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền SÁNG quanh hình (halo -227.3) — ghép lên nền tối sẽ thấy viền trắng"
+  ]
+ },
+ {
+  "theme": "ui_light",
+  "preset": "standard",
+  "ok": true,
+  "duration": 4.0333,
+  "frames": 121,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ }
+]

@@ -1,9 +1,9 @@
 {
- "_note": "THƯ VIỆN HIỆU ỨNG (Claude viết 07/11/2026, Sếp đặt hàng): mỗi hiệu ứng có MÃ + TÊN GỌI để Sếp và Claude gọi đúng tên khi chọn hiệu ứng cho từng đoạn. Nguồn sự thật cho trang hieu-ung.html (sinh bằng tools/effects_page.py) và cho Claude khi tự chọn. Thẻ cảnh C01–C11 lấy mô tả chi tiết từ assets/scenes/<family>/scene.json (tự đồng bộ). Thêm hiệu ứng = thêm 1 mục ở đây (+ demo) rồi chạy lại tool.",
+ "_note": "THƯ VIỆN HIỆU ỨNG (Claude viết 07/11/2026, Sếp đặt hàng): mỗi hiệu ứng có MÃ + TÊN GỌI để Sếp và Claude gọi đúng tên khi chọn hiệu ứng cho từng đoạn. Nguồn sự thật cho trang hieu-ung.html (sinh bằng tools/effects_page.py) và cho Claude khi tự chọn. Thẻ cảnh C01–C17 lấy mô tả chi tiết từ assets/scenes/<family>/scene.json (tự đồng bộ). Thêm hiệu ứng = thêm 1 mục ở đây (+ demo) rồi chạy lại tool.",
  "version": "1.0.0",
  "groups": [
   {"id": "chu", "code": "T", "name": "Chữ trên hình", "desc": "Chữ động theo lời và các kiểu nhấn — lớp nền của mọi video có lời"},
-  {"id": "the", "code": "C", "name": "Thẻ cảnh (Scene)", "desc": "Cảnh dựng sẵn mang thông tin: từ khoá, chương, so sánh, số liệu, bằng chứng… — 3 theme × 3 preset"},
+  {"id": "the", "code": "C", "name": "Thẻ cảnh (Scene)", "desc": "Cảnh dựng sẵn mang thông tin: từ khoá, chương, so sánh, số liệu, bằng chứng… — C01–C11 3 theme shop × 3 preset · C13–C17 thẻ giao diện tối / sáng"},
   {"id": "chuyen", "code": "X", "name": "Chuyển cảnh", "desc": "Cách nối 2 cảnh — mặc định cắt thẳng, chuyển kiểu chỉ ở chỗ chuyển ý lớn"},
   {"id": "khung", "code": "K", "name": "Khung hình & nhịp dựng", "desc": "Cắt, cỡ khung, zoom, cảnh đè, tốc độ, màu — phần 'tay nghề dựng' người xem không gọi tên nhưng cảm thấy"},
   {"id": "am", "code": "A", "name": "Âm thanh", "desc": "Tiếng hiệu ứng, nhạc nền, chuẩn âm lượng"},
@@ -39,16 +39,16 @@
   {"id": "hook", "name": "Hook / câu mở", "suggest": ["C01", "C11", "C06", "C05", "C07"], "note": "chỉ dùng thẻ khi chính nó là hook; còn lại hình thật + T03"},
   {"id": "chuong", "name": "Mở chương / bước mới", "suggest": ["C02"], "note": "đoạn ngắn → C02 micro (nhẹ)"},
   {"id": "tu-khoa", "name": "Từ khoá / ý đắt", "suggest": ["C01", "T03"], "note": "~1 lần / 8–10s là đủ"},
-  {"id": "liet-ke", "name": "Liệt kê ý (không thứ tự)", "suggest": ["C04", "C03"], "note": "chương dài vẫn có người nói → C03; ngắn gọn → C04"},
+  {"id": "liet-ke", "name": "Liệt kê ý (không thứ tự)", "suggest": ["C04", "C03", "C13", "C14"], "note": "chương dài vẫn có người nói → C03; ngắn gọn → C04; tính năng có icon → C14; gạch cách cũ → C13 strike"},
   {"id": "cac-buoc", "name": "Các bước có thứ tự", "suggest": ["C10"], "note": "demo dài người làm từng bước → C10 micro (thanh tiến độ)"},
   {"id": "so-sanh", "name": "So sánh 2 lựa chọn", "suggest": ["C05"], "note": "không chê đích danh thương hiệu khác"},
   {"id": "van-de", "name": "Nỗi đau → cách giải", "suggest": ["C06"], "note": "vấn đề là cách làm / thói quen"},
-  {"id": "so-lieu", "name": "Con số / trước–sau", "suggest": ["C07"], "note": "số đúng lời / nguồn"},
+  {"id": "so-lieu", "name": "Con số / trước–sau", "suggest": ["C07", "C16"], "note": "1 số → C07; so sánh nhiều mức / % / cộng tổng → C16 — số đúng lời / nguồn"},
   {"id": "bang-chung", "name": "Bằng chứng thật", "suggest": ["C08"], "note": "ảnh chụp màn hình, đơn hàng, đánh giá thật"},
-  {"id": "chi-tiet", "name": "Chỉ chi tiết trong cảnh", "suggest": ["C09"], "note": "vật nhìn thấy trong khung, cảnh tương đối yên"},
+  {"id": "chi-tiet", "name": "Chỉ chi tiết trong cảnh", "suggest": ["C09", "C15"], "note": "vật nhìn thấy trong khung → C09; thông số in trên nhãn → C15"},
   {"id": "cau-chot", "name": "Câu chốt / lời khách", "suggest": ["C11"], "note": "câu nguyên văn, người nói có thật"},
   {"id": "chuyen-y", "name": "Chuyển ý lớn", "suggest": ["X03", "X02"], "note": "sang chương / ngày / bối cảnh khác"},
-  {"id": "cta", "name": "Kêu gọi (CTA) / kết", "suggest": ["T03", "B04"], "note": "nhấn vàng 1 cụm ('BÌNH LUẬN') + outro shop"},
+  {"id": "cta", "name": "Kêu gọi (CTA) / kết", "suggest": ["C17", "T03", "B04"], "note": "lời có câu kêu gọi → C17 rồi outro shop; không thì nhấn vàng 1 cụm ('BÌNH LUẬN')"},
   {"id": "ke", "name": "Kể / giải thích thường", "suggest": [], "note": "để trống — chỉ chữ động là đủ"}
  ],
  "workflow": [
@@ -149,6 +149,12 @@
   {"id": "C11", "group": "the", "scene": "quote", "name": "Câu trích dẫn", "alias": ["Quote / Insight", "câu chốt", "lời khách"], "weight": "nang",
    "summary": "Câu nói đắt thành MỘT THẺ RIÊNG: ngoặc kép, chữ hiện từng từ, cụm khoá gạch chân",
    "dose": "1 lần / video — câu chốt hoặc lời khách THẬT", "call": "câu trích dẫn"},
+
+  {"id": "C13", "group": "the", "scene": "list-motion", "name": "Danh sách dựng", "alias": ["List Motion", "tick", "công tắc", "gạch bỏ"], "weight": "vua", "summary": "Danh sách dựng theo lời: tick từng dòng / công tắc bật / gạch bỏ cách cũ + viên chốt cách mới", "dose": "1 lần / video cho đoạn liệt kê; micro đè footage được nhiều hơn", "call": "danh sách dựng"},
+  {"id": "C14", "group": "the", "scene": "feature-chips", "name": "Chip tính năng", "alias": ["Feature Chips", "icon tính năng"], "weight": "vua", "summary": "Chip có ICON bật đúng lúc nói từng tính năng ('Inox 304', 'Chịu 15kg') — lưới 2×2 / cột", "dose": "1–2 lần / video, ≤ 4 chip", "call": "chip tính năng"},
+  {"id": "C15", "group": "the", "scene": "label-zoom", "name": "Soi nhãn", "alias": ["Label Zoom", "thông số trên hộp"], "weight": "vua", "summary": "Cắt vùng nhãn / bao bì THẬT trong clip thành thẻ nổi, tô dòng đang đọc + số to bên dưới", "dose": "Khi lời đọc thông số CÓ IN trên sản phẩm; 1 lần / video", "call": "soi nhãn"},
+  {"id": "C16", "group": "the", "scene": "data-card", "name": "Thẻ số liệu", "alias": ["Data Card", "biểu đồ cột", "vòng %", "hoá đơn"], "weight": "vua", "summary": "Số tiền / % / so sánh thành thẻ: cột lớn dần · vòng tròn chạy tới % · hoá đơn cộng ra TỔNG", "dose": "1 lần / video ở đoạn tính toán; full phủ khung tính như Nặng", "call": "thẻ số liệu"},
+  {"id": "C17", "group": "the", "scene": "cta-close", "name": "Chốt kêu gọi", "alias": ["CTA Close", "bình luận MUA", "giỏ hàng"], "weight": "vua", "summary": "Tên thương hiệu phát sáng + nút kêu gọi (bình luận / giỏ hàng / theo dõi) đúng câu chốt — trước outro shop", "dose": "1 lần / video, chỉ khi lời CÓ câu kêu gọi", "call": "chốt kêu gọi"},
 
   {"id": "X01", "group": "chuyen", "name": "Cắt thẳng", "alias": ["cut"], "status": "co-san", "weight": "nen",
    "summary": "Chuyển cảnh mặc định — cắt đúng nhịp lời, sạch và chuyên nghiệp nhất",
@@ -265,6 +271,8 @@
    "what": "Tự theo shop của c.logo() (GDP → gdp_red, PHALEDO → phaledo_dark); c.theme(\"phaledo_warm\") ép cả video. Một video một theme.",
    "use": ["Tự động"], "avoid": ["Trộn theme trong 1 video"], "dose": "1 theme / video", "call": "theme",
    "code": "c.theme(\"phaledo_warm\")", "demo": {"kind": "themes"}},
+
+  {"id": "B06", "group": "thuong-hieu", "name": "Phong cách (S1–S4)", "alias": ["Style Pack", "gdp-ban-hang", "gdp-giai-thich", "phaledo-tap-chi", "san-pham-thuan"], "status": "co-san", "weight": "nen", "summary": "Một lệnh đổi cả giọng hình: da phụ đề (hộp nhấn / nghiêng mảnh), chỉnh màu, màn chữ kính mờ, nhịp cắt, mức nhạc, theme thẻ", "what": "c.style(\"<id>\") trước say(). S1 gdp-ban-hang (bán hàng có người nói) · S2 gdp-giai-thich (hướng dẫn) · S3 phaledo-tap-chi (PHALEDO cao cấp) · S4 san-pham-thuan (không người, giọng đọc). Font / màu nhấn tự theo shop. Danh sách: vs.py styles.", "use": ["Mọi video mới — chọn 1 phong cách theo dạng bài"], "avoid": ["Trộn 2 phong cách trong 1 video"], "dose": "1 / video", "call": "phong cách", "code": "c.style(\"gdp-ban-hang\")", "variants": [{"name": "S1 Bán hàng", "demo": {"kind": "image", "jpg": "assets/styles/gdp-ban-hang/demo.jpg"}}, {"name": "S2 Giải thích", "demo": {"kind": "image", "jpg": "assets/styles/gdp-giai-thich/demo.jpg"}}, {"name": "S3 Tạp chí", "demo": {"kind": "image", "jpg": "assets/styles/phaledo-tap-chi/demo.jpg"}}, {"name": "S4 Sản phẩm thuần", "demo": {"kind": "image", "jpg": "assets/styles/san-pham-thuan/demo.jpg"}}]},
 
   {"id": "I01", "group": "y-tuong", "name": "Phụ đề liền mảnh", "alias": ["subs", "M2/M3"], "status": "y-tuong", "weight": "nen",
    "summary": "Phụ đề đầy đủ lời, chữ mảnh cố định ~55% khung (mẫu M2/M3) — chữ to chỉ dành cho từ khoá",

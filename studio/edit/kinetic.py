@@ -17,8 +17,9 @@ _STEP = """async (t) => {
 
 
 class Kinetic:
-    def __init__(self, style: str, W: int, H: int):
+    def __init__(self, style: str, W: int, H: int, skin: dict | None = None):
         self.entry = KINETIC / style / "index.html"
+        self.skin = skin   # phong cách (studio/edit/styles.py): font, màu nhấn, hộp nhấn… None = bộ chữ nguyên bản
         if not self.entry.exists():
             raise FileNotFoundError(f"Không có bộ chữ {style} ({self.entry})")
         self.W, self.H = W, H
@@ -48,7 +49,7 @@ class Kinetic:
 
     def load(self, blocks: list[dict]) -> list[dict]:
         """Nạp các khối chữ (đã có x/y/align) → khung bao từng khối ở trạng thái đủ chữ."""
-        data = {"W": self.W, "H": self.H, "blocks": blocks}
+        data = {"W": self.W, "H": self.H, "blocks": blocks, **({"skin": self.skin} if self.skin else {})}
         boxes = self.page.evaluate("d => window.KINETIC.load(d)", json.loads(json.dumps(data)))
         if self.errors:
             raise RuntimeError("; ".join(self.errors[:3]))

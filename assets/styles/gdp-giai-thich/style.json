@@ -1,0 +1,38 @@
+{
+ "id": "gdp-giai-thich",
+ "code": "S2",
+ "name": "Giải thích — phụ đề 1 dòng nhỏ, bảng minh hoạ",
+ "version": "1.0.0",
+ "status": "ready",
+ "learned_from": "mẫu s1 (example/_phan-tich/s1): phụ đề 1 dòng nhỏ chữ trắng đậm ~74% chiều cao, từ khoá tô màu; tiêu đề góc trên dựng theo lời; màn infographic toàn khung có các thẻ bước 01-02-03 dựng dần",
+ "use_for": ["hướng dẫn lắp đặt / sử dụng", "so sánh chất liệu, giải thích vì sao", "video kiến thức nhà cửa nhiều bước"],
+ "avoid_for": ["video chốt đơn dồn dập (dùng gdp-ban-hang)", "video không người nói (dùng san-pham-thuan)"],
+ "kinetic": "cinematic",
+ "skin": {
+  "keyMode": "text",
+  "keyUpper": false,
+  "size": {"live": 0.026, "key": 0.029, "sub": 0.021, "big": 0.042},
+  "maxWidth": 0.78,
+  "shadow": "soft",
+  "italicMode": "light"
+ },
+ "captions": {"y": 0.735, "y_opts": [0.735, 0.7], "places": ["center"], "exit": "fade",
+              "note": "phụ đề luôn 1 dòng ở đáy vùng an toàn — để trống tầm giữa cho người nói + tầm trên cho tiêu đề/đồ hoạ; `^` = tô màu nhấn của shop"},
+ "grade": "cinematic",
+ "card_bg": "glass",
+ "pacing": {"tighten": 0.32},
+ "audio": {"music_lufs": -30},
+ "scene_theme": {"*": "ui_dark"},
+ "scenes": {
+  "prefer": ["pinned-title", "timeline", "count-reveal", "chapter-card", "list-motion", "label-zoom", "detail-spotlight"],
+  "avoid": ["keyword-burst"],
+  "why": {"keyword-burst": "từ khoá to bật lên phá nhịp giảng, dùng tiêu đề ghim thay"}
+ },
+ "rules": [
+  "Khối chữ NGẮN 1 dòng (≤ 8 từ), không chồng 2 tầng; ý đắt = cả dòng `^` (tô màu), không IN HOA",
+  "Tiêu đề chương ghim ở tầm đầu (scene-pinned-title) cho mỗi phần; các bước → scene-timeline / scene-count-reveal",
+  "Đoạn giải thích trừu tượng dài > 5s → cảnh đè quay màn hình / sản phẩm, hoặc scene-list-motion phủ khung",
+  "Nhịp vừa phải: 1 đồ hoạ mỗi 4–6s là đủ"
+ ],
+ "demo": "assets/styles/gdp-giai-thich/demo.jpg"
+}
