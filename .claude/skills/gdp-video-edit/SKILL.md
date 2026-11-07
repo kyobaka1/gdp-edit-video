@@ -287,6 +287,28 @@ Thêm family mới = 1 thư mục (scene.json + src HTML `setTime` + themes.js +
 --id scene-<family> --role scene --no-render` → khai `opaque`/`params`/`scene` → `tools\scene_previews.py <family>` (render
 kiểm mọi theme × preset + ảnh preview). Theme PHALEDO theo `shop.json`: Averta, ≤5 từ/dòng — không đổi sang serif.
 
+## Chọn hiệu ứng — THƯ VIỆN HIỆU ỨNG (Sếp 07/11: gọi đúng tên, ít mà tinh)
+
+Trang **`hieu-ung.html`** (gốc repo, mở thẳng bằng Chrome) = thư viện có MÃ + TÊN GỌI + demo thật cho mọi hiệu ứng:
+T chữ (T01–T07) · C thẻ cảnh (C01–C11, chạy trực tiếp template, đổi theme/preset/chữ) · X chuyển cảnh · K khung & nhịp ·
+A âm thanh · B thương hiệu · I/G/P ý tưởng chưa làm. Nguồn sự thật: **`assets/effects/catalog.json`** (nhóm, mức nặng nhẹ,
+liều lượng, vai trò → gợi ý, nguyên tắc, ngân sách); thẻ C lấy chi tiết từ scene.json. Thêm hiệu ứng / family mới → thêm mục
+catalog (+ demo) → `.\.venv\Scripts\python.exe tools\effects_page.py` (cắt clip demo 360×640 từ video đã dựng + ảnh thu nhỏ
+→ dựng lại trang; `--html` chỉ dựng trang).
+
+**Quy trình** (khi Sếp đưa kịch bản / PLAN): chia đoạn theo VAI TRÒ (hook, chương, từ khoá, liệt kê, các bước, so sánh,
+vấn đề → giải pháp, số liệu, bằng chứng, chi tiết, câu chốt, chuyển ý, CTA, kể thường) → trả **BẢNG PHÂN CẢNH** dạng
+`N. [vai trò] "lời" → C06 · Vấn đề → Giải pháp — vì sao` (đoạn không cần: `— chỉ chữ động`; cụm bước liền nhau:
+`↳ nằm trong C10 (đoạn 4)`) + tổng điểm / ngân sách → Sếp sửa bằng MÃ ("đoạn 4 đổi C05 → C06") → mới viết cut.py.
+Sếp cũng có thể tự xếp ở tab "Bảng phân cảnh" của trang rồi chép gửi — đọc đúng định dạng đó.
+- **Ít mà tinh (luật cứng):** mặc định KHÔNG thêm gì; mỗi hiệu ứng phải trả lời "người xem nhận thêm được gì". Ngân sách /
+  30s: Nhẹ 1 · Vừa 2 · Nặng (phủ khung) 3 điểm — Tối giản ≤ 3, Vừa ≤ 6 (mặc định), Đậm ≤ 9. Thẻ phủ khung cách nhau ≥ 8s,
+  2 hiệu ứng bất kỳ ≥ 2,5s, 1 kiểu ≤ 2 lần / video < 60s; ưu tiên vai trò CẤU TRÚC trước nhấn nhẹ; bản nặng không chen được
+  → dùng bản **micro** (nhẹ) hoặc để trống. 3 giây đầu là nội dung (thẻ chỉ khi chính nó là hook: C05/C06/C07/C11).
+  Chuyển cảnh mặc định cắt thẳng; loé / tối / quét chỉ ở chuyển ý lớn.
+- **Bộ ưng ý ★** của Sếp nằm trong trình duyệt của Sếp (Claude không đọc được) — Sếp chép gửi → Claude lưu bộ nhớ, ƯU TIÊN
+  khi tự chọn nhưng vẫn giữ ngân sách.
+
 ## Thiếu source / asset → THƯ VIỆN DÙNG CHUNG (Sếp chốt 05/11: xây 1 lần, dùng nhiều lần)
 
 `assets/library/` (luật đầy đủ: `assets/library/README.md`, code `studio/library.py` + `studio/imagegen.py`).
