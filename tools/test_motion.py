@@ -44,7 +44,7 @@ sys.path.insert(0, str(ROOT))
 from studio import config, media, motiondirector, render  # noqa: E402
 from studio import motionlib as ml  # noqa: E402
 
-PY = str(ROOT / ".venv" / "Scripts" / "python.exe")
+PY = str(ROOT / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python"))
 TMP = Path(tempfile.mkdtemp(prefix="gdp_motion_test_"))
 REAL_LIB = ml.LIB
 TEST_LIB = TMP / "motionlib"

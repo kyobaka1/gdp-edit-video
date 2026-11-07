@@ -18,6 +18,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import time
 import uuid
 from pathlib import Path
@@ -29,7 +30,18 @@ from studio import config, media
 from studio.edit import project
 from studio.edit.kinetic import Kinetic
 
-DRAFTS = Path(os.getenv("LOCALAPPDATA", "")) / "CapCut" / "User Data" / "Projects" / "com.lveditor.draft"
+def _drafts_dir() -> Path:
+    """Thư mục bản nháp CapCut desktop. CAPCUT_DRAFTS trong .env thắng (CapCut cho đổi chỗ lưu bản nháp trong Cài đặt);
+    mặc định: Windows %LOCALAPPDATA%\\CapCut\\…, Mac ~/Movies/CapCut/… (Mac CHƯA thử trên máy thật — định dạng bản nháp
+    có thể khác bản Windows đã đo)."""
+    env = os.getenv("CAPCUT_DRAFTS", "").strip()
+    if env:
+        return Path(env).expanduser()
+    base = Path.home() / "Movies" if sys.platform == "darwin" else Path(os.getenv("LOCALAPPDATA", ""))
+    return base / "CapCut" / "User Data" / "Projects" / "com.lveditor.draft"
+
+
+DRAFTS = _drafts_dir()
 TEMPLATES = config.ROOT / "assets" / "capcut" / "templates.json"
 US = 1_000_000
 ALPHA = {   # định dạng clip nền trong suốt — CapCut desktop đọc alpha định dạng nào thì phải THỬ trên máy
@@ -160,6 +172,9 @@ class Draft:
         self.track(key, "text", 0, 0).append(seg)
 
     def save(self, duration: float, media_files: list[Path]) -> Path:
+        if not (DRAFTS / "root_meta_info.json").exists():
+            raise SystemExit(f"Không thấy thư mục bản nháp CapCut: {DRAFTS} — mở CapCut 1 lần (tạo dự án trống) hoặc đặt "
+                             "CAPCUT_DRAFTS=<thư mục …/com.lveditor.draft> trong .env (CapCut → Cài đặt → Vị trí bản nháp)")
         folder = DRAFTS / self.name
         if folder.exists():
             shutil.rmtree(folder)
@@ -201,7 +216,7 @@ class Draft:
 
 def capcut_running() -> bool:
     import psutil
-    return any((p.info.get("name") or "").lower() == "capcut.exe" for p in psutil.process_iter(["name"]))
+    return any((p.info.get("name") or "").lower() in ("capcut.exe", "capcut") for p in psutil.process_iter(["name"]))
 
 
 def register(name: str) -> None:

@@ -1,7 +1,9 @@
 # GDP Video Studio — hướng dẫn cho Claude Code
 
 Giao tiếp với Sếp bằng tiếng Việt. **Quy trình + luật đầy đủ: skill `gdp-video-localize`**
-(`C:\Users\Admin\.claude\skills\gdp-video-localize\SKILL.md`, bản sao trong repo giadungplus `skills/gdp-video-localize/`).
+(trong repo này: `.claude/skills/gdp-video-localize/SKILL.md`; bản sao ở repo giadungplus `skills/gdp-video-localize/`).
+**Máy khác / Mac:** lệnh dưới viết kiểu Windows PowerShell — trên Mac / Linux chạy trong thư mục repo bằng
+`.venv/bin/python vs.py …` (`\` → `/`). Cài máy mới: `SETUP.md` (mục 8 = Mac); skill có sẵn trong `.claude/skills/`.
 Plan/trạng thái: repo giadungplus `docs/plans/2026-10-20-gdp-video-studio-viet-hoa-video.md`.
 
 ## Lệnh nhanh

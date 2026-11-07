@@ -1,6 +1,6 @@
 ---
 name: gdp-video-edit
-description: Dựng video từ SOURCE QUAY SẴN (clip điện thoại/máy quay CÓ TIẾNG — người nói trước máy, vlog, cảnh minh hoạ, quay màn hình) theo PLAN của Sếp bằng GDP Video Studio local (C:\Users\Admin\gdp-video-studio) — Claude xem lại source (chép lời có mốc TỪNG TỪ bằng Whisper GPU + ảnh lưới từng clip), cắt theo lời (bỏ lặng, bỏ câu hỏng), chèn cảnh minh hoạ đúng câu, đổi cỡ khung người nói, màn đen chữ mở đầu/câu chốt, CHỮ ĐỘNG hiện theo từng từ kiểu TikTok "cinematic" (cụm khoá IN HOA đậm + dòng mảnh, rút từng từ), chuyển cảnh loé sáng/tối dần/quét, chỉnh màu, chuẩn tiếng −14 LUFS, QA (chữ khớp lời, né mặt, vùng an toàn TikTok). Dùng khi Sếp nói "dựng video này theo plan", "edit video quay sẵn", "cắt ghép vlog", "làm video talking head", "chèn chữ động theo lời", "làm phụ đề kiểu TikTok", "dựng lại theo mẫu example", hoặc thả thư mục clip + plan.md cần dựng 9:16. KHÔNG dùng cho Việt hoá video tiếng Trung (skill gdp-video-localize) hay animation logo/watermark (skill gdp-video-motion).
+description: Dựng video từ SOURCE QUAY SẴN (clip điện thoại/máy quay CÓ TIẾNG — người nói trước máy, vlog, cảnh minh hoạ, quay màn hình) theo PLAN của Sếp bằng GDP Video Studio local (repo gdp-video-studio, Windows / Mac) — Claude xem lại source (chép lời có mốc TỪNG TỪ bằng Whisper GPU + ảnh lưới từng clip), cắt theo lời (bỏ lặng, bỏ câu hỏng), chèn cảnh minh hoạ đúng câu, đổi cỡ khung người nói, màn đen chữ mở đầu/câu chốt, CHỮ ĐỘNG hiện theo từng từ kiểu TikTok "cinematic" (cụm khoá IN HOA đậm + dòng mảnh, rút từng từ), chuyển cảnh loé sáng/tối dần/quét, chỉnh màu, chuẩn tiếng −14 LUFS, QA (chữ khớp lời, né mặt, vùng an toàn TikTok). Dùng khi Sếp nói "dựng video này theo plan", "edit video quay sẵn", "cắt ghép vlog", "làm video talking head", "chèn chữ động theo lời", "làm phụ đề kiểu TikTok", "dựng lại theo mẫu example", hoặc thả thư mục clip + plan.md cần dựng 9:16. KHÔNG dùng cho Việt hoá video tiếng Trung (skill gdp-video-localize) hay animation logo/watermark (skill gdp-video-motion).
 ---
 
 # GDP Video Edit — dựng video quay sẵn theo PLAN (Claude Code điều khiển)
@@ -12,7 +12,9 @@ Chạy mọi lệnh bằng PowerShell:
 Set-Location C:\Users\Admin\gdp-video-studio; $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe vs.py edit <việc> …
 ```
 
-**Nguồn skill = `studio\.claude\skills\gdp-video-edit\`** → sửa xong chạy `tools\sync_skill.py install`.
+**Máy khác / Mac:** thư mục studio = nơi đã clone / chép repo (máy Sếp: `C:\Users\Admin\gdp-video-studio`). Mac / Linux chạy bằng bash trong thư mục đó: `export PYTHONIOENCODING=utf-8; .venv/bin/python vs.py …` (thay `.\.venv\Scripts\python.exe` → `.venv/bin/python`, `\` → `/` ở mọi lệnh bên dưới). Cài máy mới: `SETUP.md` (mục 8 = Mac). Skill này nằm sẵn trong repo `.claude/skills/` — máy khác KHÔNG cần `sync_skill.py`.
+
+**Nguồn skill = `studio\.claude\skills\gdp-video-edit\`** → sửa xong chạy `tools\sync_skill.py install` (chỉ máy Sếp — bản cá nhân `~/.claude/skills` được ưu tiên hơn bản trong repo, sửa repo mà quên sync là Claude dùng bản cũ).
 Mẫu Sếp đưa (05/11): `example/` = 3 video TikTok cùng kênh "chuquancaphe" (Nguyễn Hiển): M1 81,8s → số đo
 `references/mau-phan-tich.md`; M2 "Mô hình 3C" + M3 "6 bước mở quán" (2,5 phút) → `references/mau-phan-tich-2.md` +
 ảnh 10 kỹ thuật `references/mau-2-ky-thuat.jpg`. Đọc mục "Kịch bản & nhịp giữ chân" dưới đây TRƯỚC khi soạn/duyệt plan.

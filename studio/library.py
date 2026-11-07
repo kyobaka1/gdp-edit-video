@@ -233,7 +233,7 @@ def export_web(ids: list[str], out_dir: Path, max_px: int = 900, bg_px: int = 10
 # ───────────────────────── ảnh soát ─────────────────────────
 def sheet(ids: list[str], out: Path, cell: int = 300) -> Path:
     """Ảnh soát: mỗi asset 1 ô (nền trong suốt hiện trên nền ca-rô), ghi id."""
-    font = ImageFont.truetype("C:/Windows/Fonts/arial.ttf", 15)
+    font = ImageFont.truetype(str(config.FONT_REGULAR), 15)   # font trong repo — chạy được cả Windows lẫn Mac
     cols = min(5, max(1, len(ids)))
     rows = (len(ids) + cols - 1) // cols
     W, H = cell, int(cell * 1.25)

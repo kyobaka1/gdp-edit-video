@@ -1,6 +1,6 @@
 ---
 name: gdp-video-motion
-description: Thư viện animation thương hiệu (Motion Identity) của GDP Video Studio (C:\Users\Admin\gdp-video-studio) — nhập animation Sếp thiết kế bằng Claude Design (HTML có setTime / chuỗi PNG / video alpha) vào thư viện, render một lần ra clip ALPHA ProRes 4444 (cache), kiểm alpha, chọn animation cho job (AUTO theo shop / MANUAL), brand reveal thay logo tĩnh, watermark động thay watermark chữ. Dùng khi Sếp nói "thêm animation mới", "tải animation từ Claude Design về dùng", "import motion", "logo động", "watermark động", "chèn animation logo vào video", "đổi animation của shop", "animation nào shop X dùng được", "render alpha / xuất mov trong suốt", hoặc khi dựng/Việt hoá video cần chèn nhận diện động. Việt hoá video tiếng Trung → skill gdp-video-localize (skill đó gọi sang đây phần animation).
+description: Thư viện animation thương hiệu (Motion Identity) của GDP Video Studio (repo gdp-video-studio, Windows / Mac) — nhập animation Sếp thiết kế bằng Claude Design (HTML có setTime / chuỗi PNG / video alpha) vào thư viện, render một lần ra clip ALPHA ProRes 4444 (cache), kiểm alpha, chọn animation cho job (AUTO theo shop / MANUAL), brand reveal thay logo tĩnh, watermark động thay watermark chữ. Dùng khi Sếp nói "thêm animation mới", "tải animation từ Claude Design về dùng", "import motion", "logo động", "watermark động", "chèn animation logo vào video", "đổi animation của shop", "animation nào shop X dùng được", "render alpha / xuất mov trong suốt", hoặc khi dựng/Việt hoá video cần chèn nhận diện động. Việt hoá video tiếng Trung → skill gdp-video-localize (skill đó gọi sang đây phần animation).
 ---
 
 # GDP Video Motion — animation thương hiệu (Claude Code / Codex)
@@ -10,6 +10,8 @@ Studio `C:\Users\Admin\gdp-video-studio`. Chạy lệnh bằng PowerShell:
 ```powershell
 Set-Location C:\Users\Admin\gdp-video-studio; $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe vs.py motion <việc> …
 ```
+
+**Máy khác / Mac:** thư mục studio = nơi đã clone / chép repo (máy Sếp: `C:\Users\Admin\gdp-video-studio`). Mac / Linux chạy bằng bash trong thư mục đó: `export PYTHONIOENCODING=utf-8; .venv/bin/python vs.py …` (thay `.\.venv\Scripts\python.exe` → `.venv/bin/python`, `\` → `/` ở mọi lệnh bên dưới). Cài máy mới: `SETUP.md` (mục 8 = Mac). Skill này nằm sẵn trong repo `.claude/skills/` — máy khác KHÔNG cần `sync_skill.py`.
 
 Hợp đồng đầy đủ (motion.json, shop.json, edl.motion, luật xung đột): **`assets/motion/README.md`** — đọc khi cần chi tiết.
 Code: `studio/motionlib.py` (thư viện, render alpha, kiểm, cache) · `studio/motiondirector.py` (chọn + đặt + xung đột,

@@ -1,6 +1,6 @@
 ---
 name: gdp-video-localize
-description: Việt hoá video sản phẩm tiếng Trung (Taobao/1688/Douyin/NCC) cho brand Gia Dụng Plus (PHALEDO, LTENG, GIADUNGPLUS…) bằng GDP Video Studio chạy local Windows (C:\Users\Admin\gdp-video-studio) — che chữ Trung đồ hoạ bằng ô chữ Việt theo MẪU brand (HTML), giữ nguyên chữ trên sản phẩm/phụ kiện, lồng thuyết minh tiếng Việt liền mạch (Gemini TTS) + nhạc nền (Lyria), QA tự động 0 chữ Hán sót. Dùng khi Sếp nói "Việt hoá video", "dịch video tiếng Trung", "làm video này sang tiếng Việt", "che chữ Trung trong video", "lồng tiếng Việt cho video", "thả video vào inbox rồi chạy", "render final video", hoặc đưa file .mp4 tiếng Trung cần làm cho brand. KHÔNG dùng cho video Shopee Video upload/gán sản phẩm (module marketing/shopee_video) hay dựng video từ ảnh.
+description: Việt hoá video sản phẩm tiếng Trung (Taobao/1688/Douyin/NCC) cho brand Gia Dụng Plus (PHALEDO, LTENG, GIADUNGPLUS…) bằng GDP Video Studio chạy local (repo gdp-video-studio, Windows / Mac) — che chữ Trung đồ hoạ bằng ô chữ Việt theo MẪU brand (HTML), giữ nguyên chữ trên sản phẩm/phụ kiện, lồng thuyết minh tiếng Việt liền mạch (Gemini TTS) + nhạc nền (Lyria), QA tự động 0 chữ Hán sót. Dùng khi Sếp nói "Việt hoá video", "dịch video tiếng Trung", "làm video này sang tiếng Việt", "che chữ Trung trong video", "lồng tiếng Việt cho video", "thả video vào inbox rồi chạy", "render final video", hoặc đưa file .mp4 tiếng Trung cần làm cho brand. KHÔNG dùng cho video Shopee Video upload/gán sản phẩm (module marketing/shopee_video) hay dựng video từ ảnh.
 ---
 
 # GDP Video Localize — Việt hoá video TQ (Claude Code điều khiển)
@@ -11,6 +11,8 @@ Studio: `C:\Users\Admin\gdp-video-studio` (git riêng). Plan/trạng thái: repo
 ```powershell
 Set-Location C:\Users\Admin\gdp-video-studio; $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe vs.py <lệnh> …
 ```
+
+**Máy khác / Mac:** thư mục studio = nơi đã clone / chép repo (máy Sếp: `C:\Users\Admin\gdp-video-studio`). Mac / Linux chạy bằng bash trong thư mục đó: `export PYTHONIOENCODING=utf-8; .venv/bin/python vs.py …` (thay `.\.venv\Scripts\python.exe` → `.venv/bin/python`, `\` → `/` ở mọi lệnh bên dưới). Cài máy mới: `SETUP.md` (mục 8 = Mac). Skill này nằm sẵn trong repo `.claude/skills/` — máy khác KHÔNG cần `sync_skill.py`.
 
 Gemini key riêng của Sếp trong `.env` (KHÔNG đọc/in ra). Không chạy model nặng local. Kiểm môi trường: `doctor.py`.
 Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong thư mục studio (có số đo thật).

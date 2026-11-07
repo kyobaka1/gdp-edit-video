@@ -31,7 +31,7 @@ for mod in ("google.genai", "PIL", "cv2", "dotenv"):
 # 2. ffmpeg / ffprobe + filter cần dùng
 for label, path in (("ffmpeg", config.FFMPEG), ("ffprobe", config.FFPROBE)):
     if not path:
-        check(label, "LỖI", "không tìm thấy (winget install Gyan.FFmpeg)")
+        check(label, "LỖI", "không tìm thấy (" + ("brew install ffmpeg" if sys.platform == "darwin" else "winget install Gyan.FFmpeg") + ")")
         continue
     first = run([path, "-hide_banner", "-version"]).stdout.splitlines()[:1]
     check(label, "OK", first[0] if first else path)

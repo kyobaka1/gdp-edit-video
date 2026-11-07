@@ -1,6 +1,7 @@
 google-genai==2.31.0
 Pillow==13.0.0
-opencv-python-headless==5.0.0.93
+opencv-python-headless==5.0.0.93; sys_platform != "darwin" or platform_machine != "x86_64"
+opencv-python-headless==4.12.0.88; sys_platform == "darwin" and platform_machine == "x86_64"   # Mac chip Intel: 5.x không có bản dựng sẵn
 python-dotenv==1.2.4
 playwright==1.64.0
 fonttools==4.67.0
@@ -8,5 +9,6 @@ psutil==7.2.2
 requests==2.34.2
 # skill gdp-video-edit: chép lời có mốc từng từ bằng Whisper chạy GPU (model large-v3 tự tải về cache HuggingFace ~3GB)
 faster-whisper==1.2.1
-nvidia-cublas-cu12==12.9.2.10
-nvidia-cudnn-cu12==9.28.0.42
+# thư viện CUDA (~2GB) chỉ cho máy có card NVIDIA (Windows / Linux). Mac không có CUDA → bỏ qua, Whisper tự chạy CPU (chậm hơn)
+nvidia-cublas-cu12==12.9.2.10; sys_platform != "darwin"
+nvidia-cudnn-cu12==9.28.0.42; sys_platform != "darwin"
