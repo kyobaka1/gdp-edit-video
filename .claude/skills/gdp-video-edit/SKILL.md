@@ -263,6 +263,8 @@ c.save()
 - `scene-cta-close` (C17): CÂU KÊU GỌI cuối lời — tên thương hiệu phát sáng (`mode` glow | type gõ LED; `name` mặc định theo
   shop) + `sub` + nút `cta` comment|cart|follow|none (`cta_text` đổi chữ, `cta_t` cụm lời nút hiện). KHÔNG thay outro shop (outro
   mp4 vẫn chạy sau). ⛔ Chữ trên nút khớp câu kêu gọi trong lời; phaledo-tap-chi chỉ follow / none.
+- **C18–C20 + punch (vlog, 07/11 — mẫu Blue 1):** `scene-title-intro` (C18) intro khối tiêu đề dựng từng cụm theo lời: `items=[(cụm lời, 'chữ', 'tag|line|head|note|big|stack|serif')]` — tag khổng lồ rồi co thành nhãn xanh, line trượt từ phải, head/note lộ dần trái→phải, big gom cụm cũ thành 1 dòng nhỏ, stack xếp chồng cạnh big, serif trong viên kính nghiêng; khối 11–29% H → người cỡ vừa (`say(..., frame=1.12)`), KHÔNG zoom sát. `scene-freeze-gallery` (C19) khung dừng hình của chính clip bay lên hàng trên theo từng ý (`photo1..4='src:c01@<giây nguồn>'`, chữ động chạy tiếp). `scene-chapter-number` (C20) số chương to + vạch + serif nghiêng góc trên (`num`, `lead`, `title`, `title_t`). `c.punch(at, amp=0.18)` = cắt zoom cận đột ngột + rung tắt dần + tiếng bụp, giữ tới lần cắt kế (~1 lần / 8–10s). Màn chữ `c.card(..., bg='glass_light')`: `.dẫn / !CỤM TO XANH / !!serif`.
+- Học mẫu video mới: soi 15 khung/giây đoạn hook, ĐO cỡ chữ theo tỉ lệ khung + lấy mẫu màu điểm ảnh, so cạnh nhau bằng script (không ước lượng bằng mắt) — bài học 07/11: gradient mẫu chạy chéo theo cả dòng, không trên→dưới từng chữ.
 - Tham số khai `"when": true` trong scene.json (`total_t`, `cta_t`) nhận **cụm lời | giây** như `at` → cutlib đổi ra giây trong thẻ.
 
 ## Phong cách — Style Pack (Sếp 07/11: "tách ra thành các phong cách khác nhau")
@@ -279,6 +281,7 @@ Xem danh sách: `vs.py styles`. Ảnh mẫu: `tools\style_previews.py` → `asse
 | S2 | `gdp-giai-thich` | hướng dẫn, nhiều bước, kiến thức | phụ đề 1 dòng nhỏ đậm ~74% H, rút mờ, màu cinematic, nhạc rất nhỏ (−30), ưu tiên C03/C10/C04 |
 | S3 | `phaledo-tap-chi` | PHALEDO cao cấp, series, câu chuyện chất liệu | sáng sạch, cụm nhấn hộp + nghiêng mảnh, chữ trôi lên, thẻ ui_light, kính mờ cho câu tuyên bố; KHÔNG hô bán |
 | S4 | `san-pham-thuan` | video không người: footage + giọng đọc (skill gdp-video-product khi có) | như S1 nhưng KHÔNG cắt lặng (giọng AI đều), nhạc to hơn (−25), ưu tiên C15/C09/C13/C14/C16 |
+| S5 | `vlog-xanh-kinh` | vlog / người nói KHÔNG thương hiệu (học mẫu Blue 1, đo từng khung 07/11) | Be Vietnam Pro + serif nghiêng Palatino, phụ đề 2 tầng (dòng dẫn 0,032H + cụm 0,048H / serif 0,06H, tâm 0,665H), gradient chéo trắng→xanh trải cả dòng, hộp trắng chữ xanh đậm, màn chữ `glass_light` (kính sáng, chữ xanh), ưu tiên C18/C19/C20 + `punch` |
 
 Chọn: có người nói + bán → S1 · dạy / giải thích → S2 · PHALEDO → S3 · không người → S4. Không gọi `c.style` = như cũ (đen,
 cinematic). Thêm phong cách = thêm 1 thư mục style.json (khuôn theo 4 cái có sẵn) → `tools\style_previews.py <id>` soát mắt.

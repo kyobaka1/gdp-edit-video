@@ -60,7 +60,7 @@ def resolve(style: dict, shop: str | None) -> dict:
     skin = json.loads(json.dumps(style.get("skin", {})))
     by_brand = (style.get("skin_by_brand") or {}).get(brand) or {}
     skin.update(by_brand)
-    skin.setdefault("font", FONT_BY_BRAND.get(brand, "averta"))
+    skin.setdefault("font", FONT_BY_BRAND.get(brand, "avo"))   # không thương hiệu (vlog) = UTM Avo như thẻ UI Kit
     accent = skin.get("accent") or pal.get("accent") or "#ffd23f"
     skin["accent"] = accent
     # chữ trên hộp nhấn: tối trên nền sáng, trắng trên nền tối (LTENG xanh đậm → chữ trắng)

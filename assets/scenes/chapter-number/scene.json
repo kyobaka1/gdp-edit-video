@@ -1,0 +1,54 @@
+{
+ "id": "chapter-number",
+ "code": "C20",
+ "name": "Chapter Number — số chương to + vạch mảnh + serif nghiêng, góc trên",
+ "version": "1.0.0",
+ "motion_id": "scene-chapter-number",
+ "status": "ready",
+ "uikit": true,
+ "brand_param": true,
+ "learned_from": "mẫu Blue 1 14,4s '1 | thứ nhất, chọn · đúng công cụ', 26–28s '2 | thường xuyên · edit video': số to trắng→xanh, vạch đứng mảnh, dòng nhỏ sans trắng + cụm serif nghiêng, góc trên trái; người nói vẫn ở dưới, phụ đề chạy tiếp",
+ "purpose": "Đánh dấu ý thứ N trong bài có N ý (vòng mở 'có 3 việc / 4 điều') mà KHÔNG cắt mạch: số + tên ý ở góc trên trong 2–4s, người nói và phụ đề giữ nguyên. Nhẹ hơn thẻ chương C02 phủ khung.",
+ "use_when": [
+  "Bài nói có N ý / N bước đã báo trước, đang sang ý k: 'thứ nhất…', 'AI sẽ phân loại…, vấn đề nằm ở…, và gợi ý…'",
+  "Phong cách vlog-xanh-kinh / gdp-giai-thich",
+  "Mỗi ý ≥ 1,8s lời"
+ ],
+ "avoid_when": [
+  "Ý không có thứ tự — dùng C14 / C19",
+  "Có intro / dãy ảnh / tiêu đề ghim ở góc trên cùng lúc"
+ ],
+ "presets": {
+  "standard": {"dur": [1.5, 8.0], "default": 3, "covers": false, "captions": "keep", "hide_logo": true,
+               "note": "góc trên trái 3,5–16% H, chữ động vẫn chạy bên dưới, logo ẩn"}
+ },
+ "preset_auto": [[99, "standard"]],
+ "themes": {
+  "ui_dark": {"brand": "*", "trans": "cut", "look": "số trắng→xanh nhạt, vạch trắng, serif nghiêng trắng→xanh, bóng mềm"},
+  "ui_light": {"brand": "*", "trans": "cut", "look": "như ui_dark"}
+ },
+ "theme_by_brand": {"*": "ui_dark"},
+ "params": {
+  "num": {"required": true, "max_chars": 2, "note": "1, 2, 3…"},
+  "lead": {"max_chars": 24, "note": "dòng nhỏ: 'thứ nhất, chọn' · 'AI phân loại'"},
+  "title": {"max_chars": 20, "note": "cụm serif nghiêng: 'đúng công cụ' · 'khen hay chê'"},
+  "title_t": {"when": true, "note": "cụm lời | giây lúc cụm nghiêng hiện (mặc định 0,5s sau đầu thẻ)"},
+  "y": {"note": "mép trên (mặc định 0,035)"},
+  "theme": {"note": "bỏ trống"},
+  "preset": {"note": "bỏ trống"}
+ },
+ "sfx": {
+  "ui_dark": [{"at": "enter", "file": "scene/word_whoosh.wav", "gain_db": -25}],
+  "ui_light": [{"at": "enter", "file": "scene/word_whoosh.wav", "gain_db": -25}]
+ },
+ "qa": ["Motion Engine: tất định, khung cuối trong suốt", "Template: khối ≤ 16% H, không tràn phải 86% W", "Nội dung: tên ý = lời đã nói (rút gọn)"],
+ "sample": {
+  "ui_dark": {"brand": "*", "num": "1", "lead": "thứ nhất, chọn", "title": "đúng công cụ", "title_t": "0.6", "dur": 2.6},
+  "ui_light": {"brand": "*", "num": "2", "lead": "AI tìm ra", "title": "lỗi ở sản phẩm nào", "title_t": "0.5", "dur": 2.6}
+ },
+ "examples": [
+  "c.graphic('scene-chapter-number', at='AI sẽ phân loại', until='điều gì', num='1', lead='AI phân loại', title='khen hay chê', title_t='khen hay')"
+ ],
+ "tags": ["chương", "số thứ tự", "ý thứ N", "vlog", "giao diện"],
+ "previews": "previews/<theme>-<preset>.jpg"
+}

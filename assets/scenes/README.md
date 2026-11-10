@@ -75,6 +75,9 @@ tiếng Việt, chữ tràn, khung lệch.
 | C15 | Label Zoom — cắt vùng nhãn thật thành thẻ, tô dòng đang đọc | `label-zoom/` | ✅ v1.0 (07/11) — ui_dark/ui_light × standard/full (đè footage) |
 | C16 | Data Card — cột lớn dần / vòng % / hoá đơn tổng | `data-card/` | ✅ v1.0 (07/11) — ui_dark/ui_light × standard/full × 3 mode |
 | C17 | CTA Close — tên thương hiệu phát sáng + nút kêu gọi | `cta-close/` | ✅ v1.0 (07/11) — ui_dark/ui_light × standard/full, glow / type (không thay outro shop) |
+| C18 | Title Intro — khối tiêu đề intro dựng từng cụm theo lời (vlog) | `title-intro/` | ✅ v2.0 (07/11) — đo từng khung mẫu Blue 1 0–3,4s |
+| C19 | Freeze Gallery — khung dừng hình bay lên hàng trên theo từng ý | `freeze-gallery/` | ✅ v1.0 (07/11) — chữ động chạy tiếp |
+| C20 | Chapter Number — số chương to + vạch mảnh + serif nghiêng | `chapter-number/` | ✅ v1.0 (07/11) — chữ động chạy tiếp |
 
 ## Thẻ GIAO DIỆN C13+ (UI Kit, 07/11 — học từ mẫu khoá "Edit Video Pro")
 

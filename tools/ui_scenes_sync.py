@@ -15,7 +15,11 @@ from studio import config, motionlib, scenes  # noqa: E402
 
 KIT = scenes.SCENES / "_uikit" / "uikit.js"
 FONTS = [config.ROOT / "assets" / "fonts" / "UTM Avo" / "UTM_AvoBold.ttf", config.ROOT / "assets" / "fonts" / "UTM Avo" / "UTM_Avo.ttf",
-         *(config.ROOT / "assets" / "fonts" / "Averta" / f for f in ("Averta-Bold.otf", "Averta-Regular.otf", "Averta-Light.otf"))]
+         *(config.ROOT / "assets" / "fonts" / "Averta" / f for f in ("Averta-Bold.otf", "Averta-Regular.otf", "Averta-Light.otf")),
+         *(config.ROOT / "assets" / "fonts" / "BeVietnamPro" / f   # vlog không thương hiệu (brand "*")
+           for f in ("BeVietnamPro-ExtraBold.ttf", "BeVietnamPro-Bold.ttf", "BeVietnamPro-Regular.ttf")),
+         *(config.ROOT / "assets" / "fonts" / "Poppins" / f   # vlog: Poppins Việt hoá (Sếp chép 09/11)
+           for f in ("DesignerVN-Poppins-ExtraBold.ttf", "DesignerVN-Poppins-Regular.ttf"))]
 
 
 def sync(family: str) -> None:

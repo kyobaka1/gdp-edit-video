@@ -99,25 +99,44 @@ def measure_lufs(path: Path) -> float | None:
     return float(m.group(1)) if m else None
 
 
+def measure_true_peak(path: Path) -> float | None:
+    out = media.subprocess.run([config.FFMPEG, "-hide_banner", "-i", str(path), "-vn", "-af", "ebur128=peak=true", "-f", "null",
+                                "-"], capture_output=True, text=True, encoding="utf-8", errors="replace").stderr
+    m = re.search(r"Peak:\s+(-?[\d.]+|-inf) dBFS", out[out.rfind("True peak:"):])
+    return None if not m or m.group(1) == "-inf" else float(m.group(1))
+
+
 def _normalize_loudness(path: Path, target: float, tolerance: float = 0.5) -> float | None:
     """Đưa ĐỘ TO CẢ BẢN về mục tiêu: đo ebur128 → bù dB tuyến tính + chặn đỉnh, chép nguyên hình (-c:v copy).
     Chỉ chuẩn hoá từng lớp (giọng/nhạc) thì cả bản lệch theo giọng + kịch bản (20/10: LTENG VN −16,4, HCM −15,4,
     GDP −14,9 cùng thông số); loudnorm 1 lượt cũng hụt (−15,9 / −15,1)."""
     now = measure_lufs(path)
-    if now is None or abs(now - target) <= tolerance:
+    if now is None:
         return now
+    if abs(now - target) <= tolerance:
+        # đúng độ to rồi vẫn phải chặn đỉnh: tiếng hiệu ứng / nhạc cộng vào giọng có thể vượt 0 dBTP (07/11: +0,1 dBTP
+        # ở bản −14,3 LUFS vì bước này bị bỏ qua) → chạy 1 lượt bù 0 dB + limiter khi đỉnh thật > −1,2
+        tp = measure_true_peak(path)
+        if tp is None or tp <= -1.2:
+            return now
     tmp = path.with_name(path.stem + "_norm" + path.suffix)
-    gain = target - now
-    for _ in range(3):  # limiter ăn bớt độ to sau khi bù → đo lại, bù thêm; luôn tính từ bản gốc (không mã hoá chồng)
+    gain, limit = target - now, 0.75
+    for _ in range(4):  # limiter ăn bớt độ to sau khi bù → đo lại, bù thêm; luôn tính từ bản gốc (không mã hoá chồng)
         media.run([config.FFMPEG, "-y", "-v", "error", "-i", str(path), "-c:v", "copy",
                    # chặn đỉnh 0,75 (~−2,5 dBFS), level=0: mặc định alimiter tự kéo âm lượng lại sát 0 dBFS
                    # (20/10 ra đỉnh +0,9 dBFS) ; AAC còn sinh thêm đỉnh ảo nên phải chừa khoảng
-                   "-af", f"volume={gain:.2f}dB,alimiter=limit=0.75:level=0", "-c:a", "aac", "-b:a", "192k",
+                   "-af", f"volume={gain:.2f}dB,alimiter=limit={limit:.3f}:level=0", "-c:a", "aac", "-b:a", "192k",
                    "-ar", "48000", "-movflags", "+faststart", str(tmp)])
-        got = measure_lufs(tmp)
-        if got is None or abs(got - target) <= tolerance:
+        got, tp = measure_lufs(tmp), measure_true_peak(tmp)
+        # tiếng rè / click gắt trong giọng gốc (07/11 test vlog: mẫu nhảy dấu ±0,3 ở 22,77s) → AAC sinh đỉnh GIỮA các mẫu
+        # cao hơn ngưỡng chặn ~2,5 dB → hạ ngưỡng đúng phần vượt rồi mã hoá lại
+        tp_bad = tp is not None and tp > -1.2
+        if tp_bad:
+            limit = max(0.4, limit * 10 ** ((-1.4 - tp) / 20))
+        if (got is None or abs(got - target) <= tolerance) and not tp_bad:
             break
-        gain += target - got
+        if got is not None and abs(got - target) > tolerance:
+            gain += target - got
     tmp.replace(path)
     return measure_lufs(path)
 

@@ -15,3 +15,8 @@ assets/motion/_cache/
 
 # mô hình tải về (to, có nguồn gốc ghi trong assets/models/README.md)
 assets/models/*.onnx
+
+# rác debug + video mẫu to (giữ ở máy, không đẩy GitHub)
+assets/debug/
+example/*.mp4
+assets/fonts/static.zip

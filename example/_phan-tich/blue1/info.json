@@ -1,0 +1,19 @@
+{
+ "file": "9fafd4d900cccda54760830fe3cf77c9.mp4",
+ "w": 720,
+ "h": 1280,
+ "fps": "30/1",
+ "dur": 97.984,
+ "cuts": [
+  9.67,
+  9.77,
+  45.13,
+  58.7,
+  85.83,
+  91.97,
+  94.43
+ ],
+ "lufs": "-14.0",
+ "text": "Siri những điều cần biết khi dùng AI edit video phần 1 Nếu bạn từng thử edit bằng AI mà thấy video ra rất là lỏ Dùng AI để tự động hóa mà vẫn phải prompt từng bước Muốn sửa đâu lại gõ lệnh ở đó, đợi vừa lâu vừa tốn token Thì đây là 4 điều mình rút ra sau khi test khá nhiều cách edit video bằng AI Thứ nhất, chọn đúng công cụ Với video cần tự cắt dựng và render, mình recommend Cloud, Manus hoặc ChatGPT Nếu chỉ nói riêng về chất lượng visual hay khả năng tạo motion design chuyên nghiệp Thì Cloud và Manus xếp trên ChatGPT theo trải nghiệm của mình Thứ hai, nếu thường xuyên edit video thì đừng prompt thủ công, hãy set up thành skill hoặc workflow cố định để chỉ cần đưa video vào là AI tự biết phải làm gì. Có một bộ skill đỉnh á, thì video AI làm ra vừa đẹp mà bạn thậm chí còn chỉnh sửa được thoải mái mà chẳng tốn token. Mới bắt đầu, bạn có thể tìm các report open source miễn phí trên GitHub mà chỉ cần tải về cài cho AI là có thể thử autocad, bỏ khoảng lạng và chèn phụ đề được luôn. Thứ ba, footage đầu vào càng xét càng tốt. Video talking head nên giữ người nói ổn định với khuôn mặt không chiếm quá nhiều diện tích. Để chừa khoảng trống cả trên lận dưới sẽ giúp AI dễ đa dạng hóa visual Nhớ nói rõ ràng theo kịch bản và hạn chế nói vấp hay đổi ý giữa chừng Cuối cùng, nếu bạn là người khá cầu toàn giống mình Luôn yêu cầu cao về đầu ra và muốn đa dạng hóa phong cách Thì cũng đừng kỳ vọng AI có thể thay thế bạn toàn bộ ngay Phần nào dễ chuẩn hóa cứ chuyển ra cho AI trước Những phần cần chất liệu riêng thì vẫn linh hoạt kết hợp với CapCut Workflow hiện tại của mình cũng vậy AI lo phần lặp lại, mình tập trung vào những phần cần sáng tạo riêng Như lúc này, MacBook đang chạy Cloud, iPad mình dùng CapCut, điện thoại thì chạy Preview, vất kiệt mấy thiết bị cùng lúc luôn. Kể thêm với mọi người, gần đây mình dùng em sạc Ugreen Nexus Pro 160W để sạc full thiết bị. Nó có sẵn dây USB-C và nhiều cổng để cắm cho cả combo creator từ MacBook, iPad, iPhone và cả Pocket 3 của mình nữa. Làm việc ở nhà hay đi cà phê đều không có nhiều ổ điện, nên một ổ mà sạc cho nhiều thiết bị cùng lúc cũng tiện ha. Cắm nhiều máy thì củ sạc này tự động phân bổ công suất phù hợp cho từng thiết bị luôn. Giờ nếu bạn muốn nhận link report hay tham khảo bộ skill edit video chuyên nghiệp của mình thì...",
+ "speech": 94.62
+}

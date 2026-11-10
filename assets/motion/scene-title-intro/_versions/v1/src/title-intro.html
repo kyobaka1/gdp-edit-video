@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Title Intro</title>
+<!-- Scene Library · C18 Title Intro v1.0 (Claude viết 07/11/2026) — assets/scenes/title-intro/scene.json.
+     INTRO KHỐI TIÊU ĐỀ dựng từng cụm theo lời (soi dày mẫu Blue 1, 0–3,5s — "series → những điều cần biết khi dùng →
+     AI · edit · video · phần 1"): chữ đầu KHỔNG LỒ rồi co thành NHÃN xanh góc trái; cụm sau nối vào; khi cụm "big" tới,
+     các cụm cũ gom thành 1 dòng nhỏ cạnh nhãn, chữ big khổng lồ + chữ xếp chồng bên phải + nhãn serif nghiêng trong viên
+     kính nghiêng. Mọi cụm vào bằng NHOÈ + thu từ 1,25 + trồi; ra: nhoè về trong suốt. Đè footage (mặt zoom cận), góc trên.
+     items (JSON [{t, x: chữ, n: kiểu}]) — kiểu: tag (cụm đầu, khổng lồ → nhãn) · line (vừa) · head (to) · note (nhỏ) ·
+     big (khổng lồ, gom cụm cũ) · stack (xếp chồng cạnh big) · serif (nghiêng trong viên kính).
+     Hợp đồng Motion Engine: window.setTime(giây) vẽ ĐỒNG BỘ, không Internet, KHÔNG will-change, khung cuối trong suốt.
+     Query: theme · preset · dur · brand · accent · items · y · seed. -->
+<style>
+  @font-face { font-family: "GdpBold"; src: url("fonts/UTM_AvoBold.ttf"); }
+  @font-face { font-family: "GdpReg"; src: url("fonts/UTM_Avo.ttf"); }
+  @font-face { font-family: "PhBold"; src: url("fonts/Averta-Bold.otf"); }
+  @font-face { font-family: "PhReg"; src: url("fonts/Averta-Regular.otf"); }
+  @font-face { font-family: "PhLight"; src: url("fonts/Averta-Light.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  #root { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .abs { position: absolute; left: 0; top: 0; transform-origin: 0% 60%; white-space: nowrap; box-sizing: border-box; }
+  .grad { -webkit-background-clip: text; background-clip: text; color: transparent; padding: 0.16em 0.04em 0.1em; margin: -0.16em -0.04em -0.1em; }
+</style>
+</head>
+<body>
+<div id="stage"><div id="root"></div></div>
+<script src="uikit.js"></script>
+<script>
+(function () {
+  const U = window.UIKIT, { Q, W, H, FPS, T, F, ACC, clamp, prog, outCubic, inCubic, node, place } = U;
+  const D = Math.max(1.5, parseFloat(Q.get("dur") || "3") || 3), DE = D - 1 / FPS, EX = 0.3;
+  const QA = { theme: U.THEME_ID, preset: "standard", dur: D, overflow: [], warn: [], fontPx: {} };
+  const X0 = 0.075 * W, Y0 = clamp(parseFloat(Q.get("y") || "0.06"), 0.04, 0.4) * H, MAXW = 0.84 * W - X0;
+  const SH = "drop-shadow(0 4px 18px rgba(0,0,0,.38))";
+  const GRAD = `linear-gradient(180deg, #ffffff 0%, #ffffff 38%, #b9d0ff 100%)`;
+  const SIZE = { tag: 150, line: 62, head: 112, note: 38, big: 230, stack: 84, serif: 54, pill: 34, sum: 30 };
+  const KINDS = Object.keys(SIZE);
+  let ITEMS = U.items().map((it, i) => ({ t: clamp(+it.t || (0.1 + i * 0.4), 0, DE - EX - 0.2), text: String(it.x || "").trim(),
+                                           kind: KINDS.includes(it.n) ? it.n : (i === 0 ? "tag" : "line") })).filter(it => it.text);
+  if (!ITEMS.length) ITEMS = [{ t: 0.05, text: "series", kind: "tag" }, { t: 0.6, text: "những điều", kind: "line" },
+    { t: 0.9, text: "cần biết", kind: "head" }, { t: 1.2, text: "khi dùng", kind: "note" }, { t: 1.5, text: "AI", kind: "big" },
+    { t: 1.9, text: "edit", kind: "stack" }, { t: 2.15, text: "video", kind: "stack" }, { t: 2.6, text: "phần 1", kind: "serif" }];
+  ITEMS.sort((a, b) => a.t - b.t);
+  const tagIt = ITEMS[0].kind === "tag" ? ITEMS[0] : null;
+  const bigIt = ITEMS.find(it => it.kind === "big") || null;
+  const T_TAG = tagIt && ITEMS[1] ? ITEMS[1].t : null;          // lúc chữ tag khổng lồ co thành nhãn
+  const T_BIG = bigIt ? bigIt.t : null;                          // lúc gom các cụm cũ
+
+  function txt(kind, s, parent) {
+    const bold = ["tag", "head", "big", "stack", "line", "pill"].includes(kind);
+    const e = node("div", { fontFamily: kind === "serif" ? F.serif : bold ? F.bold : F.reg, fontSize: SIZE[kind] + "px",
+      fontStyle: kind === "serif" ? "italic" : "normal", lineHeight: "1", letterSpacing: kind === "big" || kind === "tag" ? "-0.04em" : "-0.015em",
+      color: "#fff", filter: SH }, parent, s);
+    if (["tag", "head", "big", "stack"].includes(kind)) { e.classList.add("grad"); e.style.backgroundImage = GRAD; }
+    return e;
+  }
+  // phần tử
+  const hero = tagIt ? txt("tag", tagIt.text) : null;
+  const pill = tagIt ? node("div", { fontFamily: F.bold, fontSize: SIZE.pill + "px", color: "#fff", background: ACC, borderRadius: "12px",
+    padding: "8px 18px 10px", lineHeight: "1", boxShadow: "0 6px 20px rgba(0,0,0,.25)" }, null, tagIt.text) : null;
+  const pre = ITEMS.filter(it => it !== tagIt && (!bigIt || it.t < T_BIG));        // cụm trước big (bị gom)
+  const post = bigIt ? ITEMS.filter(it => it.t >= T_BIG) : [];                     // big + stack + serif
+  pre.forEach(it => { it.el = it.kind === "serif" ? null : txt(it.kind === "big" || it.kind === "stack" ? "head" : it.kind, it.text); });
+  const sum = bigIt && pre.length ? txt("sum", pre.map(it => it.text).join(" ")) : null;
+  post.forEach(it => {
+    if (it.kind === "serif") {
+      it.el = node("div", { padding: "10px 22px 14px", borderRadius: "16px", background: "rgba(255,255,255,.2)",
+        border: "1.5px solid rgba(255,255,255,.55)", boxShadow: "0 8px 24px rgba(0,0,0,.18)", transform: "rotate(-4deg)" });
+      const s = txt("serif", it.text, it.el); s.style.position = "relative"; s.style.filter = "none";
+      s.style.color = "#eaf1ff";
+    } else it.el = txt(it.kind === "big" ? "big" : it.kind === "serif" ? "serif" : it.kind === "line" || it.kind === "note" ? it.kind : "stack", it.text);
+  });
+  pre.filter(it => it.kind === "serif").forEach(it => { it.el = txt("note", it.text); });
+
+  function layout() {
+    // hero (tag khổng lồ) + nhãn
+    let rowY = Y0, rowX = X0, rowH = 0;
+    if (hero) {
+      U.fitFont(hero, SIZE.tag, MAXW, 0.5); place(hero, X0, Y0 + 8);
+      place(pill, X0, Y0); rowX = X0 + pill.offsetWidth + 18; rowH = pill.offsetHeight;
+    }
+    // pha 1: các cụm trước big xếp dòng (line cạnh nhãn nếu dòng nhãn còn trống, head xuống dòng, note bám cuối dòng)
+    let firstRow = true, lastRight = rowX, lastTop = rowY, lastBottom = rowY + rowH;
+    for (const it of pre) {
+      const e = it.el, k = e.offsetHeight, w = e.offsetWidth;
+      if (it.kind === "note") {
+        place(e, lastRight + 14, lastBottom - k - 4); lastRight += 14 + w; continue;
+      }
+      const sameRow = firstRow && hero && it.kind === "line" && rowX + w <= X0 + MAXW;
+      if (sameRow) { place(e, rowX, rowY + (rowH - k) / 2); lastRight = rowX + w; lastTop = rowY; lastBottom = rowY + Math.max(rowH, k); }
+      else {
+        const y = (firstRow ? rowY + rowH : lastBottom) + 8;
+        if (w > MAXW) U.fitFont(e, parseFloat(e.style.fontSize), MAXW, 0.5);
+        place(e, X0, y); lastRight = X0 + e.offsetWidth; lastTop = y; lastBottom = y + e.offsetHeight * 0.92;
+      }
+      firstRow = false;
+    }
+    // pha 2: dòng tóm tắt cạnh nhãn, big khổng lồ, stack bên phải big, serif nghiêng
+    if (bigIt) {
+      let topRowBottom = Y0 + (pill ? pill.offsetHeight : 0);
+      if (sum) {
+        const sx = pill ? X0 + pill.offsetWidth + 16 : X0, sy = pill ? Y0 + (pill.offsetHeight - sum.offsetHeight) / 2 : Y0;
+        U.fitFont(sum, SIZE.sum, X0 + MAXW - sx, 0.6); place(sum, sx, sy);
+        topRowBottom = Math.max(topRowBottom, sy + sum.offsetHeight);
+      }
+      const big = bigIt.el, by = (hero || sum ? topRowBottom + 4 : Y0);
+      U.fitFont(big, SIZE.big, MAXW * 0.55, 0.45); place(big, X0 - 4, by);
+      const bw = big.offsetWidth, bh = big.offsetHeight;
+      let sx = X0 + bw + 22, sy = by + bh * 0.08, right = sx, lastMid = by + bh / 2;
+      for (const it of post) {
+        if (it === bigIt) continue;
+        const e = it.el;
+        if (it.kind === "serif") {
+          place(e, right + 18, Math.round(lastMid - e.offsetHeight / 2 + 10));
+          if (right + 18 + e.offsetWidth > X0 + MAXW + 40) QA.overflow.push(`nhãn nghiêng '${it.text}' tràn phải`);
+          continue;
+        }
+        const room = X0 + MAXW - sx;
+        U.fitFont(e, parseFloat(e.style.fontSize), room, 0.45);
+        place(e, sx, sy); right = Math.max(right, sx + e.offsetWidth); lastMid = sy + e.offsetHeight / 2;
+        sy += e.offsetHeight * 0.86;
+      }
+      QA.area = { x: Math.round(X0), y: Math.round(Y0), w: Math.round(MAXW), h: Math.round(Math.max(by + bh, sy) - Y0) };
+    } else {
+      QA.area = { x: Math.round(X0), y: Math.round(Y0), w: Math.round(MAXW), h: Math.round(lastBottom - Y0) };
+    }
+    if (QA.area.y + QA.area.h > 0.42 * H) QA.warn.push(`khối tiêu đề xuống ${((QA.area.y + QA.area.h) / H).toFixed(2)}H — có thể đè mặt`);
+    QA.land = (ITEMS[ITEMS.length - 1].t + 0.25);
+    QA.fontPx.big = bigIt ? parseFloat(bigIt.el.style.fontSize) : 0;
+  }
+
+  // vào: nhoè + thu từ 1,25 + trồi (dịch pixel nguyên; xong → transform none)
+  function enter(el, t, t0, d = 0.22, kScale = 0.25, base = "") {
+    const p = prog(t, t0 - 0.04, t0 - 0.04 + d), k = outCubic(p);
+    el.style.opacity = clamp(p * 1.6).toFixed(3);
+    if (p >= 1) { el.style.transform = base || "none"; el.style.filter = el.dataset.f || "none"; return; }
+    const dy = Math.round((1 - k) * 22);
+    el.style.transform = `${base} translateY(${dy}px) scale(${(1 + kScale * (1 - k)).toFixed(4)})`;
+    el.style.filter = `blur(${((1 - k) * 16).toFixed(2)}px) ${el.dataset.f || ""}`;
+  }
+  function leave(el, t, t0, d = 0.26) {   // bị gom / co: nhoè + mờ + trôi lên
+    const q = prog(t, t0, t0 + d);
+    if (q <= 0) return false;
+    const k = inCubic(q);
+    el.style.opacity = (el.style.opacity * (1 - q)).toFixed(3);
+    el.style.filter = `blur(${(k * 14).toFixed(2)}px)`;
+    el.style.transform = `translateY(${Math.round(-k * 26)}px) scale(${(1 - 0.25 * k).toFixed(4)})`;
+    return true;
+  }
+  [hero, pill, sum, ...ITEMS.map(it => it.el)].forEach(e => { if (e) e.dataset.f = e.style.filter && e.style.filter !== "none" ? e.style.filter : ""; });
+
+  function setTime(t0) {
+    const t = clamp(t0, 0, D);
+    if (hero) {   // khổng lồ → co thành nhãn
+      enter(hero, t, tagIt.t, 0.24, 0.3);
+      if (T_TAG != null && t >= T_TAG - 0.02) {
+        const q = prog(t, T_TAG - 0.02, T_TAG + 0.24), k = outCubic(q);
+        const s = (SIZE.pill / parseFloat(hero.style.fontSize)) * k + (1 - k);
+        hero.style.transform = q >= 1 ? "none" : `translate(${Math.round(18 * k)}px, ${Math.round(-6 * k)}px) scale(${s.toFixed(4)})`;
+        hero.style.filter = q >= 1 ? "none" : `blur(${(Math.sin(Math.PI * q) * 12).toFixed(2)}px) ${hero.dataset.f}`;
+        hero.style.opacity = (1 - clamp((q - 0.45) / 0.4)).toFixed(3);
+        enter(pill, t, T_TAG + 0.08, 0.2, 0.4);
+      } else pill.style.opacity = 0;
+    }
+    for (const it of pre) {
+      if (!it.el) continue;
+      enter(it.el, t, it.t);
+      if (T_BIG != null) leave(it.el, t, T_BIG - 0.04);
+    }
+    if (sum) { enter(sum, t, T_BIG + 0.12, 0.24, 0.15); if (t < T_BIG + 0.08) sum.style.opacity = 0; }
+    for (const it of post) enter(it.el, t, it.t, it.kind === "big" ? 0.26 : 0.22, it.kind === "big" ? 0.35 : 0.25,
+                                 it.kind === "serif" ? "rotate(-4deg)" : "");
+    U.exitAll(t, D, EX);
+  }
+
+  const ready = U.ready(ITEMS.map(i => i.text).join(""), () => { layout(); setTime(0); });
+  window.setTime = setTime;
+  window.SCENE_MOTION = { name: `Title Intro · ${T.label}`, duration: D, width: W, height: H, fps: FPS, ready, setTime, qa: QA,
+    scenes: [{ name: "dựng tiêu đề", start: 0, end: QA.land || D * 0.7 }, { name: "ra", start: DE - EX, end: D }] };
+  if (!Q.has("render")) { const t0 = performance.now();
+    (function loop() { setTime(((performance.now() - t0) / 1000) % (D + 0.6)); requestAnimationFrame(loop); })(); }
+})();
+</script>
+</body>
+</html>

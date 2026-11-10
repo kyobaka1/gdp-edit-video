@@ -1,0 +1,15 @@
+{
+ "file": "de1df44f6802c5ff02be5bf81a92090c.mp4",
+ "w": 720,
+ "h": 1280,
+ "fps": "30/1",
+ "dur": 75.946,
+ "cuts": [
+  50.33,
+  54.2,
+  63.67
+ ],
+ "lufs": "-25.4",
+ "text": "Đây là cách mình edit một video hoàn toàn bằng ChatGPT khi đã có sẵn bộ skill với lượng chi phí về quarter chỉ tốn khoảng 2-3% giới hạn tuần. Và kể cả nếu bạn chưa biết skill là gì thì giờ mình sẽ giải thích cho mọi người và demo luôn cách sử dụng cực dễ trên ChatGPT để ai cũng có thể hiểu nhé. Về cơ bản thì skill là một bộ hướng dẫn và quy trình được thiết lập sẵn để AI thực hiện cho một công việc cụ thể. Nếu prompt thủ công, bạn phải tự mô tả những yêu cầu như cắt khoảng lặng, lỗi nói vấp, ấm ờ, làm phụ đề, thêm text minh họa, motion graphic, v.v. Rồi tiếp tục bổ sung cho đến khi đạt được phong cách edit như mong muốn. Mỗi lần đều phải làm như vậy thì tốn khá nhiều thời gian và chi phí. Vì vậy, chúng ta có một cách đó là đóng gói toàn bộ quy tắc và quy trình edit vào một skill. Trong đó đã bao gồm các quy tắc về bố cục, vị trí text và graphic, đảm bảo tất cả nằm trong shape zone khi đăng lên các nền tảng. Kể từ giờ, mỗi lần muốn edit video, bạn chỉ cần mở chat GPT Work, Codex hoặc bất kỳ AI agent nào, tải video gốc lên, gọi skill và gửi yêu cầu. Nếu có footage muốn chèn thêm thì tải lên cùng và chỉ rõ đoạn lời thoại tương ứng muốn chèn. Sau đó AI sẽ tự chạy theo workflow đã được thiết lập và render video hoàn chỉnh. Mình sẽ xem lại bản dựng, nếu có cảnh nào vẫn chưa ưng thì chỉ cần yêu cầu AI chỉnh sửa riêng cảnh đó, không cần làm lại toàn bộ video. Đó cũng là lý do mình tạo ra skill Edit Video Pro dành cho ai không muốn mất thời gian và chi phí thử nghiệm để xây dựng quy trình edit bằng AI từ đầu. Bộ skill sẽ đi kèm hướng dẫn chi tiết từ cài đặt đến sử dụng Mọi người quan tâm có thể xem thông tin ở bio hoặc comment mình gửi nhé",
+ "speech": 72.69
+}

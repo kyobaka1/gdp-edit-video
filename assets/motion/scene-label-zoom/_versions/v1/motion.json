@@ -1,0 +1,80 @@
+{
+  "id": "scene-label-zoom",
+  "source": {
+    "kind": "html",
+    "entry": "src/label-zoom.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\label-zoom\\src\\label-zoom.html"
+  },
+  "version": 1,
+  "name": "Scene C15 Label Zoom",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "label_zoom"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "bao bì",
+    "bằng chứng",
+    "giao diện",
+    "nhãn",
+    "scene",
+    "thông số",
+    "uikit",
+    "zoom"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 3.5,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "thẻ nhãn vào",
+      "start": 0,
+      "end": 0.5
+    },
+    {
+      "name": "tô từng dòng",
+      "start": 0.5,
+      "end": 3.166666666666667
+    },
+    {
+      "name": "ra",
+      "start": 3.166666666666667,
+      "end": 3.5
+    }
+  ],
+  "params": {
+    "theme": "ui_dark",
+    "preset": "standard",
+    "brand": "GIADUNGPLUS",
+    "accent": "",
+    "photo": "",
+    "crop": "",
+    "marks": "",
+    "items": "[]",
+    "title": "",
+    "eyebrow": "",
+    "y": "",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "opaque": true,
+  "z": "top",
+  "variants": {},
+  "scene": "label-zoom",
+  "notes": "Scene Library C15 Label Zoom — soi nhãn thật, tô dòng đang đọc v1.0.0 — hồ sơ assets/scenes/label-zoom/scene.json. UI Kit chung (assets/scenes/_uikit). Dùng: c.graphic('scene-label-zoom', at='mỗi 5ml', until='kẽm gluconate', photo='src:c04@3.2', crop='0.12,0.30,0.76,0.22', marks='0.10:0.30,0.40:0.62', items=[('50mg', '50mg vitamin C'), ('36mg', '36mg kẽm gluconat')])"
+}

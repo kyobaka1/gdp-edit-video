@@ -46,6 +46,7 @@ class Cut:
         self.pieces, self.covers, self.cards, self.caps, self.graphics = [], [], [], [], []
         self.audio_cfg = {"voice_lufs": -14.0, "music": None, "music_lufs": -30.0, "clean": True}
         self.logo_cfg = None
+        self.punches = []
         self.kinetic_page = "cinematic"
         self.grade_cfg = "cinematic"   # chỉnh màu như mẫu (tối viền, nén vùng sáng); None = giữ màu gốc
         self.theme_cfg = None          # theme Scene Library cả video (None = theo shop của logo)
@@ -151,9 +152,9 @@ class Cut:
         """Màn chữ (mở đầu / câu chốt / câu tuyên bố): chữ đứng giữa, dòng cũ tối đi khi dòng mới vào.
         bg: black (màn đen) | glass (KÍNH MỜ — hình vẫn chạy, nhoè + tối, mẫu Blue 1); không ghi = theo phong cách."""
         bg = bg or self._style_get("card_bg", default="black")
-        if bg not in ("black", "glass"):
-            raise CutError(f"card bg '{bg}' không có (dùng black | glass)")
-        trans = trans or ("cut" if bg == "glass" else "dip")   # kính mờ tự nhoè vào/ra 0,2s
+        if bg not in ("black", "glass", "glass_light"):
+            raise CutError(f"card bg '{bg}' không có (dùng black | glass | glass_light)")
+        trans = trans or ("cut" if bg in ("glass", "glass_light") else "dip")   # kính mờ tự nhoè vào/ra 0,2s
         self.cards.append({"at": at, "until": until, "dur": dur, "bg": bg, "trans": trans})
         return self
 
@@ -239,6 +240,12 @@ class Cut:
             raise CutError(f"grade '{kind}' không có (dùng {', '.join(GRADES)} | None)")
         self.grade_cfg = kind
         self._grade_set = True
+        return self
+
+    def punch(self, at, *, amp: float = 0.18, shake: float = 1.0, sfx: bool = True):
+        """GIẬT (mẫu Blue 1 58,6s): đúng lúc nói cụm `at` khung zoom cận ĐỘT NGỘT (+amp, vào 0,1s có vượt nhẹ) + rung tắt
+        dần 0,3s (shake = độ rung, 0 = không rung) + tiếng "bụp" khẽ; giữ cận tới lần cắt kế tiếp. ~1 lần / 8–10s."""
+        self.punches.append({"at": at, "amp": float(amp), "shake": float(shake), "sfx": bool(sfx)})
         return self
 
     def logo(self, shop: str, corner: str = "top-left", width_pct: float = 0.14):
@@ -344,7 +351,11 @@ class Cut:
             if first_idx is None:
                 raise CutError(f"Khối chữ {n + 1} không có chữ nào khớp lời")
             t_first = words[first_idx]["t0"]
-            card = next((k for k, cd in enumerate(cards) if cd["t0"] - 0.05 <= t_first < cd["t1"]), None)
+            card = next((k for k, cd in enumerate(cards) if cd["t0"] - 0.05 <= t_first < cd["t1"] - 0.25), None)
+            if card is None:   # khối mới chen vào ĐUÔI màn chữ (until + giữ lại) → màn kết thúc ngay trước chữ đầu khối
+                for cd in cards:   # (07/11: chữ ngoài màn bị tô kiểu màn kính sáng — xanh đậm trên footage)
+                    if cd["t1"] - 0.25 <= t_first < cd["t1"] and t_first - 0.02 > cd["t0"]:
+                        cd["t1"] = round(t_first - 0.02, 3)
             # dòng đang nói đứng trước cụm khoá → co thành dòng dẫn nhỏ khi cụm khoá bắt đầu (mẫu 17,1s)
             if c["morph"] and card is None:
                 kpos = next((i for i, ln in enumerate(lines) if ln["role"] == "key"), None)
@@ -474,7 +485,7 @@ class Cut:
                 for k, it in enumerate(its):
                     ta = self._when(words, it["at"], after)
                     after = ta
-                    rel = round(max(0.6, ta - float(cfg.get("lead", 0.15)) - g["t0"]), 3)
+                    rel = round(max(float(cfg.get("min_t", 0.6)), ta - float(cfg.get("lead", 0.15)) - g["t0"]), 3)   # min_t: intro được hiện từ 0s
                     last = g["t1"] - g["t0"] - float(cfg.get("tail", 0.9))   # mục phải hiện đủ lâu trước khi thẻ tan
                     if rel > last + 0.5:
                         raise CutError(f"đồ hoạ {g['id']}: nhãn con {k + 1} '{it['x']}' ở {ta:.2f}s — quá sát/ngoài khoảng "
@@ -482,7 +493,7 @@ class Cut:
                     if rel > last:   # thiếu ≤ 0,5s → hiện sớm hơn lời một chút (mẫu: sớm 0,3–0,5s)
                         warns.append(f"đồ hoạ {g['id']} nhãn con {k + 1} '{it['x']}' hiện sớm {rel - last:.2f}s so với lời "
                                      "(sát cuối thẻ)")
-                        rel = round(max(0.6, last), 3)
+                        rel = round(max(float(cfg.get("min_t", 0.6)), last), 3)
                     for key, lim in (("x", cfg.get("term_max", 22)), ("n", cfg.get("note_max", 30))):
                         if len(it[key]) > lim:
                             warns.append(f"đồ hoạ {g['id']} nhãn con {k + 1} '{it[key]}' dài {len(it[key])} ký tự (> {lim})")
@@ -604,7 +615,11 @@ class Cut:
                     if "src_in" in x:
                         x["src_in"] = max(0.0, x["src_in"] - 0.3 * x.get("speed", 1.0))
         seq = sorted([g for g in graphics if not g.get("captions_keep")], key=lambda x: x["t0"])
-        for x, y in zip(seq, seq[1:]):   # 2 thẻ nối nhau (until cụm cuối + giữ lại) chồng giờ → thẻ trước nhường thẻ sau
+        pairs = list(zip(seq, seq[1:]))
+        for gid in {g["id"] for g in graphics if g.get("captions_keep")}:   # thẻ ghim cùng loại nối nhau (số chương 1→2→3)
+            same = sorted([g for g in graphics if g["id"] == gid], key=lambda x: x["t0"])
+            pairs += list(zip(same, same[1:]))
+        for x, y in pairs:   # 2 thẻ nối nhau (until cụm cuối + giữ lại) chồng giờ → thẻ trước nhường thẻ sau
             if x["t1"] > y["t0"] > x["t0"]:
                 if x["t1"] - y["t0"] > 0.4:
                     scene_warns.append(f"đồ hoạ {x['id']} {x['t0']:.2f}–{x['t1']:.2f}s chồng {y['id']} "
@@ -653,6 +668,8 @@ class Cut:
                 "pieces": self.pieces,
                 "covers": covers, "cards": cards, "graphics": graphics, "captions": blocks, "words": words,
                 "audio": self.audio_cfg,
+                "punches": [{"t": round(self._when(words, p["at"], 0.0), 3), "amp": p["amp"], "shake": p["shake"],
+                             "sfx": p["sfx"]} for p in self.punches],
                 "logo": self.logo_cfg, "warnings": warns}
         (self.d / "edit.json").write_text(json.dumps(edit, ensure_ascii=False, indent=1), encoding="utf-8")
         self._report(edit)

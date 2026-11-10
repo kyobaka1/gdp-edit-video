@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Chapter Number</title>
+<!-- Scene Library · C20 Chapter Number v1.0 (Claude viết 07/11/2026) — assets/scenes/chapter-number/scene.json.
+     SỐ CHƯƠNG góc trên (mẫu Blue 1 14,4s "1 | thứ nhất, chọn · đúng công cụ" · 26–28s "2 | thường xuyên · edit video"):
+     số TO trắng → xanh vào bằng nhoè + phóng, vạch đứng mảnh mọc từ giữa, dòng nhỏ sans trắng, rồi cụm SERIF NGHIÊNG
+     đúng lúc lời nói tới (title_t). Đè footage, chữ động vẫn chạy bên dưới; ra nhoè về trong suốt.
+     Hợp đồng Motion Engine: window.setTime(giây) vẽ ĐỒNG BỘ, không Internet, KHÔNG will-change, khung cuối trong suốt.
+     Query: theme · preset · dur · brand · accent · num · lead · title · title_t · y · seed. -->
+<style>
+  @font-face { font-family: "GdpBold"; src: url("fonts/UTM_AvoBold.ttf"); }
+  @font-face { font-family: "GdpReg"; src: url("fonts/UTM_Avo.ttf"); }
+  @font-face { font-family: "PhBold"; src: url("fonts/Averta-Bold.otf"); }
+  @font-face { font-family: "PhReg"; src: url("fonts/Averta-Regular.otf"); }
+  @font-face { font-family: "PhLight"; src: url("fonts/Averta-Light.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  #root { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .abs { position: absolute; left: 0; top: 0; transform-origin: 0% 60%; white-space: nowrap; box-sizing: border-box; }
+  .grad { -webkit-background-clip: text; background-clip: text; color: transparent; padding: 0.16em 0.04em 0.1em; margin: -0.16em -0.04em -0.1em; }
+</style>
+</head>
+<body>
+<div id="stage"><div id="root"></div></div>
+<script src="uikit.js"></script>
+<script>
+(function () {
+  const U = window.UIKIT, { Q, W, H, FPS, T, F, ACC, clamp, prog, outCubic, node, place } = U;
+  const D = Math.max(1.5, parseFloat(Q.get("dur") || "3") || 3), DE = D - 1 / FPS, EX = 0.3;
+  const QA = { theme: U.THEME_ID, preset: "standard", dur: D, overflow: [], warn: [], fontPx: {} };
+  const NUM = (Q.get("num") || "1").trim(), LEAD = (Q.get("lead") || "").trim(), TITLE = (Q.get("title") || "").trim();
+  const TT = clamp(parseFloat(Q.get("title_t") || "") || 0.5, 0.15, DE - EX - 0.3);
+  const X0 = Math.round(0.07 * W), Y0 = Math.round(clamp(parseFloat(Q.get("y") || "0.035"), 0.03, 0.5) * H);
+  const SH = "drop-shadow(0 4px 16px rgba(0,0,0,.4))";
+  const num = node("div", { fontFamily: F.bold, fontSize: "210px", lineHeight: "0.86", letterSpacing: "-0.05em", filter: SH }, null, NUM);
+  num.classList.add("grad"); num.style.backgroundImage = "linear-gradient(180deg, #ffffff 0%, #ffffff 30%, #8fb2ff 100%)";
+  const bar = node("div", { width: "4px", background: "rgba(255,255,255,.9)", borderRadius: "2px", transformOrigin: "50% 50%", filter: SH });
+  const lead = LEAD ? node("div", { fontFamily: F.bold, fontSize: "40px", color: "#fff", letterSpacing: "-0.01em", filter: SH }, null, LEAD) : null;
+  const ttl = TITLE ? node("div", { fontFamily: F.serif, fontStyle: "italic", fontSize: "76px", lineHeight: "1.05", filter: SH }, null, TITLE) : null;
+  if (ttl) { ttl.classList.add("grad"); ttl.style.backgroundImage = "linear-gradient(180deg, #ffffff 0%, #ffffff 35%, #a8c4ff 100%)"; }
+
+  function layout() {
+    U.fitFont(num, 210, 0.3 * W, 0.6); place(num, X0, Y0);
+    const nh = num.offsetHeight, nw = num.offsetWidth, bx = X0 + nw + 18;
+    bar.style.height = Math.round(nh * 0.82) + "px"; place(bar, bx, Y0 + nh * 0.06);
+    const tx = bx + 26, room = 0.86 * W - tx;
+    let y = Y0 + nh * 0.08;
+    if (lead) { U.fitFont(lead, 40, room, 0.6); place(lead, tx, y); y += lead.offsetHeight + 2; }
+    if (ttl) { U.fitFont(ttl, 76, room, 0.5); place(ttl, tx, y); if (ttl.offsetWidth > room + 1) QA.overflow.push(`'${TITLE}' dài`); }
+    QA.area = { x: X0, y: Y0, w: Math.round(0.86 * W - X0), h: Math.round(Math.max(nh, y + (ttl ? ttl.offsetHeight : 0) - Y0)) };
+    QA.land = TT + 0.25; QA.title_t = TT;
+  }
+  function enter(el, t, t0, d = 0.22, kScale = 0.3) {
+    const p = prog(t, t0 - 0.04, t0 - 0.04 + d), k = outCubic(p);
+    el.style.opacity = clamp(p * 1.6).toFixed(3);
+    if (p >= 1) { el.style.transform = "none"; el.style.filter = SH; return; }
+    el.style.transform = `translateY(${Math.round((1 - k) * 20)}px) scale(${(1 + kScale * (1 - k)).toFixed(4)})`;
+    el.style.filter = `blur(${((1 - k) * 16).toFixed(2)}px) ${SH}`;
+  }
+  function setTime(t0) {
+    const t = clamp(t0, 0, D);
+    enter(num, t, 0.04, 0.26, 0.45);
+    const kb = outCubic(prog(t, 0.12, 0.34)); bar.style.opacity = kb.toFixed(3);
+    bar.style.transform = kb >= 1 ? "none" : `scaleY(${kb.toFixed(4)})`;
+    if (lead) enter(lead, t, 0.2);
+    if (ttl) enter(ttl, t, TT, 0.24, 0.25);
+    U.exitAll(t, D, EX);
+  }
+  const ready = U.ready(NUM + LEAD + TITLE, () => { layout(); setTime(0); });
+  window.setTime = setTime;
+  window.SCENE_MOTION = { name: `Chapter Number · ${T.label}`, duration: D, width: W, height: H, fps: FPS, ready, setTime, qa: QA,
+    scenes: [{ name: "số + dòng", start: 0, end: TT + 0.3 }, { name: "ra", start: DE - EX, end: D }] };
+  if (!Q.has("render")) { const t0 = performance.now();
+    (function loop() { setTime(((performance.now() - t0) / 1000) % (D + 0.6)); requestAnimationFrame(loop); })(); }
+})();
+</script>
+</body>
+</html>

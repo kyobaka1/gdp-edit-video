@@ -1,0 +1,113 @@
+{
+ "id": "vlog-xanh-kinh",
+ "code": "S5",
+ "name": "Vlog xanh kính — Poppins + serif nghiêng, gradient chéo xanh, kính mờ sáng",
+ "version": "1.0.0",
+ "status": "ready",
+ "learned_from": "mẫu Blue 1 (example/9fafd4d9…mp4, soi dày 07/11): intro khối tiêu đề dựng từng cụm trên mặt zoom cận; phụ đề 2 tầng — dòng nhỏ sans trắng + cụm lớn SERIF NGHIÊNG trắng→xanh nhạt hoặc HỘP TRẮNG chữ xanh đậm; chữ vào kèm nhoè chuyển động; màn KÍNH MỜ SÁNG toàn khung (xanh nhạt) cho câu tuyên bố với chữ xanh hoàng gia; số chương to 1·2·3; cắt zoom cận đột ngột đúng từ nhấn · ĐO 07/11 (lần 2): phụ đề dòng dẫn 0,032H / cụm sans 0,048H / serif 0,06H, tâm khối 0,665H; gradient chéo trải theo CẢ DÒNG trắng → #8cbffe",
+ "use_for": [
+  "vlog / người nói KHÔNG thương hiệu (cá nhân, kiến thức, chia sẻ kinh nghiệm)",
+  "series kiến thức 'những điều cần biết'",
+  "video giải thích có N ý"
+ ],
+ "avoid_for": [
+  "PHALEDO (luật thương hiệu: Averta, không serif) — dùng phaledo-tap-chi",
+  "GDP / LTENG chốt đơn — dùng gdp-ban-hang"
+ ],
+ "kinetic": "cinematic",
+ "skin": {
+  "font": "poppins",
+  "accent": "#3b6cf6",
+  "keyMode": "box",
+  "keyUpper": false,
+  "box": "#ffffff",
+  "boxText": "#1e3a8a",
+  "boxRadius": 0.16,
+  "accentMode": "text",
+  "accentTop": "#5b8cff",
+  "accentBottom": "#2a4fd0",
+  "italicMode": "serif",
+  "italicTop": "#ffffff",
+  "italicBottom": "#9cc0ff",
+  "italicScale": 1.25,
+  "textTop": "#ffffff",
+  "textBottom": "#f2f6ff",
+  "size": {
+   "live": 0.032,
+   "key": 0.048,
+   "sub": 0.03,
+   "big": 0.066
+  },
+  "maxWidth": 0.72,
+  "shadow": "soft",
+  "enter": {
+   "lead": 0.06,
+   "dur": 0.2,
+   "keyDur": 0.22,
+   "rise": 0.55,
+   "blur": 0.55,
+   "squeeze": 0.8,
+   "keyScale": 1.22
+  },
+  "cardScale": 1.4,
+  "tightKey": true,
+  "lineGrad": "linear-gradient(100deg, #ffffff 0%, #ffffff 28%, #a9ccff 70%, #7fb2fb 100%)"
+ },
+ "captions": {
+  "y": 0.665,
+  "y_opts": [
+   0.665,
+   0.62,
+   0.7
+  ],
+  "places": [
+   "center",
+   "left"
+  ],
+  "exit": "fade",
+  "note": "2 tầng: dòng nhỏ `.` / thường + `!!cụm serif nghiêng` HOẶC `!CỤM` hộp trắng chữ xanh đậm · `^` = chữ xanh hoàng gia · màn kính sáng c.card: `.dẫn / !CỤM TO XANH / !!serif nghiêng`"
+ },
+ "grade": "sach",
+ "card_bg": "glass_light",
+ "pacing": {
+  "tighten": 0.28
+ },
+ "audio": {
+  "music_lufs": -30
+ },
+ "scene_theme": {
+  "*": [
+   "ui_light",
+   "ui_dark"
+  ]
+ },
+ "scenes": {
+  "prefer": [
+   "title-intro",
+   "freeze-gallery",
+   "chapter-number",
+   "feature-chips",
+   "list-motion"
+  ],
+  "avoid": [
+   "keyword-burst",
+   "cta-close"
+  ],
+  "why": {
+   "keyword-burst": "chữ bật gắt kiểu GDP — vlog xanh dùng intro tiêu đề / kính mờ",
+   "cta-close": "vlog không hô bán"
+  }
+ },
+ "rules": [
+  "Mở bằng scene-title-intro (khối tiêu đề dựng từng cụm) + say(..., frame='tight') — mặt cận trong 2–3s đầu",
+  "Mỗi khối chữ 2 tầng: dòng dẫn nhỏ + 1 cụm nhấn (serif nghiêng HOẶC hộp trắng) — không 2 cụm nhấn cùng khối",
+  "Câu tuyên bố / chuyển ý → c.card(...) nền kính mờ sáng: `.dòng dẫn` + `^CỤM XANH` + `!!serif nghiêng`",
+  "Liệt kê nỗi đau / ví dụ → scene-freeze-gallery (ảnh dừng hình từ chính clip bay lên hàng trên)",
+  "N ý có thứ tự → scene-chapter-number (số to 1·2·3 + vạch mảnh)",
+  "Từ nhấn mạnh nhất → punch=True (cắt zoom cận đột ngột + rung nhẹ), ~1 lần / 8–10s"
+ ],
+ "demo": "assets/styles/vlog-xanh-kinh/demo.jpg",
+ "preview_shops": {
+  "VLOG": null
+ }
+}

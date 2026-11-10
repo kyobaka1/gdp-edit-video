@@ -1,0 +1,124 @@
+{
+ "id": "title-intro",
+ "code": "C18",
+ "name": "Title Intro — khối tiêu đề dựng từng cụm theo lời (intro vlog)",
+ "version": "1.0.0",
+ "motion_id": "scene-title-intro",
+ "status": "ready",
+ "uikit": true,
+ "brand_param": true,
+ "learned_from": "mẫu Blue 1 0–3,5s (soi 4 khung/giây 07/11): 'series' khổng lồ → co thành nhãn xanh; 'những điều' cạnh nhãn, 'cần biết' to, 'khi dùng' nhỏ; tới 'AI' các cụm gom thành 1 dòng nhỏ cạnh nhãn, 'AI' khổng lồ + 'edit / video' xếp chồng + 'phần 1' serif nghiêng trong viên kính nghiêng; mặt người zoom cận phía dưới",
+ "purpose": "3 giây đầu = HOOK bằng chữ: câu mở của người nói thành khối tiêu đề dựng đúng nhịp lời ở góc trên, mặt người zoom cận phía dưới (say(..., frame='tight') hoặc punch). Không phải logo / thẻ chương — chữ là chính lời nói.",
+ "use_when": [
+  "Câu mở đầu video người nói (0–4s) có 1 ý chủ đề rõ: 'những điều cần biết khi dùng AI edit video', 'khá nhiều người dùng AI sai'",
+  "Phong cách vlog-xanh-kinh (không thương hiệu) — font Be Vietnam Pro + serif nghiêng",
+  "Mở đầu series: tag = tên series / 'phần N' = serif"
+ ],
+ "avoid_when": [
+  "Giữa video (dùng phụ đề / màn kính mờ)",
+  "Cụm chữ không có trong lời (chỉ rút gọn lời, không bịa)",
+  "PHALEDO (serif) — dùng phaledo-tap-chi"
+ ],
+ "presets": {
+  "standard": {
+   "dur": [
+    1.5,
+    6.0
+   ],
+   "default": 3,
+   "covers": false,
+   "note": "đè footage góc trên (6–40% H), chữ động tạm ẩn, logo ẩn"
+  }
+ },
+ "preset_auto": [
+  [
+   99,
+   "standard"
+  ]
+ ],
+ "hide_logo": true,
+ "items": {
+  "max": 9,
+  "term_max": 26,
+  "note_max": 8,
+  "lead": 0.05,
+  "tail": 0.3,
+  "required": true,
+  "note": "items=[(cụm lời | giây, 'chữ', 'kiểu'), …] — kiểu: tag (cụm đầu: khổng lồ → nhãn) · line · head (to) · note (nhỏ) · big (khổng lồ, gom cụm cũ) · stack (xếp chồng cạnh big) · serif (nghiêng trong viên kính)",
+  "min_t": 0.0
+ },
+ "themes": {
+  "ui_dark": {
+   "brand": "*",
+   "trans": "cut",
+   "look": "chữ trắng → xanh nhạt, nhãn màu nhấn, bóng mềm — đè thẳng footage"
+  },
+  "ui_light": {
+   "brand": "*",
+   "trans": "cut",
+   "look": "như ui_dark"
+  }
+ },
+ "theme_by_brand": {
+  "*": "ui_dark"
+ },
+ "params": {
+  "items": {
+   "note": "xem items — 4–8 cụm, cụm đầu kiểu tag"
+  },
+  "y": {
+   "note": "mép trên khối (0,04–0,40, mặc định 0,06)"
+  },
+  "theme": {
+   "note": "bỏ trống"
+  },
+  "preset": {
+   "note": "bỏ trống"
+  }
+ },
+ "sfx": {
+  "ui_dark": [
+   {
+    "at": "item",
+    "file": "scene/word_whoosh.wav",
+    "gain_db": -27
+   }
+  ],
+  "ui_light": [
+   {
+    "at": "item",
+    "file": "scene/word_whoosh.wav",
+    "gain_db": -27
+   }
+  ]
+ },
+ "qa": [
+  "Motion Engine: tất định, khung cuối trong suốt",
+  "Template: khối ≤ 40% H (không đè mặt), không tràn phải 84% W",
+  "Nội dung: mọi cụm là lời đã nói (rút gọn được)"
+ ],
+ "sample": {
+  "ui_dark": {
+   "brand": "*",
+   "dur": 3.2,
+   "items": "[{\"t\": 0.05, \"x\": \"series\", \"n\": \"tag\"}, {\"t\": 0.6, \"x\": \"những điều\", \"n\": \"line\"}, {\"t\": 0.9, \"x\": \"cần biết\", \"n\": \"head\"}, {\"t\": 1.15, \"x\": \"khi dùng\", \"n\": \"note\"}, {\"t\": 1.5, \"x\": \"AI\", \"n\": \"big\"}, {\"t\": 1.9, \"x\": \"edit\", \"n\": \"stack\"}, {\"t\": 2.15, \"x\": \"video\", \"n\": \"stack\"}, {\"t\": 2.6, \"x\": \"phần 1\", \"n\": \"serif\"}]"
+  },
+  "ui_light": {
+   "brand": "*",
+   "dur": 3.2,
+   "items": "[{\"t\": 0.05, \"x\": \"1 điều\", \"n\": \"tag\"}, {\"t\": 0.7, \"x\": \"khá nhiều người\", \"n\": \"line\"}, {\"t\": 1.4, \"x\": \"AI\", \"n\": \"big\"}, {\"t\": 1.7, \"x\": \"dùng\", \"n\": \"stack\"}, {\"t\": 2.0, \"x\": \"sai\", \"n\": \"stack\"}, {\"t\": 2.5, \"x\": \"trong TMĐT\", \"n\": \"serif\"}]"
+  }
+ },
+ "examples": [
+  "c.graphic('scene-title-intro', at=0.0, until='điện tử', items=[('Có một điều', '1 điều', 'tag'), ('khá nhiều', 'khá nhiều người', 'line'), ('dùng AI', 'AI', 'big'), ('dùng AI', 'dùng', 'stack'), ('sai', 'sai', 'stack'), ('thương mại', 'trong TMĐT', 'serif')])"
+ ],
+ "tags": [
+  "intro",
+  "hook",
+  "tiêu đề",
+  "series",
+  "vlog",
+  "giao diện"
+ ],
+ "previews": "previews/<theme>-<preset>.jpg"
+}

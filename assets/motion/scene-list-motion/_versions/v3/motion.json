@@ -1,0 +1,80 @@
+{
+  "id": "scene-list-motion",
+  "source": {
+    "kind": "html",
+    "entry": "src/list-motion.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\list-motion\\src\\list-motion.html"
+  },
+  "version": 3,
+  "name": "Scene C13 List Motion",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "list_motion"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "checklist",
+    "công tắc",
+    "danh sách",
+    "giao diện",
+    "gạch",
+    "lợi ích",
+    "scene",
+    "uikit"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 4,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "vào",
+      "start": 0,
+      "end": 0.45
+    },
+    {
+      "name": "từng mục theo lời",
+      "start": 0.45,
+      "end": 3.666666666666667
+    },
+    {
+      "name": "ra",
+      "start": 3.666666666666667,
+      "end": 4
+    }
+  ],
+  "params": {
+    "theme": "ui_dark",
+    "preset": "standard",
+    "brand": "GIADUNGPLUS",
+    "accent": "",
+    "mode": "",
+    "title": "",
+    "eyebrow": "",
+    "items": "[]",
+    "conclude": "",
+    "y": "",
+    "side": "",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "opaque": true,
+  "z": "top",
+  "variants": {},
+  "scene": "list-motion",
+  "notes": "Scene Library C13 List Motion — danh sách dựng theo lời (tick / công tắc / gạch) v1.0.0 — hồ sơ assets/scenes/list-motion/scene.json. UI Kit chung (assets/scenes/_uikit). Dùng: c.graphic('scene-list-motion', at='không cần khoan', until='cần thợ', mode='strike', eyebrow='Thay vì', title='Khoan tường', items=[('không cần khoan', 'Khoan tường'), ('bụi', 'Bụi bẩn'), ('thợ', 'Cần thợ lắp')], conclude='Dán là xong')"
+}

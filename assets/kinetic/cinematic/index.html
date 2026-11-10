@@ -30,6 +30,18 @@
   @font-face { font-family: "AvoK"; font-weight: 700; font-style: italic; src: url("../../fonts/UTM Avo/UTM AvoBold_Italic.ttf"); }
   @font-face { font-family: "AvoK"; font-weight: 400; font-style: normal; src: url("../../fonts/UTM Avo/UTM_Avo.ttf"); }
   @font-face { font-family: "AvoK"; font-weight: 400; font-style: italic; src: url("../../fonts/UTM Avo/UTM AvoItalic.ttf"); }
+  /* phong cách vlog không thương hiệu (S5, mẫu Blue 1): sans Be Vietnam Pro + serif nghiêng (Georgia của hệ điều hành) */
+  @font-face { font-family: "BvpK"; font-weight: 800; src: url("../../fonts/BeVietnamPro/BeVietnamPro-ExtraBold.ttf"); }
+  @font-face { font-family: "BvpK"; font-weight: 700; src: url("../../fonts/BeVietnamPro/BeVietnamPro-Bold.ttf"); }
+  @font-face { font-family: "BvpK"; font-weight: 600; src: url("../../fonts/BeVietnamPro/BeVietnamPro-SemiBold.ttf"); }
+  @font-face { font-family: "BvpK"; font-weight: 400; src: url("../../fonts/BeVietnamPro/BeVietnamPro-Regular.ttf"); }
+  /* Poppins Việt hoá (DesignerVN — Sếp chép 09/11, assets/fonts/Poppins): chỉ có ExtraBold 800 + Regular 400 */
+  @font-face { font-family: "PopK"; font-weight: 800; src: url("../../fonts/Poppins/DesignerVN-Poppins-ExtraBold.ttf"); }
+  @font-face { font-family: "PopK"; font-weight: 400; src: url("../../fonts/Poppins/DesignerVN-Poppins-Regular.ttf"); }
+  @font-face { font-family: "SerifK"; font-style: italic; font-weight: 400;
+               /* Georgia THIẾU dấu tiếng Việt (ằ ữ ộ — đo 07/11) → Palatino Linotype; Mac dự phòng Times New Roman */
+               src: local("Palatino Linotype Italic"), local("PalatinoLinotype-Italic"), local("Times New Roman Italic"),
+                    local("TimesNewRomanPS-ItalicMT"); }
   html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
   #stage { position: relative; overflow: hidden; }
   .block { position: absolute; white-space: nowrap; }
@@ -70,6 +82,35 @@
   .block[style*="text-align: right"] .line.boxed { margin-right: 0; }
   .line.boxed .w { background: none !important; color: var(--boxText) !important; -webkit-text-fill-color: var(--boxText); }
   .line + .line.boxed, .line.boxed + .line { margin-top: 0.12em; }
+  #stage.f-pop .line { font-family: "PopK", sans-serif; }
+  #stage.f-pop .role-key, #stage.f-pop .role-live, #stage.f-pop .role-big { font-weight: 800; letter-spacing: -0.035em; }
+  #stage.f-pop .role-sub { font-weight: 400; letter-spacing: -0.02em; }
+  #stage.f-bvp .line { font-family: "BvpK", sans-serif; }
+  #stage.f-bvp .role-key { font-weight: 800; letter-spacing: -0.03em; }
+  #stage.f-bvp .role-live { font-weight: 600; letter-spacing: -0.015em; }
+  #stage.f-bvp .role-sub, #stage.f-bvp .role-big { font-weight: 400; letter-spacing: -0.01em; }
+  /* `!!` = SERIF NGHIÊNG to (mẫu Blue 1 "edit bằng AI", "gõ lệnh ở đó") — gradient riêng --i0 → --i1 */
+  #stage.italic-serif .italic { font-family: "SerifK", "Palatino Linotype", "Times New Roman", serif; font-style: italic; font-weight: 400;
+                                text-transform: none; letter-spacing: -0.005em; }
+  #stage.italic-serif .italic .w { background: linear-gradient(180deg, var(--i0) 0%, var(--i0) 35%, var(--i1) 100%);
+                                   -webkit-background-clip: text; background-clip: text; }
+  /* chữ trên màn KÍNH SÁNG (card bg glass_light): dòng dẫn xanh đậm, cụm ^ / nghiêng xanh hoàng gia, bóng rất nhẹ */
+  /* gradDir: gradient chéo trải theo cả dòng cho cụm khoá + serif nghiêng (skin.lineGrad) */
+  #stage.line-grad .block:not(.light) .role-key:not(.boxed) .w, #stage.line-grad .block:not(.light) .italic .w {
+    background-image: var(--lg) !important; background-repeat: no-repeat;
+    -webkit-background-clip: text; background-clip: text; }
+  #stage.tight-key .role-key { letter-spacing: -0.045em; }
+  #stage .block.light .line { filter: drop-shadow(0 0.03em 0.1em rgba(30, 50, 110, 0.18)); }
+  .block.light .w { background: linear-gradient(180deg, #22305e 0%, #1b2650 100%) !important;
+                    -webkit-background-clip: text !important; background-clip: text !important; }
+  .block.light .role-key .w, .block.light .accent .w, .block.light .italic .w {
+                    background: linear-gradient(180deg, #5b8cff 0%, #3b6cf6 45%, #2446c9 100%) !important;
+                    -webkit-background-clip: text !important; background-clip: text !important; }
+  /* Poppins dấu cao (ề, ấ) → màn chữ chữ to cần nới dòng, không thì dấu đè dòng trên (đo 09/11 "thì đây là / 4 điều") */
+  #stage.f-pop .line + .line { margin-top: 0.02em; }
+  #stage.f-pop .block.light .line + .line.role-key, #stage.f-pop .block.light .line.role-key + .line { margin-top: 0.14em; }
+  #stage .block.light .line.boxed { filter: drop-shadow(0 0.05em 0.16em rgba(30, 50, 110, 0.22)); }
+  .block.light .line.boxed .w { background: none !important; }
   #stage.shadow-soft .line { filter: drop-shadow(0 0.04em 0.12em rgba(0, 0, 0, 0.5)); }
 </style>
 </head>
@@ -115,12 +156,18 @@
     SKIN = sk || {};
     Object.assign(STYLE, JSON.parse(JSON.stringify(BASE)));
     if (SKIN.size) Object.assign(STYLE.size, SKIN.size);
+    if (SKIN.enter) Object.assign(STYLE.enter, SKIN.enter);   // nhoè / trồi / phóng lúc chữ vào theo phong cách
     if (SKIN.maxWidth) STYLE.maxWidth = SKIN.maxWidth;
     const st = stage.style, cl = stage.classList;
     stage.className = '';
     if (!sk) return;
     cl.add('skinned');
     if (SKIN.font === 'avo') cl.add('f-avo');
+    if (SKIN.font === 'bvp') cl.add('f-bvp');
+    if (SKIN.font === 'poppins') cl.add('f-pop');
+    if (SKIN.italicMode === 'serif') cl.add('italic-serif');
+    if (SKIN.lineGrad) { cl.add('line-grad'); st.setProperty('--lg', SKIN.lineGrad); }
+    if (SKIN.tightKey) cl.add('tight-key');
     if (SKIN.keyUpper === false) cl.add('key-lower');
     if (SKIN.italicMode === 'light') cl.add('italic-light');
     if (SKIN.shadow === 'soft') cl.add('shadow-soft');
@@ -132,23 +179,27 @@
     st.setProperty('--box', SKIN.box || acc);
     st.setProperty('--boxText', SKIN.boxText || '#141414');
     st.setProperty('--boxR', (SKIN.boxRadius ?? 0.12) + 'em');
+    st.setProperty('--i0', SKIN.italicTop || SKIN.accentTop || acc);
+    st.setProperty('--i1', SKIN.italicBottom || SKIN.accentBottom || shade(acc, -0.18));
   }
   function shade(hex, k) {   // tối / sáng màu nhấn cho đáy gradient
     const n = parseInt(hex.replace('#', ''), 16), f = c => Math.round(clamp(c + c * k, 0, 255));
     return '#' + [f(n >> 16 & 255), f(n >> 8 & 255), f(n & 255)].map(v => v.toString(16).padStart(2, '0')).join('');
   }
-  const boxed = ln => (ln.role === 'key' && SKIN.keyMode === 'box') || (ln.accent && SKIN.accentMode === 'box');
+  const boxed = (ln, b) => !(b && b.light) && ((ln.role === 'key' && !ln.italic && SKIN.keyMode === 'box') ||
+                                               (ln.accent && SKIN.accentMode === 'box'));
 
   function build(b) {
     const el = document.createElement('div');
-    el.className = 'block';
+    el.className = 'block' + (b.light ? ' light' : '');
     el.style.textAlign = b.align || 'center';
     b._el = el; b._words = []; b._n = b.lines.reduce((s, l) => s + l.words.length, 0);
     for (const ln of b.lines) {
       const L = document.createElement('div');
-      L.className = `line role-${ln.role}` + (ln.italic ? ' italic' : '') + (ln.accent ? ' accent' : '') + (boxed(ln) ? ' boxed' : '');
-      ln._boxed = boxed(ln);
-      ln._el = L; ln._base = STYLE.size[ln.role] * H;
+      L.className = `line role-${ln.role}` + (ln.italic ? ' italic' : '') + (ln.accent ? ' accent' : '') + (boxed(ln, b) ? ' boxed' : '');
+      ln._boxed = boxed(ln, b);
+      ln._el = L; ln._base = STYLE.size[ln.role] * H * (ln.italic && SKIN.italicScale ? SKIN.italicScale : 1) *
+                             (b.light && SKIN.cardScale ? SKIN.cardScale * (ln.role === 'key' ? 1.35 : 1) : 1);
       ln.words.forEach((w, i) => {
         const s = document.createElement('span');
         s.className = 'w';
@@ -165,12 +216,26 @@
     for (const ln of b.lines) {
       ln._el.style.fontSize = ln._base + 'px';
       const w = ln._el.scrollWidth;
-      const max = STYLE.maxWidth * W;
+      const max = STYLE.maxWidth * W * (ln.italic && SKIN.italicMode === "serif" ? 0.88 : 1);   // serif nghiêng nhô ra ngoài khung đo
       if (w > max) ln._base *= max / w;
       ln._el.style.fontSize = ln._base + 'px';
     }
+    if (SKIN.lineGrad) lineGradient(b);
     place(b);
     el.style.display = 'none';
+  }
+
+  // mỗi từ là 1 span → gradient phải trải theo bề rộng CẢ DÒNG: kích thước nền = bề rộng dòng, dịch theo vị trí từ
+  function lineGradient(b) {
+    for (const ln of b.lines) {
+      if (!(ln.italic || (ln.role === 'key' && !ln._boxed))) continue;
+      const ws = ln.words.map(w => w._el), x0 = ws[0].offsetLeft;   // bề rộng CHỮ của dòng (dòng căn giữa trong khối)
+      const lw = Math.max(1, ws[ws.length - 1].offsetLeft + ws[ws.length - 1].offsetWidth - x0), lh = ln._el.offsetHeight;
+      for (const s of ws) {
+        s.style.backgroundSize = `${lw}px ${Math.round(lh * 1.4)}px`;
+        s.style.backgroundPosition = `${-(s.offsetLeft - x0)}px ${-Math.round(lh * 0.2)}px`;
+      }
+    }
   }
 
   function place(b) {
@@ -197,7 +262,7 @@
       const X = STYLE.exitWords, q = clamp((t - b.end - idx * stagger(b)) / X.dur);
       op *= 1 - q; blur += q * 0.2; tx -= q * X.shift;
     }
-    if (b.card) {               // màn đen chữ: dòng cũ tối đi khi dòng mới hiện
+    if (b.card && !b.light) {   // màn đen chữ: dòng cũ tối đi khi dòng mới hiện (kính sáng: giữ nguyên như mẫu)
       const later = b.lines.slice(b.lines.indexOf(w._line) + 1).map(l => l.words[0].t);
       if (later.length) {
         const q = clamp((t - (Math.min(...later) - E.lead)) / STYLE.cardDim.dur);

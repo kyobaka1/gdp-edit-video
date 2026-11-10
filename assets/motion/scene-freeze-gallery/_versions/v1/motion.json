@@ -1,0 +1,73 @@
+{
+  "id": "scene-freeze-gallery",
+  "source": {
+    "kind": "html",
+    "entry": "src/freeze-gallery.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\freeze-gallery\\src\\freeze-gallery.html"
+  },
+  "version": 1,
+  "name": "Scene C19 Freeze Gallery",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "freeze_gallery"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "giao diện",
+    "liệt kê",
+    "nỗi đau",
+    "scene",
+    "uikit",
+    "vlog",
+    "ảnh dừng hình"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 4,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "ảnh bay vào",
+      "start": 0,
+      "end": 2.8
+    },
+    {
+      "name": "ra",
+      "start": 3.666666666666667,
+      "end": 4
+    }
+  ],
+  "params": {
+    "theme": "ui_dark",
+    "preset": "standard",
+    "brand": "GIADUNGPLUS",
+    "accent": "",
+    "items": "[]",
+    "photo1": "",
+    "photo2": "",
+    "photo3": "",
+    "photo4": "",
+    "y": "",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "opaque": true,
+  "z": "top",
+  "variants": {},
+  "scene": "freeze-gallery",
+  "notes": "Scene Library C19 Freeze Gallery — khung dừng hình bay lên hàng trên theo từng ý v1.0.0 — hồ sơ assets/scenes/freeze-gallery/scene.json. UI Kit chung (assets/scenes/_uikit). Dùng: c.graphic('scene-freeze-gallery', at='Có khách chê', until='vận chuyển', items=[('chê', 'chê sản phẩm'), ('đóng gói', 'phàn nàn đóng gói'), ('vận chuyển', 'lỗi vận chuyển')], photo1='src:c01@14.1', photo2='src:c01@15.6', photo3='src:c01@17.4')"
+}

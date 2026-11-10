@@ -1,0 +1,24 @@
+[
+ {
+  "theme": "ui_dark",
+  "preset": "standard",
+  "ok": true,
+  "duration": 3.2333,
+  "frames": 97,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": [
+   "viền TỐI quanh hình (halo 198.0) — ghép lên nền sáng sẽ thấy viền đen"
+  ]
+ },
+ {
+  "theme": "ui_light",
+  "preset": "standard",
+  "ok": true,
+  "duration": 3.2333,
+  "frames": 97,
+  "first_alpha": 0,
+  "last_alpha": 0,
+  "warn": []
+ }
+]

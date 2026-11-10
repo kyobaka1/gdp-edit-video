@@ -1,0 +1,17 @@
+{
+ "file": "2ba8c93aa045c12170a3736c7c73d86a.mp4",
+ "w": 720,
+ "h": 1280,
+ "fps": "30/1",
+ "dur": 48.642,
+ "cuts": [
+  2.13,
+  9.8,
+  30.83,
+  42.9,
+  43.87
+ ],
+ "lufs": "-14.0",
+ "text": "Quá đẳng cấp rồi mọi người ơi, Cloud vừa trả video edit cho mình chuyên nghiệp cực kỳ và gì đấy, nó mở thêm True Editor trực tiếp, tách đầy đủ layer và hiển thị toàn bộ timeline như một công cụ chỉnh sửa video thực thụ. Mai hoàn toàn không thấy giới hạn để AI bây giờ có thể thay mình edit ra những video thành phẩm chất lượng cao, nhất là với Cloud Overs 5.5, chữ typography đủ kiểu, graphic thì đa dạng, motion thì một mà, và hiệu ứng âm thanh khớp đến từng khung hình. Nhưng Mai sẽ là người đầu tiên cho bạn biết điều này, đừng prompt bắt AI sửa từng chi tiết nữa, việc này rất tốn thời gian và token. Thay vào đó, hãy bảo nó tạo cho bạn một giao diện editor để bạn tự sửa các chi tiết trực tiếp. Dùng editor thì bạn có thể chỉnh rồi render thoải mái mà không tốn thêm token. Còn lượng token để cốt ra giao diện này cũng không đáng bao nhiêu cái. Giờ muốn edit một video ngắn đẹp cho kênh TikTok, ta chỉ mất hơn nửa tiếng chờ Claude làm, rồi thêm 50 phút tự chỉnh theo ý. Quá tiện đây rồi. À mà, video này mình cũng edit bằng Claude với bộ skill Edit Video Pro. Bạn nào muốn tham khảo thì comment nhé.",
+ "speech": 46.14
+}

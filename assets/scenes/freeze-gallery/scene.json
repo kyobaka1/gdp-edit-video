@@ -1,0 +1,137 @@
+{
+ "id": "freeze-gallery",
+ "code": "C19",
+ "name": "Freeze Gallery — khung dừng hình bay lên hàng trên theo từng ý",
+ "version": "1.0.0",
+ "motion_id": "scene-freeze-gallery",
+ "status": "ready",
+ "uikit": true,
+ "brand_param": true,
+ "learned_from": "mẫu Blue 1 5,75–10,75s: 'video ra rất lỏ · prompt từng bước · vừa lâu vừa tốn token' — mỗi ý một khung hình người nói thu nhỏ bo góc viền trắng bay về hàng trên cùng (xuất hiện to mờ giữa trên rồi bay về ô), nhãn nhỏ bên dưới, phụ đề vẫn chạy bên dưới",
+ "purpose": "Liệt kê 2–4 nỗi đau / ví dụ NGẮN khi chỉ có cảnh người nói: mỗi ý một 'tấm ảnh' lấy từ chính clip đúng lúc nói ý đó → màn hình có thứ mới mỗi 1–2s mà không cần B-roll. Đọng thành hàng tóm tắt ở trên.",
+ "use_when": [
+  "Lời liệt kê 2–4 ý ngắn liền nhau: 'có khách chê sản phẩm, có khách phàn nàn đóng gói, có khách gặp vấn đề vận chuyển'",
+  "Video người nói không có B-roll minh hoạ",
+  "Phong cách vlog-xanh-kinh / gdp-giai-thich"
+ ],
+ "avoid_when": [
+  "Ý dài (> 22 ký tự / ý) — dùng C13 Danh sách dựng",
+  "Có B-roll thật cho từng ý — dùng c.cover()",
+  "Đoạn có từ khoá to / tiêu đề ghim ở góc trên cùng lúc"
+ ],
+ "presets": {
+  "standard": {
+   "dur": [
+    1.5,
+    14.0
+   ],
+   "default": 4,
+   "covers": false,
+   "captions": "keep",
+   "hide_logo": true,
+   "note": "hàng ảnh ở 3,5–17% H, chữ động vẫn chạy bên dưới, logo ẩn"
+  }
+ },
+ "preset_auto": [
+  [
+   99,
+   "standard"
+  ]
+ ],
+ "items": {
+  "max": 4,
+  "term_max": 22,
+  "note_max": 0,
+  "lead": 0.05,
+  "tail": 0.6,
+  "required": true,
+  "note": "items=[(cụm lời, 'nhãn ≤ 22'), …] 2–4 mục + photo1..photo4 = src:<clip>@<giây NGUỒN> lúc nói ý đó",
+  "min_t": 0.2
+ },
+ "themes": {
+  "ui_dark": {
+   "brand": "*",
+   "trans": "cut",
+   "look": "ảnh bo góc viền trắng, nhãn trắng đậm có bóng"
+  },
+  "ui_light": {
+   "brand": "*",
+   "trans": "cut",
+   "look": "như ui_dark"
+  }
+ },
+ "theme_by_brand": {
+  "*": "ui_dark"
+ },
+ "params": {
+  "items": {
+   "required": true,
+   "note": "2–4 ý"
+  },
+  "photo1": {
+   "note": "src:<clip>@<giây nguồn> — khung hình cho ý 1 (mặt người nói lúc nói ý đó)"
+  },
+  "photo2": {
+   "note": "như photo1 cho ý 2"
+  },
+  "photo3": {
+   "note": "như photo1 cho ý 3"
+  },
+  "photo4": {
+   "note": "như photo1 cho ý 4"
+  },
+  "y": {
+   "note": "mép trên hàng ảnh (mặc định 0,035)"
+  },
+  "theme": {
+   "note": "bỏ trống"
+  },
+  "preset": {
+   "note": "bỏ trống"
+  }
+ },
+ "sfx": {
+  "ui_dark": [
+   {
+    "at": "item",
+    "file": "scene/page_slide.wav",
+    "gain_db": -25
+   }
+  ],
+  "ui_light": [
+   {
+    "at": "item",
+    "file": "scene/page_slide.wav",
+    "gain_db": -25
+   }
+  ]
+ },
+ "qa": [
+  "Motion Engine: tất định, khung cuối trong suốt",
+  "Template: hàng ảnh ≤ 86% W, nhãn ≤ 2 dòng",
+  "Nội dung: ảnh là khung THẬT của clip đúng lúc nói ý đó (không ảnh AI)"
+ ],
+ "sample": {
+  "ui_dark": {
+   "brand": "*",
+   "dur": 4.5,
+   "items": "[{\"t\": 0.5, \"x\": \"chê sản phẩm\"}, {\"t\": 1.6, \"x\": \"phàn nàn đóng gói\"}, {\"t\": 2.7, \"x\": \"lỗi vận chuyển\"}]"
+  },
+  "ui_light": {
+   "brand": "*",
+   "dur": 4.5,
+   "items": "[{\"t\": 0.5, \"x\": \"video ra rất lỏ\"}, {\"t\": 1.6, \"x\": \"prompt từng bước\"}, {\"t\": 2.7, \"x\": \"vừa lâu, vừa tốn token\"}]"
+  }
+ },
+ "examples": [
+  "c.graphic('scene-freeze-gallery', at='Có khách chê', until='vận chuyển', items=[('chê', 'chê sản phẩm'), ('đóng gói', 'phàn nàn đóng gói'), ('vận chuyển', 'lỗi vận chuyển')], photo1='src:c01@14.1', photo2='src:c01@15.6', photo3='src:c01@17.4')"
+ ],
+ "tags": [
+  "liệt kê",
+  "nỗi đau",
+  "ảnh dừng hình",
+  "vlog",
+  "giao diện"
+ ],
+ "previews": "previews/<theme>-<preset>.jpg"
+}

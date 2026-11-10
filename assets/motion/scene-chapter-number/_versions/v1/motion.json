@@ -1,0 +1,72 @@
+{
+  "id": "scene-chapter-number",
+  "source": {
+    "kind": "html",
+    "entry": "src/chapter-number.html",
+    "origin": "C:\\Users\\Admin\\gdp-video-studio\\assets\\scenes\\chapter-number\\src\\chapter-number.html"
+  },
+  "version": 1,
+  "name": "Scene C20 Chapter Number",
+  "brands": [
+    "*"
+  ],
+  "roles": [
+    "scene",
+    "chapter_number"
+  ],
+  "enabled": true,
+  "priority": 50,
+  "tags": [
+    "chương",
+    "giao diện",
+    "scene",
+    "số thứ tự",
+    "uikit",
+    "vlog",
+    "ý thứ N"
+  ],
+  "canvas": [
+    1080,
+    1920
+  ],
+  "duration": 3,
+  "fps": 30,
+  "scenes": [
+    {
+      "name": "số + dòng",
+      "start": 0,
+      "end": 0.8
+    },
+    {
+      "name": "ra",
+      "start": 2.666666666666667,
+      "end": 3
+    }
+  ],
+  "params": {
+    "theme": "ui_dark",
+    "preset": "standard",
+    "brand": "GIADUNGPLUS",
+    "accent": "",
+    "num": "",
+    "lead": "",
+    "title": "",
+    "title_t": "",
+    "y": "",
+    "seed": 1
+  },
+  "placement": {
+    "scale": 1,
+    "x": "center",
+    "y": "center",
+    "margin_x_pct": 0,
+    "margin_y_pct": 0
+  },
+  "replaces": [],
+  "ends_transparent": true,
+  "opaque": true,
+  "z": "top",
+  "variants": {},
+  "scene": "chapter-number",
+  "notes": "Scene Library C20 Chapter Number — số chương to + vạch mảnh + serif nghiêng, góc trên v1.0.0 — hồ sơ assets/scenes/chapter-number/scene.json. UI Kit chung (assets/scenes/_uikit). Dùng: c.graphic('scene-chapter-number', at='AI sẽ phân loại', until='điều gì', num='1', lead='AI phân loại', title='khen hay chê', title_t='khen hay')"
+}

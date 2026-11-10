@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Freeze Gallery</title>
+<!-- Scene Library · C19 Freeze Gallery v1.0 (Claude viết 07/11/2026) — assets/scenes/freeze-gallery/scene.json.
+     DÃY ẢNH DỪNG HÌNH (mẫu Blue 1 5,75–10,75s: "video ra rất lỏ · prompt từng bước · vừa lâu vừa tốn token"): mỗi lần
+     lời nhắc 1 ý, một khung hình CỦA CHÍNH CLIP (photo1..4 = src:<clip>@<giây>) hiện to mờ giữa trên rồi bay về ô của nó
+     ở hàng trên cùng, nhãn nhỏ bên dưới; các ô ở lại tới hết thẻ. Đè footage, chữ động vẫn chạy bên dưới.
+     Hợp đồng Motion Engine: window.setTime(giây) vẽ ĐỒNG BỘ, không Internet, KHÔNG will-change, khung cuối trong suốt.
+     Query: theme · preset · dur · brand · accent · items (JSON [{t, x: nhãn}]) · photo1..photo4 · y · seed. -->
+<style>
+  @font-face { font-family: "GdpBold"; src: url("fonts/UTM_AvoBold.ttf"); }
+  @font-face { font-family: "GdpReg"; src: url("fonts/UTM_Avo.ttf"); }
+  @font-face { font-family: "PhBold"; src: url("fonts/Averta-Bold.otf"); }
+  @font-face { font-family: "PhReg"; src: url("fonts/Averta-Regular.otf"); }
+  @font-face { font-family: "PhLight"; src: url("fonts/Averta-Light.otf"); }
+  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: hidden; }
+  #root { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+  .abs { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; box-sizing: border-box; }
+</style>
+</head>
+<body>
+<div id="stage"><div id="root"></div></div>
+<script src="uikit.js"></script>
+<script>
+(function () {
+  const U = window.UIKIT, { Q, W, H, FPS, T, F, ACC, clamp, prog, outCubic, inOut, node, place } = U;
+  const D = Math.max(1.5, parseFloat(Q.get("dur") || "4") || 4), DE = D - 1 / FPS, EX = 0.3;
+  const QA = { theme: U.THEME_ID, preset: "standard", dur: D, overflow: [], warn: [], fontPx: {} };
+  let ITEMS = U.items().slice(0, 4).map((it, i) => ({ t: clamp(+it.t || (0.3 + i * 0.9), 0, DE - EX - 0.45), label: String(it.x || "").trim() }));
+  const N = Math.max(1, ITEMS.length);
+  const SRC = i => { const p = Q.get("photo" + (i + 1)) || ""; return p ? (p.startsWith("file:") || p.includes("/") ? p : `assets/${p}`) : "assets/sample-face.jpg"; };
+  ITEMS.forEach((it, i) => { if (!Q.get("photo" + (i + 1))) QA.warn.push(`mục ${i + 1} chưa có photo${i + 1} (src:<clip>@<giây>) — dùng ảnh mẫu`); });
+  const CW = Math.round((N >= 4 ? 0.18 : 0.215) * W), GAP = Math.round(0.022 * W), X0 = Math.round(0.06 * W);
+  const Y0 = Math.round(clamp(parseFloat(Q.get("y") || "0.035"), 0.03, 0.5) * H);
+  const cards = ITEMS.map((it, i) => {
+    U.img(SRC(i));
+    const c = node("div", { width: CW + "px", height: CW + "px", borderRadius: "22px", overflow: "hidden",
+      border: "3px solid rgba(255,255,255,.92)", boxShadow: "0 10px 30px rgba(0,0,0,.35)",
+      backgroundImage: `url("${SRC(i)}")`, backgroundSize: "cover", backgroundPosition: "50% 30%", backgroundColor: "#333" });
+    const l = node("div", { width: (CW + GAP) + "px", textAlign: "center", fontFamily: F.bold, fontSize: "27px", lineHeight: "1.12",
+      color: "#fff", whiteSpace: "normal", filter: "drop-shadow(0 2px 8px rgba(0,0,0,.6))" }, null, it.label);
+    return { it, c, l, x: X0 + i * (CW + GAP), y: Y0 };
+  });
+
+  function layout() {
+    cards.forEach(o => { place(o.c, o.x, o.y); place(o.l, o.x - GAP / 2, o.y + CW + 10);
+      if (o.l.offsetHeight > 70) QA.overflow.push(`nhãn '${o.it.label}' quá 2 dòng`); });
+    const right = X0 + N * CW + (N - 1) * GAP;
+    if (right > 0.86 * W) QA.overflow.push(`dãy ảnh tràn phải (${(right / W).toFixed(2)}W)`);
+    QA.area = { x: X0, y: Y0, w: right - X0, h: CW + 90 };
+    QA.land = ITEMS.length ? ITEMS[ITEMS.length - 1].t + 0.4 : 0.5;
+  }
+
+  function setTime(t0) {
+    const t = clamp(t0, 0, D);
+    for (const o of cards) {
+      const a = o.it.t - 0.05;
+      const pIn = prog(t, a, a + 0.12), pFly = prog(t, a + 0.18, a + 0.5), k = inOut(pFly);
+      if (t < a) { o.c.style.opacity = 0; o.l.style.opacity = 0; continue; }
+      // vào: to (×2,1) mờ giữa phía trên → bay về ô
+      const cx = W / 2 - CW / 2, cy = 0.17 * H;
+      const dx = Math.round((cx - o.x) * (1 - k)), dy = Math.round((cy - o.y) * (1 - k)), s = 1 + 1.1 * (1 - k);
+      o.c.style.opacity = (pFly >= 1 ? 1 : 0.62 * pIn + 0.38 * k).toFixed(3);
+      o.c.style.transform = pFly >= 1 ? "none" : `translate(${dx}px, ${dy}px) scale(${s.toFixed(4)})`;
+      o.c.style.filter = pFly >= 1 ? "none" : `blur(${(Math.sin(Math.PI * pFly) * 3).toFixed(2)}px)`;
+      const kl = outCubic(prog(t, a + 0.42, a + 0.62));
+      o.l.style.opacity = kl.toFixed(3);
+      o.l.style.transform = kl >= 1 ? "none" : `translateY(${Math.round((1 - kl) * 10)}px)`;
+    }
+    U.exitAll(t, D, EX);
+  }
+
+  const ready = U.ready(ITEMS.map(i => i.label).join(""), () => { layout(); setTime(0); });
+  window.setTime = setTime;
+  window.SCENE_MOTION = { name: `Freeze Gallery · ${T.label}`, duration: D, width: W, height: H, fps: FPS, ready, setTime, qa: QA,
+    scenes: [{ name: "ảnh bay vào", start: 0, end: QA.land || D * 0.7 }, { name: "ra", start: DE - EX, end: D }] };
+  if (!Q.has("render")) { const t0 = performance.now();
+    (function loop() { setTime(((performance.now() - t0) / 1000) % (D + 0.6)); requestAnimationFrame(loop); })(); }
+})();
+</script>
+</body>
+</html>

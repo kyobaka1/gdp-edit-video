@@ -120,6 +120,26 @@ def faces(img: np.ndarray) -> list[tuple[int, int, int, int]]:
 
 
 # ───────────────────────────── trục cảnh ─────────────────────────────
+PUNCH_SFX = config.ROOT / "assets" / "sfx" / "impactSoft_medium_001.ogg"
+
+
+def punch_at(e: dict, shot: dict, t: float) -> tuple[float, float, float]:
+    """Hệ số zoom thêm + độ rung (dx, dy theo tỉ lệ khung) của lệnh c.punch() đang có hiệu lực trong CÙNG cảnh."""
+    z, dx, dy = 1.0, 0.0, 0.0
+    for p in e.get("punches") or []:
+        if not (shot["t0"] - 1e-6 <= p["t"] <= t < shot["t1"]):
+            continue
+        u = t - p["t"]
+        k = min(1.0, u / 0.1)
+        ov = 1 + 2.4 * (k - 1) ** 3 + 1.4 * (k - 1) ** 2   # vào nhanh, vượt nhẹ rồi về
+        z *= 1 + p["amp"] * ov
+        if u < 0.32 and p.get("shake", 1):
+            a = 0.012 * p["shake"] * (1 - u / 0.32) ** 2
+            dx += a * np.sin(u * 2 * np.pi * 17)
+            dy += a * 0.7 * np.cos(u * 2 * np.pi * 13)
+    return z, dx, dy
+
+
 def zoom_at(shot: dict, t: float) -> float:
     a, b = shot["za"], shot["zb"]
     p = 0.0 if b <= a else min(1.0, max(0.0, (t - a) / (b - a)))
@@ -143,7 +163,7 @@ def shots(e: dict, src: dict) -> tuple[list[dict], list[tuple[float, str]]]:
         m = (a + b) / 2
         cards = [k for k, c in enumerate(e["cards"]) if c["t0"] <= m < c["t1"]]
         covers = [k for k, c in enumerate(e["covers"]) if c["t0"] <= m < c["t1"]]
-        glass = bool(cards) and e["cards"][cards[-1]].get("bg") == "glass"
+        glass = bool(cards) and e["cards"][cards[-1]].get("bg") in ("glass", "glass_light")
         if cards and not glass:
             s = {"kind": "card", "ref": f"card{cards[-1]}", "bg": e["cards"][cards[-1]]["bg"]}
         elif covers:
@@ -161,7 +181,7 @@ def shots(e: dict, src: dict) -> tuple[list[dict], list[tuple[float, str]]]:
                      "fit": "fill", "focus": p.get("focus") or [0.5, 0.42], "group": p["group"],
                      "z0": p["zoom"], "z1": p["zoom"] * (1 + (p.get("push") or 0)), "za": g0, "zb": g1}
         if glass and s["kind"] != "card":   # kính mờ = hình bên dưới vẫn chạy, nhoè + tối (ref riêng → tách đoạn)
-            s["glass"], s["ref"] = True, s["ref"] + f"-glass{cards[-1]}"
+            s["glass"], s["ref"] = e["cards"][cards[-1]]["bg"], s["ref"] + f"-glass{cards[-1]}"
         s.update(t0=round(a, 4), t1=round(b, 4))
         prev = out[-1] if out else None
         if (prev and prev["ref"] == s["ref"] and prev["kind"] != "card" and
@@ -222,7 +242,8 @@ def _js_blocks(e: dict) -> list[dict]:
         lines = [{"role": ln["role"], "italic": ln.get("italic", False), "accent": ln.get("accent", False),
                   **({"morph_at": ln["morph_at"]} if ln.get("morph_at") is not None else {}),
                   "words": [{"text": w["text"], "t": w["t"]} for w in ln["words"]]} for ln in b["lines"]]
-        out.append({"id": b["id"], "end": b["end"], "exit": b["exit"], "card": b["card"], "lines": lines,
+        light = bool(b["card"]) and b.get("card_idx") is not None and e["cards"][b["card_idx"]].get("bg") == "glass_light"
+        out.append({"id": b["id"], "end": b["end"], "exit": b["exit"], "card": b["card"], "lines": lines, "light": light,
                     **({"stagger": b["stagger"]} if b.get("stagger") else {}),
                     "align": "center", "x": 0.46, "y": b.get("y") or y_def})
     return out
@@ -267,7 +288,7 @@ def plan_captions(job: Path, e: dict, src: dict, sh: list[dict], kin: Kinetic, W
                     fb += faces(still(job, src, s, t, W, H))
         w, h = bx["w"], bx["h"]
         if b["card"]:
-            cands = [("center", 0.5, b.get("y") or 0.47)]
+            cands = [("center", 0.45, b.get("y") or 0.47)]   # giữa VÙNG AN TOÀN (6–84%) — 0,5 làm khối rộng tràn phải
         elif b["pos"] != "auto":
             x = dict(PLACES)[b["pos"]]
             cands = [(b["pos"], x, b.get("y") or yy) for yy in ([b["y"]] if b.get("y") else y_opts)]
@@ -431,14 +452,18 @@ def _grade(W: int, H: int, kind: str = "cinematic"):
     return apply
 
 
-def _glass(f: np.ndarray, k: float = 1.0) -> np.ndarray:
+GLASS_TINT = np.array([252, 239, 228], np.float32)   # BGR — trắng ám xanh nhạt (mẫu Blue 1 11,25s / 13,3s)
+
+
+def _glass(f: np.ndarray, k: float = 1.0, light: bool = False) -> np.ndarray:
     """Màn chữ nền KÍNH MỜ (mẫu Blue 1 "thì đây là 4 điều"): hình đang chạy nhoè mạnh + tối, chữ đứng giữa.
+    light = kính SÁNG (phong cách vlog-xanh-kinh): nhoè + phủ trắng ám xanh 58%, chữ xanh đậm (kinetic `.light`).
     k = mức kính 0..1 (vào/ra nhoè dần 0,2s thay cho tối dần)."""
     h, w = f.shape[:2]
     small = cv2.resize(f, (max(8, w // 8), max(8, h // 8)), interpolation=cv2.INTER_AREA)
     small = cv2.GaussianBlur(small, (0, 0), 6)
     b = cv2.resize(small, (w, h), interpolation=cv2.INTER_LINEAR).astype(np.float32)
-    g = np.clip(b * 0.52 + 6, 0, 255)
+    g = np.clip(b * 0.42 + GLASS_TINT * 0.58, 0, 255) if light else np.clip(b * 0.52 + 6, 0, 255)
     if k >= 1:
         return g.astype(np.uint8)
     return (f.astype(np.float32) * (1 - k) + g * k).astype(np.uint8)
@@ -951,6 +976,7 @@ def run(job_id: str, final: bool = False) -> dict:
             trans = sorted(set(trans) | {(round(g["t0"], 4), g["trans"])})
     from studio import scenes
     sfx = [ev for g in graphics if (prof := scenes.for_motion(g["id"])) for ev in scenes.sfx_events(prof, g)]
+    sfx += [(PUNCH_SFX, -22.0, p["t"]) for p in e.get("punches") or [] if p.get("sfx", True) and PUNCH_SFX.exists()]
     audio = build_audio(job, e, src, work, sfx)
 
     name = "final" if final else "preview"
@@ -1002,11 +1028,13 @@ def run(job_id: str, final: bool = False) -> dict:
                 if reader is None:
                     f = black.copy()
                 else:
-                    f = place(reader.read(), W, H, zoom_at(s, t), s["focus"], s["fit"], interp)
+                    pz, pdx, pdy = punch_at(e, s, t) if s["kind"] == "piece" else (1.0, 0.0, 0.0)
+                    foc = s["focus"] if pz == 1.0 else (s["focus"][0] + pdx, s["focus"][1] + pdy)
+                    f = place(reader.read(), W, H, zoom_at(s, t) * pz, foc, s["fit"], interp)
                     if grade:
                         f = grade(f)
                     if s.get("glass"):   # màn chữ kính mờ (phong cách): hình vẫn chạy, nhoè + tối, vào/ra 0,2s
-                        f = _glass(f, min(1.0, (t - s["t0"]) / 0.2, (s["t1"] - t) / 0.2))
+                        f = _glass(f, min(1.0, (t - s["t0"]) / 0.2, (s["t1"] - t) / 0.2), light=s["glass"] == "glass_light")
                 m_full = None
                 act = [gi for gi in behind if graphics[gi]["t0"] <= t < graphics[gi]["t1"]]
                 if act:   # mặt nạ người trên khung CHƯA đè đồ hoạ; đổi cảnh / đổi đồ hoạ → trạng thái mô hình làm lại

@@ -9,10 +9,25 @@ window.UIKIT = (function () {
   const Q = new URLSearchParams(location.search);
   const W = 1080, H = 1920, FPS = 30;
   const BRAND = (Q.get("brand") || "GIADUNGPLUS").toUpperCase();
-  const DEF_ACC = { GIADUNGPLUS: "#f1c40f", PHALEDO: "#b89a6a", LTENG: "#2a8fd6" };
+  const DEF_ACC = { GIADUNGPLUS: "#f1c40f", PHALEDO: "#b89a6a", LTENG: "#2a8fd6", "*": "#3b6cf6" };
   const ACC = /^#[0-9a-f]{6}$/i.test(Q.get("accent") || "") ? Q.get("accent") : (DEF_ACC[BRAND] || "#f1c40f");
+  // không thương hiệu (brand "*" — vlog cá nhân, phong cách vlog-xanh-kinh): Be Vietnam Pro + serif nghiêng (mẫu Blue 1)
   const F = BRAND === "PHALEDO" ? { bold: "PhBold", reg: "PhReg", light: "PhLight" }
-                                : { bold: "GdpBold", reg: "GdpReg", light: "GdpReg" };
+          : BRAND === "*" ? { bold: "PopXBold", reg: "PopReg", light: "PopReg", serif: "SerifK" }   // Poppins Việt hoá (Sếp 09/11)
+          : { bold: "GdpBold", reg: "GdpReg", light: "GdpReg" };
+  if (!F.serif) F.serif = "SerifK";
+  (function fontFaces() {   // khai font ngay trong kit → mọi family (cũ / mới) dùng được font vlog; file font chép bởi ui_scenes_sync
+    const css = `
+      @font-face { font-family: "PopXBold"; src: url("fonts/DesignerVN-Poppins-ExtraBold.ttf"); }
+      @font-face { font-family: "PopReg"; src: url("fonts/DesignerVN-Poppins-Regular.ttf"); }
+      @font-face { font-family: "BvpXBold"; src: url("fonts/BeVietnamPro-ExtraBold.ttf"); }
+      @font-face { font-family: "BvpBold"; src: url("fonts/BeVietnamPro-Bold.ttf"); }
+      @font-face { font-family: "BvpReg"; src: url("fonts/BeVietnamPro-Regular.ttf"); }
+      @font-face { font-family: "SerifK"; font-style: normal;   /* Palatino nghiêng (Georgia thiếu dấu Việt — đo 07/11) */
+                   src: local("Palatino Linotype Italic"), local("PalatinoLinotype-Italic"), local("Times New Roman Italic"),
+                        local("TimesNewRomanPS-ItalicMT"); }`;
+    const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
+  })();
   const THEME_ID = Q.get("theme") === "ui_light" ? "ui_light" : "ui_dark";
   const lum = hex => { const n = parseInt(hex.slice(1), 16); return (0.2126 * (n >> 16 & 255) + 0.7152 * (n >> 8 & 255) + 0.0722 * (n & 255)) / 255; };
   const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; };

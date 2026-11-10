@@ -26,6 +26,7 @@ SHOPS = {"GIADUNGPLUS": "giadungplus_official", "PHALEDO": "phaledo_official"}
 SAMPLE = {
     "GIADUNGPLUS": [".mẹo này giúp / !tủ bếp gọn gàng", "chỉ cần / ^dán là xong / !!không cần khoan", "~10 phút / .cho cả căn bếp"],
     "PHALEDO": [".chất liệu / !thủy tinh dày", "an toàn / ^cho cả gia đình / !!rửa máy được", "~Gỗ sồi / .và thủy tinh"],
+    "VLOG": [".nếu bạn từng thử / !!edit bằng AI", ".mà thấy video ra / !rất là lỏ", ".thì đây là / !4 điều / !!mình rút ra"],
 }
 
 
@@ -48,14 +49,14 @@ def bg_frame(path: Path | None) -> np.ndarray:
     return f
 
 
-def blocks_for(markups: list[str], y: float, card_idx: int) -> list[dict]:
+def blocks_for(markups: list[str], y: float, card_idx: int, light: bool = False) -> list[dict]:
     out = []
     for k, m in enumerate(markups):
         lines = Cut._parse(None, m)
         t = k * 10.0
         for ln in lines:
             ln["words"] = [{"text": tok["text"], "t": t + 0.05 * i} for i, tok in enumerate(ln.pop("toks"))]
-        out.append({"id": f"s{k}", "end": t + 5, "exit": "words", "card": k == card_idx, "lines": lines,
+        out.append({"id": f"s{k}", "end": t + 5, "exit": "words", "card": k == card_idx, "lines": lines, "light": light and k == card_idx,
                     "align": "center", "x": 0.5 if k == card_idx else 0.46, "y": 0.47 if k == card_idx else y})
     return out
 
@@ -85,16 +86,16 @@ def main() -> None:
     for sid in a.ids or styles.ids():
         st = styles.load(sid)
         rows = []
-        for brand, shop in SHOPS.items():
+        for brand, shop in (st.get("preview_shops") or SHOPS).items():   # phong cách không thương hiệu: {"VLOG": null}
             cfg = styles.resolve(st, shop)
             graded = _grade(W, H, cfg["grade"])(raw.copy()) if cfg["grade"] else raw.copy()
-            bl = blocks_for(SAMPLE[brand], cfg["captions"].get("y", 0.47), card_idx=2)
+            bl = blocks_for(SAMPLE[brand], cfg["captions"].get("y", 0.47), card_idx=2, light=cfg["card_bg"] == "glass_light")
             panels = []
             with Kinetic(cfg["page"], W, H, cfg["skin"]) as kin:
                 kin.load(bl)
                 for k, b in enumerate(bl):
                     kin.still(b["end"] - 0.5, tmp)
-                    base = _glass(graded) if b["card"] and cfg["card_bg"] == "glass" else \
+                    base = _glass(graded, light=cfg["card_bg"] == "glass_light") if b["card"] and cfg["card_bg"].startswith("glass") else \
                         np.zeros_like(graded) if b["card"] else graded
                     panels.append(label(compose(base, tmp), f"{brand} · {['chu + cum khoa', 'nhan mau / nghieng', 'man chu ' + cfg['card_bg']][k]}"))
             rows.append(np.hstack(panels))
