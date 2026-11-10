@@ -3,16 +3,58 @@
 import json
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
 from pathlib import Path
 
 from studio import config
 
 
-def run(cmd: list[str]) -> subprocess.CompletedProcess:
-    proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+RUN_TIMEOUT = 1800.0   # giây — một ffmpeg treo không được treo cả job (hết hạn: tiến trình con bị dừng, báo lỗi rõ)
+
+# Bộ ghi nhận khung RGB (rawvideo bgr24) → x264: ffmpeg mặc định đổi sang YUV bằng ma trận BT.601 và không gắn tag,
+# trình phát HD lại giải theo BT.709 → màu rực (logo, chữ màu shop) lệch (đo 10/11: 6,0 → 1,6 mức sau khi gắn).
+# Gắn bằng x264-params (đủ cả 3 tag); cờ -colorspace chỉ ghi được ma trận. Lưu ý: OpenCV đọc lại bỏ qua tag (ảnh soát
+# QA lệch màu nhẹ) — sản phẩm giao thì đúng.
+BT709_OUT = ["-vf", "scale=out_color_matrix=bt709:out_range=tv",
+             "-x264-params", "colorprim=bt709:transfer=bt709:colormatrix=bt709"]
+
+# Nguồn HDR (iPhone mặc định quay HLG; PQ = HDR10/Dolby Vision): đọc thẳng ra khung 8-bit thì hình tối + bệt màu
+# (đo 10/11 trên clip HLG thử: sáng 115 → 76, bão hoà 111 → 87). Chuỗi dưới đưa về SDR BT.709; `mobius` giữ nguyên
+# vùng sáng thường, chỉ nén mềm phần chói (hable làm tối cả khung). Chưa thử trên clip iPhone thật — gặp thì soát mắt.
+HDR_TRANSFERS = {"arib-std-b67", "smpte2084"}
+TONEMAP = ("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=mobius:desat=0,"
+           "zscale=t=bt709:m=bt709:r=tv,format=yuv420p")
+
+
+def run(cmd: list[str], timeout: float | None = RUN_TIMEOUT) -> subprocess.CompletedProcess:
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"Lệnh chạy quá {timeout:.0f}s, đã dừng: {' '.join(cmd[:6])} …") from None
     if proc.returncode != 0:
         raise RuntimeError(f"Lệnh lỗi ({proc.returncode}): {' '.join(cmd[:6])} …\n{proc.stderr[-800:]}")
     return proc
+
+
+@lru_cache(maxsize=512)
+def _transfer(path: str, mtime: float) -> str:
+    try:
+        out = subprocess.run([config.FFPROBE, "-v", "error", "-select_streams", "v:0", "-show_entries",
+                              "stream=color_transfer", "-of", "csv=p=0", path], capture_output=True, text=True,
+                             encoding="utf-8", errors="replace", timeout=60).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    return out.strip().split("\n")[0].strip().strip(",")
+
+
+def is_hdr(video: Path) -> bool:
+    p = Path(video)
+    return p.exists() and _transfer(str(p), p.stat().st_mtime) in HDR_TRANSFERS
+
+
+def sdr_filter(video: Path) -> str:
+    """Chuỗi lọc đưa nguồn HDR về SDR (nối vào -vf); nguồn SDR / ảnh / file tiếng → ''."""
+    return TONEMAP if is_hdr(video) else ""
 
 
 def probe(video: Path) -> dict:
@@ -20,9 +62,8 @@ def probe(video: Path) -> dict:
     info = json.loads(out.stdout)
     v = next(s for s in info["streams"] if s["codec_type"] == "video")
     num, den = (int(x) for x in v.get("avg_frame_rate", "30/1").split("/"))
-    rotation = 0
-    for sd in v.get("side_data_list", []) or []:
-        rotation = int(sd.get("rotation", 0) or 0)
+    # chỉ mục side data CÓ khoá rotation (Display Matrix); mục khác đứng sau (Dolby Vision, …) không được ghi đè về 0
+    rotation = next((int(sd["rotation"] or 0) for sd in v.get("side_data_list") or [] if "rotation" in sd), 0)
     w, h = int(v["width"]), int(v["height"])
     if abs(rotation) in (90, 270):
         w, h = h, w

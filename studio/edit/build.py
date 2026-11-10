@@ -3,7 +3,9 @@
 Hình: Python đọc từng nguồn qua ffmpeg (rawvideo), đặt khung bằng warpAffine (zoom dưới pixel, mượt hơn crop ffmpeg),
 chuyển cảnh + chữ động + logo ghép bằng numpy, đẩy khung thô vào ffmpeg mã hoá H.264. Tiếng: ghép các đoạn lời bằng
 numpy (vuốt 8ms chống tiếng tách), lọc + nén giọng, nhạc (nếu có), rồi chuẩn độ to cả bản −14 LUFS
-(render._normalize_loudness, dùng chung với luồng Việt hoá).
+(render._normalize_loudness, dùng chung với luồng Việt hoá). Từng lớp tiếng (stem) ghi riêng render/stems_<bản>/ +
+mức bù độ to (render report `audio_stems`) → bản nháp CapCut tách track giọng / nhạc / tiếng động.
+Bản NHÁP (`run(draft=True)`, `vs.py edit render <id> --draft`): chỉ trục dựng + tiếng đầy đủ → draft.mp4 để chốt cắt.
 """
 
 import json
@@ -33,19 +35,28 @@ DIP_OUT, DIP_IN, WIPE, FLASH = 0.18, 0.12, 0.15, 1.5   # giây (FLASH: số khun
 class Reader:
     """Đọc khung liên tục từ một nguồn, bắt đầu ở giây s0, đổi về fps đầu ra."""
 
-    def __init__(self, path: Path, s0: float, dur: float, fps: float, w: int, h: int):
+    def __init__(self, path: Path, s0: float, dur: float, fps: float, w: int, h: int, k: float = 1.0):
+        """k < 1 = ffmpeg thu nhỏ khung ngay lúc giải mã (bản nháp: bớt dữ liệu qua ống + bớt warpAffine)."""
+        if k < 1:
+            w, h = max(2, int(w * k) // 2 * 2), max(2, int(h * k) // 2 * 2)
         self.w, self.h, self.last = w, h, None
+        self.short = 0   # số khung nguồn KHÔNG trả (hết sớm) → giữ khung cuối = hình đứng; run() gom lại cho QA
+        sdr = media.sdr_filter(path)   # nguồn HDR (iPhone HLG / PQ) → SDR BT.709, không thì hình tối + bệt màu
+        vf = f"fps={fps}" + (f",{sdr}" if sdr else "") + (f",scale={w}:{h}:flags=bilinear" if k < 1 else "")
         self.p = subprocess.Popen([config.FFMPEG, "-v", "error", "-ss", f"{max(0.0, s0):.3f}", "-i", str(path),
-                                   "-t", f"{dur + 0.25:.3f}", "-vf", f"fps={fps}", "-f", "rawvideo",
-                                   "-pix_fmt", "bgr24", "-"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                                   "-t", f"{dur + 0.25:.3f}", "-vf", vf,
+                                   "-f", "rawvideo", "-pix_fmt", "bgr24", "-"],
+                                  stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
     def read(self) -> np.ndarray:
         n = self.w * self.h * 3
         buf = self.p.stdout.read(n)
         if len(buf) == n:
             self.last = np.frombuffer(buf, np.uint8).reshape(self.h, self.w, 3)
-        elif self.last is None:
-            self.last = np.zeros((self.h, self.w, 3), np.uint8)
+        else:
+            self.short += 1
+            if self.last is None:
+                self.last = np.zeros((self.h, self.w, 3), np.uint8)
         return self.last
 
     def close(self) -> None:
@@ -332,12 +343,16 @@ def _fit(a: np.ndarray, n: int) -> np.ndarray:
     return a[:n] if len(a) >= n else np.concatenate([a, np.zeros(n - len(a), np.float32)])
 
 
-def _fade(a: np.ndarray, ms: float) -> np.ndarray:
-    k = min(len(a) // 2, int(SR * ms / 1000))
-    if k > 1:
-        r = np.linspace(0, 1, k, dtype=np.float32)
-        a[:k] *= r
-        a[-k:] *= r[::-1]
+def _fade(a: np.ndarray, ms: float, ms_out: float | None = None) -> np.ndarray:
+    """Vuốt mép vào `ms`, mép ra `ms_out` (mặc định bằng mép vào)."""
+    for k, head in ((int(SR * ms / 1000), True), (int(SR * (ms if ms_out is None else ms_out) / 1000), False)):
+        k = min(len(a) // 2, k)
+        if k > 1:
+            r = np.linspace(0, 1, k, dtype=np.float32)
+            if head:
+                a[:k] *= r
+            else:
+                a[-k:] *= r[::-1]
     return a
 
 
@@ -349,19 +364,48 @@ def write_wav(path: Path, a: np.ndarray) -> None:
         w.writeframes((np.clip(a, -1, 1) * 32767).astype(np.int16).tobytes())
 
 
-def build_audio(job: Path, e: dict, src: dict, work: Path, sfx: list | None = None) -> Path:
+def write_wav_f32(path: Path, a: np.ndarray) -> None:
+    """WAV số thực 32-bit (không cắt đỉnh, không làm tròn) — stem tiếng để cộng lại đúng bằng bản trộn."""
+    import struct
+    b = np.ascontiguousarray(a, dtype="<f4").tobytes()
+    hdr = (b"RIFF" + struct.pack("<I", 36 + len(b)) + b"WAVEfmt " +
+           struct.pack("<IHHIIHH", 16, 3, 1, SR, SR * 4, 4, 32) + b"data" + struct.pack("<I", len(b)))
+    path.write_bytes(hdr + b)
+
+
+def build_audio(job: Path, e: dict, src: dict, work: Path, sfx: list | None = None,
+                stems: Path | None = None) -> Path:
+    """Ghép tiếng → work/mix.wav. stems = thư mục ghi thêm TỪNG LỚP riêng (WAV số thực, cùng độ dài, cộng lại = bản
+    trộn trước khi làm tròn 16-bit): voice (đã lọc/nén) · ambient (tiếng gốc cảnh phủ) · music · sfx (cả lớp) + mỗi
+    tiếng động 1 file sfx_NN.wav đúng mốc → stems.json. Bản trộn KHÔNG đổi vì stem chỉ là bản chép từng lớp."""
     T = e["duration"]
     n = int(round(T * SR))
     voice = np.zeros(n, np.float32)
+    # Các đoạn LIỀN nhau (cùng nguồn, đoạn sau bắt đầu đúng chỗ đoạn trước dừng — cut.py tách chỉ để đổi cỡ khung) đọc
+    # MỘT lần, không vuốt ở giữa: trước 10/11 mỗi đoạn tự vuốt 8ms hai đầu → giữa lời đang nói có một chỗ lõm ~16ms
+    # (đo: −13 → −31 → −12 dB), nghe như tiếng "nấc" mỗi lần đổi cỡ khung.
+    runs = []
     for p in e["pieces"]:
-        k0, k1 = int(round(p["t0"] * SR)), int(round(p["t1"] * SR))
-        seg = _fade(_fit(read_audio(job / src[p["src"]]["file"], p["in"], p["out"] - p["in"]), k1 - k0), 8)
+        last = runs[-1][-1] if runs else None
+        if last and last["src"] == p["src"] and abs(last["out"] - p["in"]) < 0.002 and abs(last["t1"] - p["t0"]) < 0.002:
+            runs[-1].append(p)
+        else:
+            runs.append([p])
+    for run_ in runs:
+        a, b = run_[0], run_[-1]
+        k0, k1 = int(round(a["t0"] * SR)), int(round(b["t1"] * SR))
+        # vuốt mép 8ms: mép cắt nằm trong khoảng lặng giữa hai từ. Đoạn KHÔNG LỜI (c.sound) cắt giữa tiếng liên tục
+        # (nước chảy, tiếng nền) khai `fade_ms` dài hơn trong edit.json.
+        seg = _fade(_fit(read_audio(job / src[a["src"]]["file"], a["in"], b["out"] - a["in"]), k1 - k0),
+                    float(a.get("fade_ms", 8)), float(b.get("fade_ms", 8)))
         voice[k0:k1] += seg
     raw = work / "voice_raw.wav"
     write_wav(raw, voice)
     cfg = e["audio"]
     vo = work / "voice.wav"
-    if cfg.get("clean", True):  # lọc ù + nén giọng (mẫu: dải động rất hẹp, LRA 1,8)
+    # lọc ù + nén giọng (mẫu: dải động rất hẹp, LRA 1,8). Bản dựng TOÀN đoạn tiếng động (ASMR) mặc định không lọc/nén:
+    # bộ nén giọng kéo tiếng nền lên giữa các tiếng động.
+    if cfg.get("clean", not all(p.get("kind") == "sound" for p in e["pieces"])):
         media.run([config.FFMPEG, "-y", "-v", "error", "-i", str(raw), "-af",
                    "highpass=f=75,acompressor=threshold=-22dB:ratio=3:attack=6:release=120:makeup=2,"
                    "alimiter=limit=0.89:level=0", "-ar", str(SR), "-ac", "1", str(vo)])
@@ -369,11 +413,15 @@ def build_audio(job: Path, e: dict, src: dict, work: Path, sfx: list | None = No
         raw.replace(vo)
     mix = read_audio(vo, 0, T + 0.5)
     mix = _fit(mix, n)
+    layer = {"voice": mix.copy()} if stems else None   # từng lớp (chỉ khi ghi stem)
+    events = []   # tiếng động: (mẫu đầu, mảng, tên file gốc, gain_db)
     for c in e["covers"]:   # tiếng gốc của cảnh minh hoạ (mặc định tắt)
         if c.get("ambient"):
             k0, k1 = int(round(c["t0"] * SR)), int(round(c["t1"] * SR))
             amb = _fade(_fit(read_audio(job / src[c["src"]]["file"], c["src_in"], c["t1"] - c["t0"]), k1 - k0), 40)
             mix[k0:k1] += amb * float(c["ambient"])
+            if layer is not None:
+                layer.setdefault("ambient", np.zeros(n, np.float32))[k0:k1] += amb * float(c["ambient"])
     if cfg.get("music"):
         mp = Path(cfg["music"])
         mp = mp if mp.is_absolute() else job / mp
@@ -388,6 +436,8 @@ def build_audio(job: Path, e: dict, src: dict, work: Path, sfx: list | None = No
             mus[:k] *= np.linspace(0, 1, k, dtype=np.float32)
             mus[-k:] *= np.linspace(1, 0, k, dtype=np.float32)
             mix += mus
+            if layer is not None:
+                layer["music"] = mus
     for f, gain_db, at in sfx or []:   # tiếng hiệu ứng của scene (giấy vút, kính ting…) — đỉnh gain_db dBFS, dưới giọng
         s = read_audio(Path(f), 0, 3.0)
         if len(s):
@@ -396,8 +446,25 @@ def build_audio(job: Path, e: dict, src: dict, work: Path, sfx: list | None = No
             k1 = min(n, k0 + len(s))
             if k1 > k0:
                 mix[k0:k1] += s[:k1 - k0]
+                if layer is not None:
+                    layer.setdefault("sfx", np.zeros(n, np.float32))[k0:k1] += s[:k1 - k0]
+                    events.append((k0, s[:k1 - k0], Path(f).name, float(gain_db)))
     out = work / "mix.wav"
     write_wav(out, mix)
+    if stems:
+        stems.mkdir(parents=True, exist_ok=True)
+        for old in stems.glob("*.wav"):   # lần dựng trước có thể nhiều tiếng động hơn
+            old.unlink()
+        man = {"sr": SR, "samples": n, "duration": T, "stems": {}, "sfx_events": []}
+        for k, a in layer.items():
+            write_wav_f32(stems / f"{k}.wav", a)
+            man["stems"][k] = {"file": f"{k}.wav", "peak": round(float(np.abs(a).max()), 4)}
+        for i, (k0, a, name, gd) in enumerate(events):
+            fn = f"sfx_{i + 1:02d}.wav"
+            write_wav_f32(stems / fn, a)
+            man["sfx_events"].append({"file": fn, "src": name, "gain_db": gd, "k0": k0, "at": round(k0 / SR, 6),
+                                      "dur": round(len(a) / SR, 4)})
+        (stems / "stems.json").write_text(json.dumps(man, ensure_ascii=False, indent=1), encoding="utf-8")
     return out
 
 
@@ -940,62 +1007,142 @@ def render_graphics(e: dict) -> list[dict]:
     return out
 
 
-def run(job_id: str, final: bool = False) -> dict:
+_AUTO_PARAMS = ("y", "layout", "side", "loupe", "loupe_v")   # tham số run() tự đặt (plan_behind / plan_loupe)
+
+
+def _gkey(g: dict) -> tuple:
+    p = {k: v for k, v in (g.get("params") or {}).items() if k not in _AUTO_PARAMS}
+    return g["id"], round(float(g["t0"]), 3), round(float(g["t1"]), 3), json.dumps(p, sort_keys=True, ensure_ascii=False)
+
+
+def draft_graphics(job: Path, e: dict) -> list[dict]:
+    """Bản NHÁP: không render đồ hoạ (không Chrome chụp, không cache mới) — chỉ giữ mốc giờ, chuyển cảnh vào và tiếng
+    động của scene. Mốc tiếng 'chạm' cần text_qa → lấy lại ở render_preview/final.json trước (cùng id + giờ + tham số);
+    chưa có thì mở trang đọc qa (~3s / thẻ, không chụp khung) để tiếng động vẫn ĐÚNG mốc như bản dựng."""
+    old = {}
+    for nm in ("render_final.json", "render_preview.json"):   # preview ghi sau cùng thắng
+        p = job / nm
+        if p.exists():
+            for g in json.loads(p.read_text(encoding="utf-8")).get("graphics", []):
+                if "params" in g:
+                    old[_gkey(g)] = g.get("text_qa")
+    out = []
+    for g in e.get("graphics", []):
+        k = _gkey(g)
+        if not g.get("scene"):
+            qa, how = None, "không phải scene"
+        elif k in old:
+            qa, how = old[k], "render trước"
+        else:
+            from studio import motionlib, scenes
+            qa, how = scenes.text_qa(motionlib.get(g["id"]), g["params"]), "đọc trang"
+        out.append({**g, "info": None, "seconds": 0.0, "text_qa": qa, "qa_from": how})
+    return out
+
+
+def cut_marks(e: dict, sh: list[dict], trans: list) -> list[dict]:
+    """Mốc các MỐI CẮT trên trục ra (giây) để soát nháp: đổi hình (đổi cảnh / cảnh phủ / màn chữ) + cắt lời (nối hai
+    đoạn lời không liền nhau trong nguồn — kể cả nằm dưới cảnh phủ, chỉ nghe thấy)."""
+    tk = dict(trans)
+    marks = {}
+    for a, b in zip(sh, sh[1:]):
+        t = round(b["t0"], 3)
+        marks[t] = {"t": t, "hinh": f"{a['ref']} → {b['ref']}", "trans": tk.get(round(b["t0"], 4), "cut")}
+    ps = sorted(e["pieces"], key=lambda p: p["t0"])
+    for a, b in zip(ps, ps[1:]):
+        if a["src"] == b["src"] and abs(a["out"] - b["in"]) < 0.02:
+            continue   # liền nguồn = không phải mối cắt
+        t = round(b["t0"], 3)
+        near = next((m for m in marks if abs(m - t) < 0.05), None)
+        m = marks.setdefault(near if near is not None else t, {"t": t})
+        m["loi"] = f"{a['src']}@{a['out']:.2f} → {b['src']}@{b['in']:.2f}" + \
+                   (f" (bỏ {b['in'] - a['out']:.2f}s)" if a["src"] == b["src"] and b["in"] > a["out"] else "")
+    return [marks[k] for k in sorted(marks)]
+
+
+def _tag(f: np.ndarray, txt: str, y: int) -> None:
+    """Chữ ASCII nhỏ trên khung nháp (mã giờ / đồ hoạ bỏ qua) — cv2 không vẽ được dấu tiếng Việt."""
+    s = f.shape[1] / 900
+    cv2.putText(f, txt, (8, y), cv2.FONT_HERSHEY_SIMPLEX, s, (0, 0, 0), 3, cv2.LINE_AA)
+    cv2.putText(f, txt, (8, y), cv2.FONT_HERSHEY_SIMPLEX, s, (0, 255, 255), 1, cv2.LINE_AA)
+
+
+def run(job_id: str, final: bool = False, draft: bool = False) -> dict:
+    """Dựng preview (540 ngang) / final (1080). draft=True: bản NHÁP chốt điểm cắt → draft.mp4 360 ngang, bỏ chữ động,
+    đồ hoạ, chữ sau người, clip bằng chứng, logo; giữ trục dựng (cắt, cảnh phủ, cỡ khung/zoom/punch, chuyển cảnh, nền
+    màn chữ) + tiếng ĐẦY ĐỦ (giọng + nhạc + tiếng động đúng mốc). Ghi riêng render/draft/, không đụng preview/final."""
     job = project.job_path(job_id)
     e = json.loads((job / "edit.json").read_text(encoding="utf-8"))
     src = project.load_sources(job)
     out_cfg = e["out"]
-    scale = 1.0 if final else 0.5
+    final = final and not draft
+    scale = 1 / 3 if draft else 1.0 if final else 0.5
     W, H, fps = int(out_cfg["w"] * scale) // 2 * 2, int(out_cfg["h"] * scale) // 2 * 2, out_cfg["fps"]
+    name = "draft" if draft else "final" if final else "preview"
     work = job / "render"
     work.mkdir(exist_ok=True)
+    awork = work / "draft" if draft else work   # tiếng nháp ghi riêng → không đè render/mix.wav của preview/final
+    awork.mkdir(exist_ok=True)
     t_start = time.time()
+    tm = {}   # giây từng bước → render report (biết thời gian nằm ở đâu)
     focus_faces(job, e, src)
     sh, trans = shots(e, src)
     T = e["duration"]
     N = int(round(T * fps))
+    tm["shots"] = round(time.time() - t_start, 2)
 
-    plan_behind(job, e, src, sh)   # chữ sau người / bố cục: quyết định + tự đặt y TRƯỚC khi render đồ hoạ
-    plan_loupe(job, e, src, sh)    # kính lúp C09: khung RA đúng lúc chỉ
-    graphics = render_graphics(e)
-    proofs = {gi: pp for gi, g in enumerate(graphics) if (pp := ProofPainter(job, src, g, W, H)).ok}   # C08 clip thật
-    avoid = []   # đồ hoạ giữ chữ động (tiêu đề ghim) → chữ động né vùng của nó
-    for g in graphics:
-        ar = (g.get("text_qa") or {}).get("area")
-        if g.get("captions_keep") and ar:
-            cw, ch = g["info"]["canvas"]
-            avoid.append((g["t0"], g["t1"], (ar["x"] * W / cw, ar["y"] * H / ch, ar["w"] * W / cw, ar["h"] * H / ch)))
-    with Kinetic(e.get("style", "cinematic"), W, H, (e.get("style_cfg") or {}).get("skin")) as kin:
-        placements = plan_captions(job, e, src, sh, kin, W, H, avoid)
-        t_cap = time.time()
-        cap_idx = kin.frames(T, fps, work / "captions")
-        captured = kin.captured
-    t_cap = time.time() - t_cap
+    t = time.time()
+    if draft:
+        graphics, proofs, placements, cap_idx, captured, t_cap = draft_graphics(job, e), {}, [], [], 0, 0.0
+        tm["graphics"] = round(time.time() - t, 2)
+    else:
+        plan_behind(job, e, src, sh)   # chữ sau người / bố cục: quyết định + tự đặt y TRƯỚC khi render đồ hoạ
+        plan_loupe(job, e, src, sh)    # kính lúp C09: khung RA đúng lúc chỉ
+        graphics = render_graphics(e)
+        tm["graphics"] = round(time.time() - t, 2)
+        proofs = {gi: pp for gi, g in enumerate(graphics) if (pp := ProofPainter(job, src, g, W, H)).ok}   # C08 clip thật
+        avoid = []   # đồ hoạ giữ chữ động (tiêu đề ghim) → chữ động né vùng của nó
+        for g in graphics:
+            ar = (g.get("text_qa") or {}).get("area")
+            if g.get("captions_keep") and ar:
+                cw, ch = g["info"]["canvas"]
+                avoid.append((g["t0"], g["t1"], (ar["x"] * W / cw, ar["y"] * H / ch, ar["w"] * W / cw, ar["h"] * H / ch)))
+        with Kinetic(e.get("style", "cinematic"), W, H, (e.get("style_cfg") or {}).get("skin")) as kin:
+            placements = plan_captions(job, e, src, sh, kin, W, H, avoid)
+            t_cap = time.time()
+            cap_idx = kin.frames(T, fps, work / "captions")
+            captured = kin.captured
+        t_cap = time.time() - t_cap
     for g in graphics:   # vào đồ hoạ bằng chuyển cảnh (mẫu: 1 khung loé trắng-đen); ra = animation tự nhoè về trong suốt
         if g["trans"] != "cut":
             trans = sorted(set(trans) | {(round(g["t0"], 4), g["trans"])})
     from studio import scenes
     sfx = [ev for g in graphics if (prof := scenes.for_motion(g["id"])) for ev in scenes.sfx_events(prof, g)]
     sfx += [(PUNCH_SFX, -22.0, p["t"]) for p in e.get("punches") or [] if p.get("sfx", True) and PUNCH_SFX.exists()]
-    audio = build_audio(job, e, src, work, sfx)
+    t = time.time()
+    stems_dir = None if draft else awork / f"stems_{name}"   # nháp không xuất CapCut → không ghi stem (~30MB)
+    audio = build_audio(job, e, src, awork, sfx, stems=stems_dir)
+    tm["audio"] = round(time.time() - t, 2)
 
-    name = "final" if final else "preview"
     out = job / f"{name}.mp4"
     tmp = job / f"{name}.tmp.mp4"
     interp = cv2.INTER_CUBIC if final else cv2.INTER_LINEAR
-    enc = ["-preset", "medium", "-crf", "18"] if final else ["-preset", "veryfast", "-crf", "23"]
+    enc = (["-preset", "medium", "-crf", "18"] if final else ["-preset", "ultrafast", "-crf", "30"] if draft
+           else ["-preset", "veryfast", "-crf", "23"])
     writer = subprocess.Popen([config.FFMPEG, "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "bgr24",
                                "-s", f"{W}x{H}", "-r", str(fps), "-i", "-", "-i", str(audio), "-map", "0:v", "-map", "1:a",
-                               "-c:v", "libx264", *enc, "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
+                               "-c:v", "libx264", *enc, *media.BT709_OUT, "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
                                "-ar", str(SR), "-movflags", "+faststart", "-shortest", str(tmp)], stdin=subprocess.PIPE)
-    logo = _logo(e, W, H)
+    t_frames = time.time()
+    starved = []   # nguồn hết sớm → hình đứng ở khung cuối (QA báo)
+    logo = None if draft else _logo(e, W, H)
     grade = _grade(W, H, e.get("grade", "cinematic")) if e.get("grade", "cinematic") else None
     card_ranges = [(c["t0"], c["t1"]) for c in e["cards"]]
     # logo ẩn trong lúc đồ hoạ phủ kín (trừ đoạn nhoè cuối 0,3s)
     card_ranges += [(g["t0"], g["t1"] - 0.12) for g in graphics if g.get("covers", True)]   # micro (không phủ) giữ logo
     card_ranges += [(g["t0"], g["t1"]) for g in graphics if g.get("hide_logo")]   # tiêu đề ghim chiếm góc trên → ẩn logo
     greaders: dict[int, GraphicReader] = {}
-    behind = {gi for gi, g in enumerate(graphics) if (g.get("behind_plan") or {}).get("use")}
+    behind = set() if draft else {gi for gi, g in enumerate(graphics) if (g.get("behind_plan") or {}).get("use")}
     matte = PersonMatte() if behind else None
     keep_dots = {}   # vùng KHÔNG khoét của đồ hoạ sau người: dấu nặng (đầu che = sai chữ) + nhãn con / dòng nhỏ
     for gi in behind:
@@ -1020,8 +1167,10 @@ def run(job_id: str, final: bool = False) -> dict:
             reader = None
             if s["kind"] != "card":
                 ss = src[s["src"]]
+                # nháp: giải mã ở ~2× cỡ cần cho khung ra (zoom / punch tới 2× vẫn đủ nét cho việc soát cắt)
+                kd = min(1.0, 2 * max(W / ss["width"], H / ss["height"])) if draft else 1.0
                 reader = Reader(job / ss["file"], s["s0"] + (i0 / fps - s["t0"]) * s["speed"],
-                                (i1 - i0) / fps * s["speed"], fps / s["speed"], ss["width"], ss["height"])
+                                (i1 - i0) / fps * s["speed"], fps / s["speed"], ss["width"], ss["height"], k=kd)
             last_of_prev = prev_frame
             for i in range(i0, i1):
                 t = i / fps
@@ -1046,6 +1195,8 @@ def run(job_id: str, final: bool = False) -> dict:
                     if pp.active(t):
                         f = pp.paint(f, t, fps)
                 for gi, g in enumerate(graphics):   # đồ hoạ phủ khung: trên hình, dưới chuyển cảnh/logo/chữ
+                    if draft:
+                        break
                     if g["t0"] <= t < g["t1"]:
                         if gi not in greaders:
                             greaders[gi] = GraphicReader(g["info"], g["t0"], W, H)
@@ -1093,8 +1244,17 @@ def run(job_id: str, final: bool = False) -> dict:
                         cap_cache[ent[0]] = cv2.imread(str(work / "captions" / ent[0]), cv2.IMREAD_UNCHANGED)
                     f = f.copy() if f is base else f
                     _blend(f, cap_cache[ent[0]], ent[1], ent[2])
+                if draft:   # mã giờ + đồ hoạ đang bỏ qua (bản dựng thật có thẻ phủ ở đây)
+                    f = f.copy() if f is base else f
+                    _tag(f, f"{t:6.2f}s  {s['ref']}", int(H * 0.04))
+                    gs = [g["id"].replace("scene-", "") for g in graphics if g["t0"] <= t < g["t1"]]
+                    if gs:
+                        _tag(f, "GFX " + " + ".join(gs), int(H * 0.97))
                 writer.stdin.write(np.ascontiguousarray(f).tobytes())
             if reader:
+                if reader.short and not src[s["src"]].get("still"):   # ảnh tĩnh đứng hình là đúng
+                    starved.append({"src": s["src"], "kind": s["kind"], "t0": round(s["t0"], 3), "t1": round(s["t1"], 3),
+                                    "frames": reader.short})
                 reader.close()
     finally:
         for gr in greaders.values():
@@ -1103,8 +1263,28 @@ def run(job_id: str, final: bool = False) -> dict:
             pp.close()
         writer.stdin.close()
         writer.wait()
-    lufs = _normalize_loudness(tmp, float(e["audio"].get("voice_lufs", -14.0)))
+    tm["frames"] = round(time.time() - t_frames, 2)
+    t = time.time()
+    norm = {}   # mức bù độ to đã áp cho cả bản → stem mang cùng mức (bản nháp CapCut nhiều track tiếng)
+    lufs = _normalize_loudness(tmp, float(e["audio"].get("voice_lufs", -14.0)), info=norm)
+    tm["loudness"] = round(time.time() - t, 2)
     tmp.replace(out)
+    audio_stems = None
+    if stems_dir:
+        man = json.loads((stems_dir / "stems.json").read_text(encoding="utf-8"))
+        audio_stems = {"dir": stems_dir.relative_to(job).as_posix(), **man, **norm}
+    marks = cut_marks(e, sh, trans)
+    if draft:
+        rep = {"output": out.name, "draft": True, "final": False, "size": [W, H], "fps": fps, "duration": T, "frames": N,
+               "seconds": round(time.time() - t_start, 1), "timings": tm, "lufs": lufs, "cuts": marks, "shots": sh,
+               "transitions": trans, "starved": starved, "audio": awork.relative_to(job).as_posix() + "/mix.wav",
+               "sfx": [{"file": Path(f).name, "gain_db": gd, "at": at} for f, gd, at in sfx], "loudness": norm,
+               "skipped": ["chữ động", "đồ hoạ Scene Library", "chữ sau người", "clip bằng chứng trong khung", "logo"],
+               "graphics": [{"id": g["id"], "t0": g["t0"], "t1": g["t1"], "trans": g["trans"], "qa_from": g["qa_from"]}
+                            for g in graphics]}
+        (job / f"render_{name}.json").write_text(json.dumps(rep, ensure_ascii=False, indent=1, default=float),
+                                                 encoding="utf-8")
+        return rep
     name_b = {}
     for gi in behind:   # mặt nạ người theo khung → `vs.py edit capcut` khoét lại chữ ở cỡ 1080 (chữ nét, không phóng)
         g, gr_box = graphics[gi], graphic_box(graphics[gi]["info"], W, H)
@@ -1125,7 +1305,8 @@ def run(job_id: str, final: bool = False) -> dict:
     rep = {"output": out.name, "final": final, "size": [W, H], "fps": fps, "duration": T, "frames": N,
            "seconds": round(time.time() - t_start, 1), "caption_seconds": round(t_cap, 1),
            "caption_frames_captured": captured, "lufs": lufs, "face_check": face_ready(), "shots": sh, "transitions": trans,
-           "placements": placements, "poster": poster.name,
+           "placements": placements, "poster": poster.name, "starved": starved, "timings": tm, "cuts": marks,
+           "audio_stems": audio_stems,
            "sfx": [{"file": Path(f).name, "gain_db": gd, "at": at} for f, gd, at in sfx],
            "graphics": [{"id": g["id"], "t0": g["t0"], "t1": g["t1"], "mov": g["info"]["mov"], "covers": g.get("covers", True), "text_qa": g.get("text_qa"),
                          "bbox": g["info"]["bbox"], "canvas": g["info"]["canvas"], "fps": g["info"]["fps"],

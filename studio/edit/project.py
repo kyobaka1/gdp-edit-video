@@ -4,6 +4,8 @@
   sources.json            thông số + đường gốc + chép lời (words có mốc) + ảnh lưới từng nguồn
   asr/<key>.json          kết quả Whisper (cache) · asr/<key>.fixed.json lời đã đối chiếu văn bản chuẩn
   sheets/<key>.jpg        ảnh lưới 8 khung có mốc giây — Claude xem để chọn đoạn minh hoạ
+  sound/<key>.json        tiếng động (sound.py, cache): cụm tiếng #n, mốc bật, điểm lặng — cắt clip KHÔNG LỜI (c.sound)
+  sheets/<key>.sound.jpg  ảnh soát: dải khung 0,5s + sóng âm cùng trục, vạch giây, cụm #n, mốc bật, điểm lặng
   plan.md                 PLAN của Sếp (hoặc Claude soạn khi Sếp bảo "tự làm") — ý, thứ tự, cảnh, chữ nhấn
   cut.py → edit.json      Claude viết cut.py (studio/edit/cutlib.py) = quyết định dựng
 """
@@ -14,7 +16,7 @@ from datetime import datetime
 from pathlib import Path
 
 from studio import config, media
-from studio.edit import asr
+from studio.edit import asr, sound
 
 VIDEO_EXT = {".mp4", ".mov", ".m4v", ".mkv", ".webm"}
 AUDIO_EXT = {".wav", ".mp3", ".m4a", ".aac", ".flac", ".ogg"}
@@ -64,6 +66,8 @@ def _probe(p: Path) -> dict:
         rot = next((abs(int(sd.get("rotation", 0))) for sd in v.get("side_data_list", []) if "rotation" in sd), 0)
         w, h = (v["height"], v["width"]) if rot in (90, 270) else (v["width"], v["height"])
         res.update(width=w, height=h, fps=round(float(num) / float(den or 1), 3))
+        if media.is_hdr(p):   # build.Reader + ảnh lưới tự đưa về SDR; ghi lại để Claude biết mà soát màu
+            res["hdr"] = True
     return res
 
 
@@ -187,12 +191,47 @@ def ingest(job_id: str) -> dict:
             r = asr.transcribe(f, d / "asr" / f"{key}.json", hint=h)
             s["speech"] = r["speech"]
             s["dropped"] = r["dropped"]
-            if s.get("reference"):
+            fixed = d / "asr" / f"{key}.fixed.json"
+            if s.get("reference") and fixed.exists() and fixed.stat().st_mtime >= (d / "asr" / f"{key}.json").stat().st_mtime \
+                    and json.loads(fixed.read_text(encoding="utf-8")).get("reference") == s["reference"]:
+                s["words_file"] = f"asr/{key}.fixed.json"   # đã đối chiếu, lời Whisper không đổi → giữ nguyên (10/11: ingest
+                # lại từng đối chiếu lại kiểu tin hết văn bản, làm hỏng bản `fix --hear` — c01 thêm "Mọi người ơi" 0–0,36s)
+            elif s.get("reference"):
                 fix(job_id, key, s["reference"], src=src)
             else:
                 s.setdefault("words_file", f"asr/{key}.json")
+            _sound(d, key, s)
     save_sources(d, src)
     return src
+
+
+def no_speech(s: dict) -> bool:
+    """Nguồn KHÔNG LỜI (hoặc lời rất ít: < 1s, hay < 10% thời lượng) → cắt theo tiếng động thay cho lời."""
+    sp = float(s.get("speech") or 0.0)
+    return sp < 1.0 or sp < 0.1 * float(s.get("duration") or 0.0)
+
+
+def _sound(d: Path, key: str, s: dict) -> dict:
+    """Phân tích tiếng động (cache sound/<key>.json) + ảnh soát sheets/<key>.sound.jpg (làm lại khi phân tích đổi)."""
+    f = d / s["file"]
+    info, fresh = sound.analyze(f, d / "sound" / f"{key}.json")
+    sheet = d / "sheets" / f"{key}.sound.jpg"
+    if fresh or not sheet.exists():
+        sheet.parent.mkdir(exist_ok=True)
+        sound.sheet(f, info, sheet, key, {"width": s["width"], "height": s["height"]} if s.get("has_video") and not s.get("still")
+                    else None)
+    s["sound"] = {"file": f"sound/{key}.json", "sheet": f"sheets/{key}.sound.jpg", "clusters": len(info["clusters"]),
+                  "onsets": len(info["onsets"]), "floor_db": info["floor_db"]}
+    return info
+
+
+def sound_info(d: Path, key: str, src: dict | None = None) -> dict:
+    """Kết quả tiếng động của nguồn `key` — chưa ingest (job cũ) thì phân tích ngay (nhanh, numpy)."""
+    s = (src or load_sources(d))[key]
+    p = d / (s.get("sound") or {}).get("file", f"sound/{key}.json")
+    if p.exists():
+        return json.loads(p.read_text(encoding="utf-8"))
+    return sound.analyze(d / s["file"], d / "sound" / f"{key}.json")[0]
 
 
 def fix(job_id: str, key: str, reference: str, src: dict | None = None, heard: bool = False) -> list[dict]:
@@ -221,12 +260,42 @@ def words(d: Path, key: str, src: dict | None = None) -> list[dict]:
 
 
 def contact_sheet(video: Path, duration: float, out: Path, label: str, n: int = 8) -> Path:
-    times = [round((k + 0.5) * duration / n, 2) for k in range(n)]
-    vf = (f"fps={n / max(duration, 0.1):.5f},scale=-2:300,"
+    font = config.FONT_REGULAR.as_posix().replace(":", "\\:")   # font đi kèm repo (trước gắn cứng Arial của Windows → lỗi trên Mac)
+    sdr = media.sdr_filter(video)
+    vf = (f"fps={n / max(duration, 0.1):.5f},scale=-2:300," + (f"{sdr}," if sdr else "") +
           "drawtext=text='%{pts\\:flt}':x=6:y=6:fontsize=20:fontcolor=yellow:box=1:boxcolor=black@0.65:"
-          "fontfile='C\\:/Windows/Fonts/arial.ttf',"
+          f"fontfile='{font}',"
           f"tile={n}x1:padding=3")
     media.run([config.FFMPEG, "-y", "-v", "error", "-i", str(video), "-vf", vf, "-frames:v", "1", str(out)])
+    return out
+
+
+def describe_sound(info: dict, key: str, sheet: str | None = None, limit: int = 40) -> list[str]:
+    """Bảng cụm tiếng động có mốc giây (thay cho lời) — để Claude viết c.sound(key, "#n" | giây, …)."""
+    cs, qs = info.get("clusters") or [], info.get("quiet") or []
+    out = [f"     KHÔNG LỜI → cắt theo tiếng: c.sound({key!r}, \"#1\", \"#3\") | c.sound({key!r}, giây, giây) · "
+           f"chữ: c.cap(\"…\", at=\"{key}#n\") · ảnh soát {sheet or '—'}",
+           f"     nền {info['floor_db']:.0f} dB · ngưỡng cụm {info['thr_db']:.0f} dB · {len(cs)} cụm · "
+           f"{len(info.get('onsets') or [])} mốc bật"]
+    if not cs:
+        out.append("     (không có tiếng động nào nổi trên nền — clip yên lặng / chỉ tiếng nền đều)")
+        return out
+    contrast = info["top_db"] - info["floor_db"]
+    cover = sum(c["dur"] for c in cs) / max(0.1, float(info["duration"]))
+    if contrast < 12 or cover > 0.75:   # quạt / xe / máy bay: "cụm" chỉ là nền dao động → đừng tin điểm cắt theo tiếng
+        out.append(f"     ⚠ tiếng nền ĐỀU (đỉnh chỉ hơn nền {contrast:.0f} dB, cụm phủ {cover:.0%} thời lượng) — cụm tiếng ít ý "
+                   "nghĩa, chọn điểm cắt theo HÌNH (ảnh soát); mép cắt vẫn vuốt 30ms")
+    out.append("        #    từ       đến     dài    đỉnh   kiểu      mốc bật (giây nguồn)")
+    for c in cs[:limit]:
+        ons = ", ".join(f"{t:.2f}" for t in c["onsets"][:6]) + (" …" if len(c["onsets"]) > 6 else "")
+        out.append(f"      {'#' + str(c['n']):>4} {c['t0']:6.2f} – {c['t1']:6.2f}  {c['dur']:5.2f}s  {c['peak_db']:5.0f}dB  "
+                   f"{c['kind']:<8}  {ons or '—'}")
+    if len(cs) > limit:
+        out.append(f"      … còn {len(cs) - limit} cụm (xem {sheet or 'sound/' + key + '.json'})")
+    good = [q for q in qs if q["hi"] - q["lo"] >= 0.15]
+    if good:
+        out.append("     điểm lặng (cắt an toàn): " + " · ".join(f"{q['t']:.2f}" for q in good[:24])
+                   + (" …" if len(good) > 24 else ""))
     return out
 
 
@@ -240,12 +309,20 @@ def describe(job_id: str) -> str:
     for key, s in src.items():
         kind = ("ẢNH AI" if s.get("ai") else "ảnh tĩnh") if s.get("still") else "clip" if s.get("has_video") else "tiếng"
         meta = f"{s['width']}x{s['height']} {s['fps']}fps" if s.get("has_video") else ""
+        meta += " · nguồn HDR (tự đưa về SDR — soát màu ảnh lưới)" if s.get("hdr") else ""
         ws = words(d, key, src)
         lines.append(f"[{key}] {kind} {s['duration']:.1f}s {meta} · lời {s.get('speech', 0):.1f}s"
                      + (f" · đã đối chiếu ({s.get('fixes', 0)} chỗ sửa)" if s.get("reference") else
                         (" · CHƯA đối chiếu (vs.py edit fix … --hear)" if ws else "")))
         for dr in s.get("dropped", []):
             lines.append(f"     bỏ câu bịa {dr['start']}–{dr['end']}s: {dr['text'][:60]} ({dr['why']})")
+        sp = s.get("sound") or {}
+        if sp and (d / sp["file"]).exists():
+            if s.get("has_audio") and no_speech(s):
+                lines += describe_sound(json.loads((d / sp["file"]).read_text(encoding="utf-8")), key, sp.get("sheet"))
+            else:
+                lines.append(f"     tiếng động: {sp['clusters']} cụm, {sp['onsets']} mốc bật, nền {sp['floor_db']:.0f} dB "
+                             f"({sp['file']} · ảnh {sp.get('sheet')})")
         if ws:
             row, t0 = [], ws[0]["start"]
             for i, w in enumerate(ws):

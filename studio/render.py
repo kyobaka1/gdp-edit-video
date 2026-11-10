@@ -106,11 +106,15 @@ def measure_true_peak(path: Path) -> float | None:
     return None if not m or m.group(1) == "-inf" else float(m.group(1))
 
 
-def _normalize_loudness(path: Path, target: float, tolerance: float = 0.5) -> float | None:
+def _normalize_loudness(path: Path, target: float, tolerance: float = 0.5, info: dict | None = None) -> float | None:
     """Đưa ĐỘ TO CẢ BẢN về mục tiêu: đo ebur128 → bù dB tuyến tính + chặn đỉnh, chép nguyên hình (-c:v copy).
     Chỉ chuẩn hoá từng lớp (giọng/nhạc) thì cả bản lệch theo giọng + kịch bản (20/10: LTENG VN −16,4, HCM −15,4,
-    GDP −14,9 cùng thông số); loudnorm 1 lượt cũng hụt (−15,9 / −15,1)."""
+    GDP −14,9 cùng thông số); loudnorm 1 lượt cũng hụt (−15,9 / −15,1).
+    info (tuỳ chọn, dict) = ghi lại mức đã áp: lufs_before, gain_db (bù thật của lượt mã hoá cuối, 0 = không đụng),
+    limit (ngưỡng chặn, None = không chặn) — dựng bản nháp CapCut từng track tiếng dùng lại đúng mức bù này."""
     now = measure_lufs(path)
+    if info is not None:
+        info.update(lufs_before=now, gain_db=0.0, limit=None)
     if now is None:
         return now
     if abs(now - target) <= tolerance:
@@ -127,6 +131,8 @@ def _normalize_loudness(path: Path, target: float, tolerance: float = 0.5) -> fl
                    # (20/10 ra đỉnh +0,9 dBFS) ; AAC còn sinh thêm đỉnh ảo nên phải chừa khoảng
                    "-af", f"volume={gain:.2f}dB,alimiter=limit={limit:.3f}:level=0", "-c:a", "aac", "-b:a", "192k",
                    "-ar", "48000", "-movflags", "+faststart", str(tmp)])
+        if info is not None:
+            info.update(gain_db=float(f"{gain:.2f}"), limit=float(f"{limit:.3f}"))   # đúng số đã đưa vào bộ lọc
         got, tp = measure_lufs(tmp), measure_true_peak(tmp)
         # tiếng rè / click gắt trong giọng gốc (07/11 test vlog: mẫu nhảy dấu ±0,3 ở 22,77s) → AAC sinh đỉnh GIỮA các mẫu
         # cao hơn ngưỡng chặn ~2,5 dB → hạ ngưỡng đúng phần vượt rồi mã hoá lại

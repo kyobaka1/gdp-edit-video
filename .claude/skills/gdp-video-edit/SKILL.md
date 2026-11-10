@@ -53,13 +53,22 @@ Mỗi video PHẢI rõ một trong hai, chưa rõ thì **DỪNG, hỏi Sếp** (
    riêng: `vs.py edit add <id> giong.wav --key vo --text kich_ban.txt` (có kịch bản = chữ chuẩn 100%).
    Chưa có PLAN mà Sếp bảo tự làm → Claude soạn `plan.md` theo `plan-template.md`, ghi rõ "Claude soạn".
 2. `vs.py edit ingest <id>` — Whisper large-v3 trên GPU (RTX 4060, ~15s cho 80s lời) chép lời **có mốc từng từ** +
-   `sheets/<key>.jpg` (8 khung có giây). In bảng lời từng nguồn. Xem ảnh lưới bằng Read (Claude lái) hoặc `vs.py look`.
+   `sheets/<key>.jpg` (8 khung có giây) + **phân tích tiếng động** `sound/<key>.json` và ảnh `sheets/<key>.sound.jpg`
+   (dải khung 0,5s + độ to cùng trục, cụm tiếng đánh số #n). In bảng lời từng nguồn; nguồn **không lời** in bảng cụm
+   tiếng động thay cho lời (mục "Video KHÔNG LỜI"). Xem ảnh bằng Read (Claude lái) hoặc `vs.py look`. Nguồn HDR
+   (iPhone HLG/PQ) tự đưa về SDR, bảng ghi "nguồn HDR" → soát màu ảnh lưới.
 3. Lời giọng thật (không có kịch bản) → `vs.py edit fix <id> <key> --hear` (Gemini nghe lại, ~32 token/giây) để sửa
    chữ (Whisper sai ~2%: "tính tiền lợi", "danh thu", "phổ Coffee"). Mốc vẫn của Whisper. Chỗ in `⚠ nghe tay` = Gemini
    thêm nhiều từ Whisper không nghe ra (tiếng đám đông) → không dùng đoạn đó làm chữ, hoặc nghe tay rồi `--text`.
-4. **Đạo diễn = viết `jobs/<id>/cut.py`** (API ở dưới) → `vs.py edit cut <id>` in trục dựng + cảnh báo.
+4. **Đạo diễn = viết `jobs/<id>/cut.py`** (API ở dưới) → `vs.py edit cut <id>` in trục dựng + cảnh báo (kể cả cảnh
+   phủ dài hơn clip nguồn → sẽ đứng hình).
+   **Chốt điểm cắt trước bằng bản NHÁP**: `vs.py edit render <id> --draft` (~11s cho 40s video; preview ~50–150s) →
+   `draft.mp4` 360×640 chỉ có trục dựng (cắt, cảnh phủ, zoom, chuyển cảnh) + tiếng đầy đủ, KHÔNG chữ / đồ hoạ / logo;
+   in mốc từng mối cắt để tua tới. Nghe–xem mối cắt ổn rồi mới viết chữ + đồ hoạ và render preview.
 5. `vs.py edit render <id>` (540×960, ~45s cho 40s video) → `vs.py edit qa <id>` phải **ĐẠT**; xem `qa_preview.jpg`
-   (mỗi khối chữ 1 ảnh lúc đủ chữ) — soát chữ đọc được, không đè mặt/sản phẩm, cảnh đúng câu.
+   (mỗi khối chữ 1 ảnh lúc đủ chữ) — soát chữ đọc được, không đè mặt/sản phẩm, cảnh đúng câu — và
+   `qa_preview_cuts.jpg` (mỗi mối cắt lời 1 ô: khung trước | sau + độ to ±0,6s; nhãn đỏ = mép còn tiếng to, `=` = mối
+   liền chỉ đổi cỡ khung) — soát hình nhảy, tiếng cụt.
 6. Gửi Sếp `preview.mp4` + ảnh soát để duyệt nội dung (cắt, cảnh, chữ). Sau đó theo chế độ đã chốt ở bước 0:
    - **KHÔNG dùng CapCut**: `render --final` (1080×1920) + `qa --final` + `vs.py hear final.mp4` → gửi `final.mp4` +
      `final.jpg`. File > 30MB không tới được điện thoại → gửi kèm bản nén `-crf 25` (`final_xem.mp4`).
@@ -100,7 +109,12 @@ trước–sau / thử chịu lực / màn hình đánh giá thật · kết tr�
   TỰ NÂNG CẤP (thêm `Timelines/`, new_version 193) — Sếp mở + xuất thử được 05/11.
 - Timeline gồm: track chính = **clip GỐC** cắt đúng giờ (kéo lại chỗ cắt được) + `black.mp4` cho màn chữ · track đè
   = mỗi khối chữ động 1 clip nền trong suốt (dời giờ / xoá được, KHÔNG sửa được chữ) · logo · track **chữ thường
-  CapCut ẨN sẵn** (đúng lời từng khối — muốn đổi câu: bật đoạn đó, ẩn clip chữ động) · track tiếng đã chuẩn −14 LUFS.
+  CapCut ẨN sẵn** (đúng lời từng khối — muốn đổi câu: bật đoạn đó, ẩn clip chữ động) · **tiếng tách TRACK RIÊNG**
+  (10/11, học video-shotcraft): giọng · nhạc · tiếng gốc cảnh phủ · tiếng động (mỗi tiếng 1 đoạn, dời/xoá được, chồng
+  giờ thì chia làn) — phát chồng ra đúng −14 LUFS như bản dựng (mức bù + chặn đỉnh đã nướng vào từng file, âm lượng
+  đoạn để 0 dB; dựng viên kéo to/nhỏ từng track thì bộ chặn đỉnh không phản ứng lại). Stem ghi lúc render
+  (`render/stems_<bản>/`) → job render TRƯỚC 10/11 phải render lại mới có track riêng, chưa thì lùi về 1 track trộn sẵn.
+  ⚠ Chưa mở thử bằng CapCut thật (10/11): nhiều track tiếng + đoạn tiếng động 0,1s — lần đầu dùng phải soát.
 - KHÔNG mang sang: chỉnh màu, chuyển cảnh loé/tối/quét, zoom đẩy dần (dựng viên dùng hiệu ứng có sẵn của CapCut).
 - Đo 05/11: **PNG-trong-MOV và ProRes 4444 giữ nền trong suốt, WebM VP9 ra khung ĐEN** → mặc định `pngmov`
   (~3MB/khối). Khối chồng giờ chung 1 track → CapCut đẩy clip sau ra sau → chữ trễ dồn (0,7s) → bộ xuất xếp vào track
@@ -114,8 +128,12 @@ trước–sau / thử chịu lực / màn hình đánh giá thật · kết tr�
 ```python
 from studio.edit.cutlib import Cut
 c = Cut(__file__)
-c.say("c03", "tôi nói thẳng", "hoàn hảo hết")          # đoạn lời: cụm đầu → hết cụm cuối (tự né lẹm từ kề)
-c.say("c03", 12.4, 18.0, frame="tight", push=0.12)    # theo giây; frame wide|medium|tight|số; push = zoom dần
+c.say("c03", "tôi nói thẳng", "hoàn hảo hết")          # đoạn lời: cụm đầu → hết cụm cuối (tự né lẹm từ kề; mép tự dời
+                                                        #   tới chỗ tiếng TẮT THẬT — Whisper báo hết từ sớm 40–170ms; settle=False để tắt)
+c.say("c03", 12.4, 18.0, frame="tight", push=0.12)    # theo giây (giữ đúng giây); frame wide|medium|tight|số; push = zoom dần
+c.sound("c01", "#1", "#3")                              # KHÔNG LỜI: cắt theo cụm tiếng động #n (hoặc giây) — mục riêng bên dưới
+c.cap(".đá viên / !GIÒN TAN", at="c01#2", dur=2.0)     # chữ đặt theo GIÂY / mốc tiếng (không bám lời)
+c.auto_caps(keys=["Bắc Kinh", "miễn phí"])             # PHỤ ĐỀ NHANH: tự gom lời thành khối (video ra gấp) — mục riêng bên dưới
 c.say("vo", "Năm ngày", "cảnh đẹp")                     # giọng đọc riêng → BẮT BUỘC có cover/card che hình
 c.cover("c07", at="tiếp khách", until="tiện lợi cao", src_in=2.0, trans="flash", speed=0.8, push=0.05)
 c.card(at=0.0, until="16 năm")                          # màn đen chữ (mở đầu / câu chốt), tự tối dần vào/ra
@@ -396,12 +414,42 @@ Sếp cũng có thể tự xếp ở tab "Bảng phân cảnh" của trang rồi
 - ⛔ Ảnh AI chỉ minh hoạ bối cảnh/ý/chất liệu đồ hoạ — KHÔNG vẽ sản phẩm đang bán thay ảnh thật, KHÔNG làm bằng chứng;
   QA nhắc mỗi khi cảnh là ảnh AI. Không lấy khung hình video kênh khác làm ảnh tham chiếu.
 
+## Video KHÔNG LỜI — POV / ASMR (10/11: `studio/edit/sound.py`, test `tools\test_sound.py`)
+
+Clip pha cà phê, mở hộp, rót nước… không có lời để bám → bám **tiếng động**. ⚠ Mới thử trên tiếng tổng hợp + clip
+cảnh của vlog (10/11), CHƯA có clip ASMR thật — video thật đầu tiên phải nghe kỹ từng mối và báo lại ngưỡng.
+
+- `ingest` in cho nguồn không lời (lời < 1s hoặc < 10% thời lượng) bảng **cụm tiếng**: `#n t0–t1 · đỉnh dB · bật gọn
+  (≤0,4s: đá rơi, nắp bật) / kéo dài (rót, xay)`; mốc **tiếng bật** tìm theo độ TĂNG đột ngột của độ to (ngưỡng tương
+  đối so với nền của chính clip — không dùng −35 dB tuyệt đối, tiếng rót khẽ sẽ bị coi là im lặng). Dòng "tiếng nền
+  ĐỀU" = clip chỉ có tiếng nền (xe, quạt) → cụm ít ý nghĩa, cắt theo hình.
+- **Nhìn `sheets/<key>.sound.jpg` trước khi viết cut.py**: vạch đỏ = tiếng bật, tam giác xanh = chỗ cắt an toàn.
+- `c.sound(key, a, b, *, snap=0.5, fade_ms=30, pre=0.08, post=0.12, frame="wide")`: a/b = giây hoặc `"#n"`. Mép tự
+  **bám chỗ lặng** gần nhất ±snap (mép vào lùi về trước tiếng, mép ra ra sau đuôi — không cắt nửa tiếng đá); tiếng kéo
+  dài không có chỗ lặng → chỗ nhỏ tiếng nhất + cảnh báo "GIỮA tiếng" (nghe lại mối đó). **KHÔNG rút khoảng lặng** giữa
+  các tiếng (với ASMR lặng là nhịp). Vuốt mép 30ms (lời 8ms). Khung mặc định `wide` (cảnh tay/sản phẩm không tự zoom).
+- Mốc cho `cover`/`card`/`graphic`/`cap`: giây, hoặc `"c01#3"` = lúc cụm tiếng thứ 3 của c01 bật trên trục dựng.
+- Chữ: `c.cap(markup, at=…, until=… | dur=…)` — không bám lời, không bị cảnh báo "không có trong lời". Luật 5 vẫn áp:
+  không viết tuyên bố sản phẩm chưa có trong nguồn.
+- Bản dựng toàn `c.sound` mặc định KHÔNG lọc/nén giọng (bộ nén kéo tiếng nền lên giữa các tiếng động); QA bỏ kiểm
+  "đối chiếu lời" / "cắt giữa từ" cho đoạn không lời.
+
+## Phụ đề nhanh — `c.auto_caps()` (10/11, học video-use)
+
+Video cần ra gấp: giữ nguyên `say`/`cover`/`card`, thêm `c.auto_caps(keys=[…], max_words=6)` → tự gom lời thành khối
+(ngắt ở dấu câu + chỗ lặng ≥0,3s; khối quá dài tách ở khe lớn nhất; khối nói quá nhanh gộp với khối sau; cụm trong
+`keys` thành dòng `!` IN HOA và không bị tách). Khối `c.cap()` viết tay vẫn thắng ở đoạn của nó.
+⚠ Chưa biết từ ghép tiếng Việt → đôi lúc ngắt gãy ("tới mức đi | bộ mỏi cả chân"): soát `qa_*.jpg`, chỗ gãy thì ghi
+cụm vào `keys` hoặc viết `cap()` tay. Video chăm chút (hook, câu chốt) vẫn viết tay theo "Luật chữ động".
+
 ## Số đo QA (vs.py edit qa)
 
 Lời giọng thật đã đối chiếu · không cắt giữa từ (>30ms) · chữ ngoài vùng an toàn ≤1% · cụm khoá hiện ≥0,45s ·
-đúng cỡ/thời lượng · không khung đen ngoài màn chữ · cả bản −14 ±0,5 LUFS · đỉnh ≤ −1 dBTP. Chữ đè mặt: soát mắt
-`qa_*.jpg` (máy chỉ đo khi có file YuNet, ngưỡng ≤3% khối). Bản final: nghe lại 1 lần `vs.py hear final.mp4` (đủ lời,
-không cụt chữ ở chỗ nối).
+đúng cỡ/thời lượng · không khung đen ngoài màn chữ · **không đứng hình vì nguồn hết sớm** (>3 khung = lỗi) ·
+cả bản −14 ±0,5 LUFS · đỉnh ≤ −1 dBTP. Cảnh báo **"mép còn tiếng to"**: 12ms sát mép đoạn lời gần bằng đỉnh lời
+(≥ đỉnh −4 dB) = cắt vào chỗ đang có tiếng → nới mép / đổi cụm bám (nói liền hơi thì −6…−10 dB là thường, không báo).
+Chữ đè mặt: soát mắt `qa_*.jpg` (máy chỉ đo khi có file YuNet, ngưỡng ≤3% khối); mối cắt: soát `qa_*_cuts.jpg`.
+Bản final: nghe lại 1 lần `vs.py hear final.mp4` (đủ lời, không cụt chữ ở chỗ nối).
 
 ## Chi phí
 
@@ -422,6 +470,19 @@ Chữ động render bằng Chrome local; khung chữ đứng yên dùng lại �
   hình ngoài; Sếp chọn KHÔNG tải (05/11) → né mặt bằng soát mắt, QA chỉ nhắc.
 - Khoảng thở giữa câu làm lộ khung nền giữa 2 cảnh minh hoạ của giọng đọc → `save` tự nối khe ≤0,6s.
 - Khối nhiều từ rút chữ lâu (11 từ × 0,083s = 0,9s) đè khối sau → giới hạn cả khối rút ≤0,3s + 0,12s.
+
+Bẫy tìm ra 10/11 khi đối chiếu 3 repo mã nguồn mở (`docs/2026-11-10-doi-chieu-3-repo-ma-nguon-mo.md`) — đã vá:
+- **Whisper báo HẾT từ sớm hơn tiếng thật** ("robot" hết 24,40s, tiếng tới 24,57s) → mép ra cắt cụt đuôi 40–60ms mà
+  QA "cắt giữa từ" (tin mốc Whisper) không thấy. `say` giờ tự dời mép tới chỗ tiếng tắt (`sound.settle`) + QA đo mép.
+- **Tiếng "nấc" mỗi lần đổi cỡ khung**: hai `say` nối liền bị vuốt 8ms hai đầu → lõm 16ms giữa lời đang nói (−13 →
+  −31 dB). `build_audio` giờ đọc các đoạn liền thành MỘT lần, không vuốt ở giữa.
+- **Cảnh phủ dài hơn clip nguồn** → build lặng lẽ giữ khung cuối (mẫu `test-vlog-bac-kinh` c10: 1,57s kéo 1,89s, đứng
+  hình 0,4s, QA cũ vẫn ĐẠT). Giờ `cut` cảnh báo, QA báo lỗi.
+- **Bộ ghi không gắn tag màu** → trình phát HD giải theo BT.709 trong khi mã hoá theo BT.601: màu rực (logo, chữ màu
+  shop) lệch ~6 mức. Giờ gắn đủ bt709 (`media.BT709_OUT`). OpenCV đọc lại bỏ qua tag → ảnh soát QA lệch màu nhẹ, bản
+  giao thì đúng.
+- **Nguồn HDR** (iPhone HLG) đọc thẳng ra hình tối + bệt màu → `media.sdr_filter` đưa về SDR (chưa thử clip iPhone thật).
+- `media.probe` đọc góc xoay bị mục side data đứng sau (Dolby Vision) ghi đè về 0 → khung dọc hiểu thành ngang.
 
 ## Chưa làm
 

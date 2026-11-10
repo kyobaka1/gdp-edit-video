@@ -10,7 +10,9 @@ Lớp đưa lên timeline:
   track video chính   clip GỐC cắt đúng giờ (sửa lại chỗ cắt được) + màn đen (black.mp4) cho màn chữ
   track lớp đè        mỗi khối chữ động = 1 clip nền trong suốt (đổi giờ/xoá được, KHÔNG sửa được chữ)
   track chữ           (tuỳ chọn) chữ thường của CapCut cho dòng muốn sửa trong CapCut
-  track tiếng         giọng đã ghép + chuẩn −14 LUFS
+  track tiếng         render có stem (render/stems_<bản>/): track riêng giọng · nhạc · tiếng gốc cảnh phủ + tiếng động
+                      mỗi tiếng 1 đoạn (chia làn khi chồng giờ), âm lượng đoạn = mức bù −14 LUFS của bản dựng;
+                      render cũ: 1 track tiếng đã trộn + chuẩn −14 LUFS (tách từ final/preview.mp4)
 """
 
 import copy
@@ -150,11 +152,13 @@ class Draft:
                          "render_index": render_index})
         self.track(key, "video", 2 if overlay else 0, 0 if overlay else 1).append(seg)
 
-    def audio(self, key: str, path: Path, dur_file: float, src_in: float, dur: float, at: float) -> None:
+    def audio(self, key: str, path: Path, dur_file: float, src_in: float, dur: float, at: float,
+              volume: float = 1.0) -> None:
+        """volume = hệ số tuyến tính (1 = giữ; khuôn thật của CapCut có đoạn 1,59 ≈ +4 dB → >1 hợp lệ)."""
         seg = self._seg("audio", {"path": path.as_posix(), "name": path.name, "duration": us(dur_file),
                                   "local_material_id": str(uuid.uuid4()), "music_id": str(uuid.uuid4())},
                         {"source_timerange": {"start": us(src_in), "duration": us(dur)},
-                         "target_timerange": {"start": us(at), "duration": us(dur)}, "speed": 1.0, "volume": 1.0})
+                         "target_timerange": {"start": us(at), "duration": us(dur)}, "speed": 1.0, "volume": volume})
         self.track(key, "audio", 0, 0).append(seg)
 
     def text(self, key: str, content: str, at: float, dur: float, ty: float, size: float = 9.0,
@@ -286,7 +290,7 @@ def _proof_clip(job: Path, g: dict, src: dict, W: int, H: int, dur: float, out: 
     fps, covers = g["fps"], g.get("covers", True)
     n = max(1, int(round(dur * fps)))
     if covers:
-        enc = ["-c:v", "libx264", "-crf", "16", "-preset", "medium", "-pix_fmt", "yuv420p"]
+        enc = ["-c:v", "libx264", "-crf", "16", "-preset", "medium", *media.BT709_OUT, "-pix_fmt", "yuv420p"]
         wr = subprocess.Popen([config.FFMPEG, "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{W}x{H}",
                                "-r", str(fps), "-i", "-", *enc, str(out)], stdin=subprocess.PIPE)
     else:
@@ -362,6 +366,118 @@ def _overlay_clip(job: Path, g: dict, W: int, H: int, dur: float, out: Path) -> 
         wr.wait()
         rd.kill()
         rd.wait()
+
+
+STEMS = (("voice", "giọng đã lọc/nén"), ("music", "nhạc nền"), ("ambient", "tiếng gốc cảnh phủ"))
+SFX_MIN = 0.1   # giây — đoạn tiếng động ngắn nhất đặt lên track
+
+
+def _stems_dir(job: Path, rep: dict) -> Path | None:
+    """Thư mục stem của đúng lần render mà report này ghi; thiếu file / lệch độ dài → None (lùi về 1 track)."""
+    st = rep.get("audio_stems") or {}
+    d = job / st["dir"] if st.get("dir") else None
+    if d is None or not (d / "stems.json").exists():
+        return None
+    man = json.loads((d / "stems.json").read_text(encoding="utf-8"))
+    if man.get("samples") != st.get("samples") or abs(float(man.get("duration", -1)) - float(rep["duration"])) > 1e-3:
+        return None
+    need = [v["file"] for v in man["stems"].values()] + [ev["file"] for ev in man["sfx_events"]]
+    return d if all((d / f).exists() for f in need) else None
+
+
+def _f32(path: Path) -> np.ndarray:
+    raw = subprocess.run([config.FFMPEG, "-v", "error", "-i", str(path), "-ac", "1", "-ar", "48000", "-f", "f32le", "-"],
+                         capture_output=True).stdout
+    return np.frombuffer(raw, np.float32)
+
+
+def _master_env(d: Path, man: dict, gain_db: float, limit: float | None) -> np.ndarray:
+    """Hệ số theo thời gian của bước chuẩn độ to CẢ BẢN (render._normalize_loudness: bù dB + alimiter) để nướng vào
+    từng stem → cộng các track trong CapCut ≈ bản dựng, kể cả bộ chặn đỉnh. Lấy đường bao: cho bản trộn (= tổng stem)
+    qua ĐÚNG bộ lọc đó kèm 1 kênh hằng số rất nhỏ (không bao giờ chạm ngưỡng → không lái bộ chặn; alimiter dùng chung 1
+    hệ số cho mọi kênh) → kênh đó ra = ε × hệ số. alimiter (latency mặc định tắt) trễ ~`attack` 5ms → dời lại cho
+    stem giữ nguyên trục giờ. Đo 10/11 (job thử 40s, bù +7,6 dB, chặn 0,75): tổng stem × bù KHÔNG chặn −13,3 LUFS
+    +4,7 dBTP (vỡ tiếng) · có đường bao: −14,3 LUFS −1,4 dBTP = bản dựng, sai từng mẫu −50 dBFS."""
+    n = man["samples"]
+    G = 10 ** (gain_db / 20)
+    if not limit:
+        return np.full(n, G, np.float32)
+    mix = np.zeros(n, np.float32)
+    for v in man["stems"].values():
+        a = _f32(d / v["file"])[:n]
+        mix[:len(a)] += a
+    eps = 1e-3
+    x = np.stack([mix, np.full(n, eps, np.float32)], axis=1)
+    raw = subprocess.run([config.FFMPEG, "-v", "error", "-f", "f32le", "-ar", "48000", "-ac", "2", "-i", "-", "-af",
+                          f"volume={gain_db:.2f}dB,alimiter=limit={limit:.3f}:level=0", "-f", "f32le", "-"],
+                         input=np.ascontiguousarray(x).tobytes(), capture_output=True).stdout
+    env = np.frombuffer(raw, np.float32).reshape(-1, 2)[:, 1] / eps
+    lag = 239   # alimiter attack mặc định 5ms → bản dựng trễ 239 mẫu so bản trộn (đo tương quan 10/11 ở 3 đoạn)
+    env = env[lag:lag + n]
+    return np.concatenate([env, np.full(n - len(env), env[-1] if len(env) else G, np.float32)]) if len(env) < n else env
+
+
+def _audio_tracks(job: Path, rep: dict, dr: Draft, T: float, out: Path, files: list[Path]) -> dict:
+    """Tiếng vào bản nháp. Render có stem → TRACK RIÊNG: giọng · nhạc · tiếng gốc cảnh phủ (mỗi lớp 1 đoạn liền) + tiếng
+    động mỗi tiếng 1 đoạn (dựng viên dời / xoá từng tiếng), chồng giờ thì sang làn mới (CapCut không cho 2 đoạn chồng
+    nhau trong 1 track). Bước chuẩn độ to cả bản (bù dB + chặn đỉnh, render report audio_stems) nướng vào từng stem
+    (_master_env) → âm lượng đoạn giữ 1 (0 dB), phát chồng nghe như bản dựng. Render cũ chưa có stem → 1 track như trước."""
+    for old in list(out.glob("stem_*.m4a")) + list(out.glob("sfx_*.m4a")):   # lần xuất trước (số tiếng động có thể khác)
+        old.unlink()
+    d = _stems_dir(job, rep)
+    if d is None:
+        voice = out / "voice.m4a"   # tiếng đã trộn + chuẩn độ to, tách từ bản dựng
+        media.run([config.FFMPEG, "-y", "-v", "error", "-i", str(job / rep["output"]), "-vn", "-c:a", "copy", str(voice)])
+        files.append(voice)
+        dr.audio("voice", voice, rep["duration"], 0.0, T, 0.0)
+        return {"mode": "trộn 1 track (render chưa có stem — render lại để tách giọng / nhạc / tiếng động)"}
+    st = rep["audio_stems"]
+    man = json.loads((d / "stems.json").read_text(encoding="utf-8"))
+    gain = float(st.get("gain_db") or 0.0)
+    env = _master_env(d, man, gain, st.get("limit"))
+
+    def m4a(wav: Path, dst: Path, k0: int = 0, pad: int = 0) -> tuple[Path, float]:
+        """stem → m4a (AAC 192k như track tiếng cũ đã chạy được) · trả (file, giây)."""
+        a = _f32(wav)
+        a = a[:len(env) - k0] * env[k0:k0 + len(a)]   # nướng mức bù + chặn đỉnh của bản dựng
+        if len(a) < pad:   # thêm lặng cuối (không đổi tiếng)
+            a = np.concatenate([a, np.zeros(pad - len(a), np.float32)])
+        subprocess.run([config.FFMPEG, "-y", "-v", "error", "-f", "f32le", "-ar", "48000", "-ac", "1", "-i", "-",
+                        "-c:a", "aac", "-b:a", "192k", str(dst)], input=np.ascontiguousarray(a, np.float32).tobytes(),
+                       check=True)
+        files.append(dst)
+        return dst, len(a) / 48000
+
+    res = {"mode": "track riêng", "gain_db": gain, "limit": st.get("limit"), "volume": 1.0,
+           "master": "bù độ to + chặn đỉnh của bản dựng đã nướng vào từng file (âm lượng đoạn = 0 dB)",
+           "tracks": {}, "sfx": []}
+    for key, label in STEMS:
+        if key not in man["stems"]:
+            continue
+        p, _ = m4a(d / man["stems"][key]["file"], out / f"stem_{key}.m4a")
+        dr.audio(key, p, man["duration"], 0.0, T, 0.0)
+        res["tracks"][key] = {"file": p.name, "label": label}
+    lanes = []   # lanes[i] = mốc hết (µs) của đoạn cuối trên làn tiếng động i
+    for k, ev in enumerate(sorted(man["sfx_events"], key=lambda x: x["at"])):
+        k0 = int(ev.get("k0", round(ev["at"] * 48000)))   # mẫu đầu đúng như lúc trộn
+        at = k0 / 48000
+        if at >= T:
+            break
+        # tiếng click ngắn ~7ms < 1 khung: kéo đoạn tối thiểu 0,1s bằng lặng cuối file (CapCut có thể không giữ đoạn
+        # ngắn hơn 1 khung — chưa thử trên CapCut thật)
+        p, flen = m4a(d / ev["file"], out / f"sfx_{k + 1:02d}_{Path(ev['src']).stem}.m4a", k0=k0,
+                      pad=int(round(SFX_MIN * 48000)))
+        dur = min(flen, T - at)
+        a0 = us(at)
+        lane = next((i for i, end in enumerate(lanes) if end <= a0), len(lanes))
+        if lane == len(lanes):
+            lanes.append(0)
+        lanes[lane] = a0 + us(dur)
+        dr.audio(f"sfx{lane}", p, flen, 0.0, dur, at)
+        res["sfx"].append({"file": p.name, "at": round(at, 6), "k0": k0, "dur": round(dur, 6), "lane": lane,
+                           "src": ev["src"]})
+    res["sfx_lanes"] = len(lanes)
+    return res
 
 
 def export(job_id: str, name: str | None = None, until: float | None = None, formats: list[str] | None = None,
@@ -488,14 +604,11 @@ def export(job_id: str, name: str | None = None, until: float | None = None, for
         dr.text("text", words, b["first"], max(0.4, min(b["end"], T) - b["first"]), ty=-(p["y"] - 0.5) * 2,
                 visible=text_lines is not None)
 
-    # 4) tiếng: giọng đã chuẩn (lấy từ final.mp4)
-    voice = out / "voice.m4a"
-    media.run([config.FFMPEG, "-y", "-v", "error", "-i", str(job / rep["output"]), "-vn", "-c:a", "copy", str(voice)])
-    files.append(voice)
-    dr.audio("voice", voice, e["duration"], 0.0, T, 0.0)
+    # 5) tiếng
+    audio = _audio_tracks(job, rep, dr, T, out, files)
 
     folder = dr.save(T, files)
     res = {"draft": str(folder), "name": name, "duration": T, "clips": clips, "graphics": graphic_clips,
-           "tracks": {k: len(v["segments"]) for k, v in dr.tracks.items()}}
+           "audio": audio, "tracks": {k: len(v["segments"]) for k, v in dr.tracks.items()}}
     (out / "export.json").write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
     return res

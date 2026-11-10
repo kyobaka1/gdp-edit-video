@@ -3,9 +3,10 @@
   lời      nguồn có lời đã đối chiếu văn bản chuẩn (kịch bản / Gemini) · từ xác suất thấp chưa đối chiếu
   cắt      không cắt giữa một từ (mép đoạn lời nằm trong từ > 30ms)
   chữ      mọi chữ là lời đã nói (cutlib cảnh báo) · không đè mặt (≤3% khối) · trong vùng an toàn TikTok
-  hình     đúng cỡ/fps/thời lượng · không có khung đen ngoài màn chữ
-  tiếng    cả bản −14 ±0,5 LUFS, đỉnh thật ≤ −1 dBTP
-Kèm qa_sheet.jpg: mỗi khối chữ một ảnh lúc đủ chữ (soát mắt bằng Read hoặc vs.py look).
+  hình     đúng cỡ/fps/thời lượng · không có khung đen ngoài màn chữ · không đứng hình vì nguồn hết sớm
+  tiếng    cả bản −14 ±0,5 LUFS, đỉnh thật ≤ −1 dBTP · mép đoạn lời không rơi vào chỗ đang có tiếng to
+Kèm qa_<bản>.jpg: mỗi khối chữ một ảnh lúc đủ chữ · qa_<bản>_cuts.jpg: mỗi mối cắt lời một ô (khung trước | sau + sóng âm)
+(soát mắt bằng Read hoặc vs.py look).
 """
 
 import json
@@ -27,6 +28,93 @@ def _loudness(path) -> tuple[float | None, float | None]:
     return (float(i.group(1)) if i else None), (float(p.group(1)) if p else None)
 
 
+SR = 48000
+
+
+def _pcm(path) -> np.ndarray:
+    raw = media.subprocess.run([config.FFMPEG, "-v", "error", "-i", str(path), "-vn", "-ac", "1", "-ar", str(SR),
+                                "-f", "f32le", "-"], capture_output=True).stdout
+    return np.frombuffer(raw, np.float32)
+
+
+def _db(x: float) -> float:
+    return float(20 * np.log10(max(float(x), 1e-7)))
+
+
+def joins(a: dict, b: dict) -> bool:
+    """Hai đoạn lời kề nhau LIỀN tiếng: cùng nguồn, đoạn sau bắt đầu đúng chỗ đoạn trước dừng (tách chỉ để đổi cỡ khung)."""
+    return a["src"] == b["src"] and abs(a["out"] - b["in"]) < 0.002 and abs(a["t1"] - b["t0"]) < 0.002
+
+
+def _seams(job, e: dict, src: dict, video, cap, name: str, fps: float) -> tuple[list[str], str | None]:
+    """Soát MỐI CẮT LỜI trên bản đã dựng (học video-use 10/11 — QA trước chỉ tin mốc từ của Whisper):
+      • đo: 12ms sát mép mỗi đoạn lời còn TO (≥ đỉnh lời −10 dB) = mép rơi vào chỗ đang có tiếng → vuốt 8ms nghe cụt/tách
+        (mốc Whisper lệch, cắt cụt đuôi từ) → cảnh báo kèm mốc để nới mép;
+      • ảnh qa_<name>_cuts.jpg: mỗi mối một ô — khung ngay TRƯỚC | ngay SAU mối (thấy hình nhảy) + sóng âm ±0,6s của
+        bản ra, vạch đỏ = mối cắt. Soát bằng Read / vs.py look.
+    Đoạn không lời (fade_ms > 8: cắt theo tiếng động, vuốt dài) không đo mép."""
+    pieces, warns, cache, hot = e["pieces"], [], {}, set()
+    edge, w = int(0.012 * SR), SR // 100
+    joined = [joins(pieces[i - 1], p) if i else False for i, p in enumerate(pieces)]   # mối LIỀN: chỉ đổi cỡ khung, tiếng chạy tiếp
+    for i, p in enumerate(pieces):
+        if p.get("kind") == "sound" or float(p.get("fade_ms", 8)) > 8:
+            continue
+        if p["src"] not in cache:
+            cache[p["src"]] = _pcm(job / src[p["src"]]["file"])
+        seg = cache[p["src"]][int(p["in"] * SR):int(p["out"] * SR)]
+        if len(seg) < 4 * w:
+            continue
+        ref = _db(np.percentile(np.sqrt((seg[:len(seg) // w * w].reshape(-1, w) ** 2).mean(1)), 90))   # đỉnh lời của đoạn
+        for side, part, t_out, t_src in (("vào", seg[:edge], p["t0"], p["in"]), ("ra", seg[-edge:], p["t1"], p["out"])):
+            if joined[i] if side == "vào" else (i + 1 < len(pieces) and joined[i + 1]):
+                continue
+            lv = _db(np.sqrt((part ** 2).mean()))
+            # nói liền hơi thì mép nào cũng còn tiếng (đo 10/11: −6…−10 dB là thường) → chỉ báo khi mép gần bằng ĐỈNH lời
+            if lv > ref - 4 and lv > -45:
+                hot.add(i if side == "vào" else i + 1)
+                warns.append(f"mép {side} đoạn lời {i + 1} ({p['src']} {t_src:.2f}s → bản dựng {t_out:.2f}s) còn tiếng to "
+                             f"({lv - ref:+.0f} dB so với đỉnh lời) — dễ nghe cụt/tách: nới mép / đổi cụm bám")
+    cuts = [i for i in range(1, len(pieces))]
+    if not cuts:
+        return warns, None
+    if len(cuts) > 30:   # nhiều mối: ưu tiên mối có cảnh báo, còn lại rải đều
+        rest = [c for c in cuts if c not in hot]
+        cuts = sorted([c for c in cuts if c in hot][:30] + rest[::max(1, len(rest) // max(1, 30 - len(hot)))][:max(0, 30 - len(hot))])
+    out = _pcm(video)
+    fw, fh, wh = 162, 288, 72
+    tiles = []
+    for i in cuts:
+        t = pieces[i]["t0"]
+        pair = []
+        for tt in (t - 1.5 / fps, t + 0.5 / fps):
+            cap.set(cv2.CAP_PROP_POS_MSEC, max(0.0, tt) * 1000)
+            ok, f = cap.read()
+            pair.append(cv2.resize(f, (fw, fh)) if ok else np.zeros((fh, fw, 3), np.uint8))
+        wave_img = np.full((wh, fw * 2, 3), 24, np.uint8)
+        a = out[max(0, int((t - 0.6) * SR)):int((t + 0.6) * SR)]
+        if len(a) > fw * 2:   # đường bao độ to (dB, 36 dB dưới đỉnh của ô) — thấy rõ chỗ lặng / lõm; dạng sóng thô thì đặc kín
+            cols = a[:len(a) // (fw * 2) * (fw * 2)].reshape(fw * 2, -1)
+            db = 20 * np.log10(np.sqrt((cols ** 2).mean(1)) + 1e-7)
+            top = float(db.max())
+            for x, v in enumerate(np.clip(db, top - 36, top)):
+                cv2.line(wave_img, (x, wh - 1), (x, wh - 1 - int((v - top + 36) / 36 * (wh - 4))), (90, 220, 120), 1)
+        cv2.line(wave_img, (fw, 0), (fw, wh), (60, 60, 255), 1)
+        tile = np.vstack([np.hstack(pair), wave_img])
+        cv2.line(tile, (fw, 0), (fw, fh), (60, 60, 255), 1)
+        col = (60, 60, 255) if i in hot else (0, 255, 255)   # đỏ = mép còn tiếng to · "=" mối liền (chỉ đổi cỡ khung)
+        label = f"{t:.2f}s {pieces[i - 1]['src']}{'=' if joined[i] else '>'}{pieces[i]['src']}"
+        cv2.rectangle(tile, (0, 0), (9 * len(label) + 8, 22), (0, 0, 0), -1)
+        cv2.putText(tile, label, (5, 16), cv2.FONT_HERSHEY_SIMPLEX, 0.45, col, 1, cv2.LINE_AA)
+        tiles.append(tile)
+    ncol = min(6, len(tiles))
+    while len(tiles) % ncol:
+        tiles.append(np.zeros_like(tiles[0]))
+    sheet = job / f"qa_{name}_cuts.jpg"
+    cv2.imwrite(str(sheet), np.vstack([np.hstack(tiles[r:r + ncol]) for r in range(0, len(tiles), ncol)]),
+                [cv2.IMWRITE_JPEG_QUALITY, 85])
+    return warns, sheet.name
+
+
 def run(job_id: str, final: bool = False) -> dict:
     job = project.job_path(job_id)
     e = json.loads((job / "edit.json").read_text(encoding="utf-8"))
@@ -36,8 +124,11 @@ def run(job_id: str, final: bool = False) -> dict:
     video = job / rep["output"]
     fails, warns = [], list(e.get("warnings", []))
 
-    # lời
-    used = {p["src"] for p in e["pieces"]}
+    # lời — đoạn KHÔNG LỜI (c.sound: cắt theo tiếng động, `words: false`) không có lời để đối chiếu / để cắt giữa từ
+    def spoken(p: dict) -> bool:
+        return p.get("words", True) is not False and not (p.get("kind") == "sound" and project.no_speech(src[p["src"]]))
+
+    used = {p["src"] for p in e["pieces"] if spoken(p)}
     for k in used:
         s = src[k]
         if s.get("speech", 0) > 0.5 and not s.get("reference"):
@@ -48,6 +139,8 @@ def run(job_id: str, final: bool = False) -> dict:
 
     # cắt giữa từ
     for p in e["pieces"]:
+        if not spoken(p):
+            continue
         for w in project.words(job, p["src"], src):
             for edge in (p["in"], p["out"]):
                 if w["start"] + 0.03 < edge < w["end"] - 0.03:
@@ -66,7 +159,7 @@ def run(job_id: str, final: bool = False) -> dict:
     for b in e["captions"]:
         # lời nói liền (mẫu ~4 âm tiết/s) nên khối thường rút ngay khi nói xong — chỉ cảnh báo khi CỤM KHOÁ hiện < 0,45s
         keys = [ln["words"][0]["t"] for ln in b["lines"] if ln["role"] == "key"]
-        if keys and b["end"] - min(keys) < 0.45:
+        if keys and b["end"] - min(keys) < 0.45 and not b.get("timed"):   # khối theo giây: thời gian đứng do cut.py ghi
             warns.append(f"cụm khoá {b['id']} chỉ hiện {b['end'] - min(keys):.2f}s — nên giữ lâu hơn / tách khối: {b['markup']}")
 
     # hình
@@ -76,6 +169,10 @@ def run(job_id: str, final: bool = False) -> dict:
         fails.append(f"cỡ khung {pr['width']}x{pr['height']} ≠ {W}x{H}")
     if abs(pr["duration"] - e["duration"]) > 0.15:
         fails.append(f"thời lượng {pr['duration']:.2f}s ≠ {e['duration']:.2f}s")
+    for st in rep.get("starved", []):   # nguồn hết trước khi đoạn dựng hết → build giữ khung cuối = hình đứng
+        msg = (f"hình đứng {st['frames']} khung cuối đoạn {st['t0']:.2f}–{st['t1']:.2f}s: nguồn {st['src']} hết sớm "
+               "— lùi src_in / rút đoạn / đổi clip")
+        (fails if st["frames"] > 3 else warns).append(msg)
     cards = [(c["t0"], c["t1"]) for c in e["cards"]]
     cap = cv2.VideoCapture(str(video))
     for s in rep["shots"]:
@@ -152,6 +249,8 @@ def run(job_id: str, final: bool = False) -> dict:
         f = cv2.resize(f, (270, 480))
         cv2.putText(f, f"g{k + 1} {t:.1f}s", (6, 18), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 200, 0), 1, cv2.LINE_AA)
         tiles.append(f)
+    seam_warns, cuts_sheet = _seams(job, e, src, video, cap, name, float(rep.get("fps") or 30))
+    warns += seam_warns
     cap.release()
     sheet = None
     if tiles:
@@ -163,6 +262,7 @@ def run(job_id: str, final: bool = False) -> dict:
                     [cv2.IMWRITE_JPEG_QUALITY, 85])
 
     res = {"ok": not fails, "fails": fails, "warnings": warns, "lufs": lufs, "true_peak": peak,
-           "duration": pr["duration"], "size": [pr["width"], pr["height"]], "sheet": sheet.name if sheet else None}
+           "duration": pr["duration"], "size": [pr["width"], pr["height"]], "sheet": sheet.name if sheet else None,
+           "cuts_sheet": cuts_sheet}
     (job / f"qa_{name}.json").write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
     return res

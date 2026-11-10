@@ -49,7 +49,8 @@
       fix <id> <key> (--hear | --text file)   đối chiếu lời với Gemini / kịch bản: giữ mốc, sửa chữ
       words <id>                              in lời từng nguồn (có giây) để viết cut.py
       cut <id>                                chạy jobs/<id>/cut.py → edit.json (in trục dựng)
-      render <id> [--final]                   preview 540x960 / final 1080x1920
+      render <id> [--final|--draft]           preview 540x960 / final 1080x1920 / nháp 360x640 chốt điểm cắt (chỉ
+                                              trục dựng + tiếng đủ, in mốc mối cắt → draft.mp4, render_draft.json)
       qa <id> [--final]                       cổng kiểm (lời, cắt, chữ né mặt + vùng an toàn, hình, tiếng) + ảnh soát
       capcut <id> [--name N] [--until S] [--fmt pngmov|prores] [--wait]   xuất BẢN NHÁP CapCut desktop để dựng viên
                                               sửa tiếp (clip gốc + chữ động trong suốt + chữ CapCut ẩn + logo + tiếng)
@@ -634,9 +635,19 @@ def cmd_edit(a) -> None:
         m = project.mode(project.job_path(args[0]))
         if m is None:
             sys.exit("DỪNG: job chưa khai chế độ — hỏi Sếp có/không dùng CapCut rồi `vs.py edit mode <id> co|khong`")
-        if a.final and m:
+        if a.final and m and not a.draft:
             print("ℹ Job CÓ dùng CapCut: không bắt buộc render --final — duyệt preview xong thì `vs.py edit capcut <id> --wait`")
-        rep = build.run(args[0], final=a.final)
+        rep = build.run(args[0], final=a.final, draft=a.draft)
+        if a.draft:   # nháp chốt điểm cắt: không chữ / đồ hoạ / logo — in mốc từng mối cắt để tua tới
+            tm = rep["timings"]
+            print(f"Nháp xong {rep['seconds']}s → jobs/{args[0]}/{rep['output']} · {rep['size'][0]}x{rep['size'][1]} "
+                  f"{rep['duration']:.2f}s · {rep['lufs']} LUFS · tiếng {tm['audio']}s · khung {tm['frames']}s · "
+                  f"độ to {tm['loudness']}s")
+            print(f"  bỏ qua: {', '.join(rep['skipped'])} · {len(rep['sfx'])} tiếng động giữ đúng mốc")
+            for c in rep["cuts"]:
+                print(f"  {c['t']:7.2f}s" + (f"  hình {c['hinh']}" + (f" [{c['trans']}]" if c["trans"] != "cut" else "")
+                                             if c.get("hinh") else "") + (f"  lời {c['loi']}" if c.get("loi") else ""))
+            return
         print(f"Xong {rep['seconds']}s → jobs/{args[0]}/{rep['output']} · {rep['size'][0]}x{rep['size'][1]} "
               f"{rep['duration']:.2f}s · {rep['lufs']} LUFS · chữ chụp {rep['caption_frames_captured']}/{rep['frames']} khung "
               f"({rep['caption_seconds']}s)")
@@ -655,6 +666,8 @@ def cmd_edit(a) -> None:
             print(f"  ⚠ {w}")
         if res["sheet"]:
             print(f"  ảnh soát khối chữ: jobs/{args[0]}/{res['sheet']}")
+        if res.get("cuts_sheet"):
+            print(f"  ảnh soát mối cắt (khung trước | sau + độ to, đỏ = mép còn tiếng to): jobs/{args[0]}/{res['cuts_sheet']}")
     elif act == "capcut":
         from studio.edit import capcut
         if project.mode(project.job_path(args[0])) is False:
@@ -709,6 +722,7 @@ def main() -> None:
     s = sub.add_parser("edit"); s.add_argument("action"); s.add_argument("args", nargs="*")
     s.add_argument("--id"); s.add_argument("--plan"); s.add_argument("--key"); s.add_argument("--text")
     s.add_argument("--hear", action="store_true"); s.add_argument("--final", action="store_true")
+    s.add_argument("--draft", action="store_true", help="render: bản NHÁP chốt điểm cắt (draft.mp4, không chữ/đồ hoạ/logo)")
     s.add_argument("--name"); s.add_argument("--until", type=float); s.add_argument("--fmt", choices=["pngmov", "prores", "qtrle"])
     s.add_argument("--wait", action="store_true", help="capcut: chờ CapCut tắt rồi ghi danh sách dự án")
     s.add_argument("--capcut", help="new: co | khong — CÓ / KHÔNG dùng CapCut (bắt buộc chốt với Sếp trước khi edit)")

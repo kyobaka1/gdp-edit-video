@@ -6,6 +6,7 @@ theme, giải `photo="lib:<id>"` thành ảnh thật (file:// + hash để cache
 
 import hashlib
 import json
+from functools import lru_cache
 from pathlib import Path
 
 from studio import config
@@ -88,10 +89,33 @@ def text_qa(anim: dict, params: dict) -> dict:
     return qa
 
 
+@lru_cache(maxsize=64)
+def sfx_peak(path: str) -> float:
+    """Giây từ đầu file tới ĐỈNH âm (cửa sổ RMS 10ms to nhất). Tiếng 'chạm' (click, ting) đỉnh ≈ 0; tiếng 'vuốt'
+    (whoosh, swell) đỉnh trễ 0,1–0,5s."""
+    import subprocess
+
+    import numpy as np
+    raw = subprocess.run([config.FFMPEG, "-v", "error", "-i", path, "-ac", "1", "-ar", "48000", "-f", "f32le", "-"],
+                         capture_output=True).stdout
+    a = np.frombuffer(raw, np.float32)
+    w = 480
+    if len(a) < w:
+        return 0.0
+    rms = (a[:len(a) // w * w].reshape(-1, w) ** 2).mean(1)
+    return round(float(rms.argmax()) * w / 48000, 3)
+
+
+def _sfx_at(s: dict, f: Path, at: float) -> float:
+    """Mặc định tiếng bắt đầu ĐÚNG mốc (tiếng vuốt đi cùng chuyển động vào; tiếng chạm đỉnh ≈ 0 nên cũng trúng).
+    Tiếng có đỉnh trễ mà phải rơi đúng lúc 'chạm' → khai `"align": "peak"` trong scene.json: lùi cho ĐỈNH trúng mốc."""
+    return max(0.0, at - sfx_peak(str(f))) if s.get("align") == "peak" else at
+
+
 def sfx_events(prof: dict, g: dict) -> list[tuple[Path, float, float]]:
     """[(file, gain_db, giây)] cho 1 đồ hoạ đã giải: tiếng lúc vào ('enter'), lúc từ đầu tiên vào ('word', bảng word_at)
     và lúc 'chạm' ('land': nhãn rơi xong / chữ hiện đủ — lấy mốc thật template báo `qa.land` nếu có, không thì bảng
-    land_at). `presets` = chỉ chèn ở các preset đó."""
+    land_at). `presets` = chỉ chèn ở các preset đó. `"align": "peak"` = căn ĐỈNH âm vào mốc (xem _sfx_at)."""
     th, pr = g["params"].get("theme"), g["params"].get("preset")
     land = (g.get("text_qa") or {}).get("land")
     out = []
@@ -104,7 +128,7 @@ def sfx_events(prof: dict, g: dict) -> list[tuple[Path, float, float]]:
             except ValueError:
                 its = []
             f = config.ROOT / "assets" / "sfx" / s["file"]
-            out += [(f, float(s.get("gain_db", -24)), round(g["t0"] + float(it["t"]), 3)) for it in its
+            out += [(f, float(s.get("gain_db", -24)), round(_sfx_at(s, f, g["t0"] + float(it["t"])), 3)) for it in its
                     if f.exists() and g["t0"] + float(it["t"]) < g["t1"]]
             continue
         pt = g["params"].get(f"{s['at']}_t")   # mốc theo tham số giờ (switch_t, win_t, figure_t) hoặc trang tự báo (qa)
@@ -127,5 +151,5 @@ def sfx_events(prof: dict, g: dict) -> list[tuple[Path, float, float]]:
         at = g["t0"] + off
         f = config.ROOT / "assets" / "sfx" / s["file"]
         if f.exists() and at < g["t1"]:
-            out.append((f, float(s.get("gain_db", -18)), round(at, 3)))
+            out.append((f, float(s.get("gain_db", -18)), round(_sfx_at(s, f, at), 3)))
     return out

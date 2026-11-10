@@ -28,10 +28,14 @@ Set-Location C:\Users\Admin\gdp-video-studio; $env:PYTHONIOENCODING='utf-8'
 # Dựng video QUAY SẴN theo PLAN (skill gdp-video-edit, studio/edit/) — 9:16 TikTok, chữ động theo từng từ
 # ⛔ TRƯỚC KHI EDIT phải chốt với Sếp: CÓ dùng CapCut (giao bản nháp) hay KHÔNG (giao final.mp4) — chưa rõ thì HỎI
 .\.venv\Scripts\python.exe vs.py edit new <thư mục clip> --id <id> --capcut co|khong --plan plan.md
-.\.venv\Scripts\python.exe vs.py edit ingest <id>         # Whisper GPU: lời có mốc từng từ + ảnh lưới từng clip
+.\.venv\Scripts\python.exe vs.py edit ingest <id>         # Whisper GPU: lời có mốc từng từ + ảnh lưới + tiếng động (sheets\<key>.sound.jpg)
 #   → viết jobs\<id>\cut.py (mẫu: jobs\test-vlog-bac-kinh\cut.py) → vs.py edit cut <id>
+#   video KHÔNG LỜI (POV/ASMR): c.sound(key, "#1", "#3") cắt theo cụm tiếng động · c.cap(…, at=giây) · ra gấp: c.auto_caps()
+.\.venv\Scripts\python.exe vs.py edit render <id> --draft   # NHÁP ~11s: chỉ trục dựng + tiếng → chốt mối cắt trước khi làm chữ/đồ hoạ
 .\.venv\Scripts\python.exe vs.py edit render <id> [--final]; .\.venv\Scripts\python.exe vs.py edit qa <id> [--final]
-.\.venv\Scripts\python.exe vs.py edit capcut <id> --wait  # bản nháp CapCut desktop cho dựng viên sửa tiếp (CapCut phải tắt)
+#   QA kèm qa_<bản>_cuts.jpg (mỗi mối cắt: khung trước|sau + độ to) · báo đứng hình do nguồn hết sớm · mép lời còn tiếng to
+.\.venv\Scripts\python.exe vs.py edit capcut <id> --wait  # bản nháp CapCut (CapCut phải tắt) — giọng / nhạc / tiếng động TRACK RIÊNG
+.\.venv\Scripts\python.exe tools\test_sound.py             # test phân tích tiếng động + bám mép + auto_caps (không cần GPU/API)
 # Thiếu ảnh/asset → THƯ VIỆN DÙNG CHUNG assets/library/ (Sếp 05/11: xây 1 lần, dùng nhiều lần — không tạo lẻ từng video)
 .\.venv\Scripts\python.exe vs.py lib find <từ…>           # tìm trước; có thì `vs.py edit add <id> lib:<chủ-đề>/<tên> --key g01`
 .\.venv\Scripts\python.exe vs.py lib kit <bộ>             # tạo phần thiếu của BỘ asset 1 kiểu animation (Codex local → hỏng thì chatgpt.com Chrome + lib import)
