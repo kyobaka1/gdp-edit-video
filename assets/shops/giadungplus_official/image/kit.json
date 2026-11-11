@@ -1,0 +1,117 @@
+{
+  "shop": "giadungplus_official",
+  "brand_name": "Gia Dung Plus",
+  "synced_at": "2026-11-11",
+  "source_listing": 128,
+  "_note": "Brand kit lấy từ app (Shop Manager). KHÔNG sửa tay — `ims.py kit sync` ghi đè. Tinh chỉnh riêng cho ảnh: shop.json mục \"image\".",
+  "files": {
+    "logo": "logo.png",
+    "watermark": "watermark.png",
+    "font_reference": "font_reference.jpg"
+  },
+  "kit": {
+    "tone": "",
+    "palette": {
+      "primary": "#c01818",
+      "accent": "#f1c40f",
+      "dark": "#7a1010",
+      "text_on_dark": "#ffffff",
+      "text_on_light": "#c01818"
+    },
+    "text_radius_pct": 15,
+    "cover": {
+      "style": "bold_split",
+      "heading_color": "#ffffff",
+      "sub_color": "#ffffff",
+      "heading_gradient": {
+        "on": false,
+        "stops": [
+          "#0A2F5C",
+          "#062955",
+          "#041E40",
+          "#030E2B"
+        ],
+        "angle": 90,
+        "glow": {
+          "on": false,
+          "color": "#19B6C8",
+          "side": "left",
+          "size_pct": 6
+        }
+      }
+    },
+    "badge": {
+      "bg": "#f1c40f",
+      "text": "#c01818",
+      "bg_opacity": 100,
+      "bg_gradient": {
+        "on": false,
+        "stops": [
+          "#0A2F5C",
+          "#062955",
+          "#041E40",
+          "#030E2B"
+        ],
+        "angle": 90,
+        "glow": {
+          "on": false,
+          "color": "#19B6C8",
+          "side": "left",
+          "size_pct": 6
+        }
+      },
+      "border": {
+        "on": false,
+        "color": "#0f172a",
+        "width_pct": 1.0
+      }
+    },
+    "logo": {
+      "placement": "top-left",
+      "width_pct": 28,
+      "apply_to": [
+        "anh-bia",
+        "anh-san-pham"
+      ]
+    },
+    "watermark": {
+      "enabled": true,
+      "text": "",
+      "opacity": 12,
+      "bg_opacity": 100,
+      "image_opacity": 20
+    },
+    "image_targets": {
+      "cover": {
+        "logo": true,
+        "watermark": true,
+        "logo_placement": "top-center",
+        "watermark_placement": "center"
+      },
+      "product_image": {
+        "logo": true,
+        "watermark": true,
+        "logo_placement": "top-center",
+        "watermark_placement": "center"
+      },
+      "description_image": {
+        "logo": true,
+        "watermark": true,
+        "logo_placement": "top-center",
+        "watermark_placement": "center"
+      },
+      "variant_image": {
+        "logo": true,
+        "watermark": true,
+        "logo_placement": "top-center",
+        "watermark_placement": "center"
+      }
+    },
+    "typography": {
+      "font_name": "",
+      "header": "Bold, ALL CAPS, 1 hàng, 6-8 từ",
+      "sub": "Regular, tối đa 2 dòng, factual",
+      "badge": "Số/đơn vị đóng khung màu accent, chữ bold"
+    }
+  }
+}

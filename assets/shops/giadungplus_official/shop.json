@@ -70,11 +70,13 @@
     "text_radius_pct": 15
   },
   "voice": {
+    "vclip": "shAfRJNufJUhQSgJUL8NST",
+    "vclip_name": "Hà",
     "name": "Kore",
     "gender": "nữ",
     "openai": "coral",
     "style": "chắc, rõ ràng (giọng đang dùng, Sếp duyệt 20/10)",
-    "model_note": "Gemini TTS prebuilt voice; Sếp chốt nhóm giọng 20/10 (GDP hiện tại, LTENG VN nam, LTENG HCM nam khác, PHALEDO nữ ấm)"
+    "model_note": "vclip = giọng TTS chính (tts.vclip.io, Sếp chốt 11/11; tools/vclip_voices.py); name/openai = giọng Gemini/gpt-audio cũ, chỉ dự phòng; Sếp chốt nhóm giọng 20/10 (GDP hiện tại, LTENG VN nam, LTENG HCM nam khác, PHALEDO nữ ấm)"
   },
   "watermark": {
     "enabled": true,
@@ -193,5 +195,40 @@
       "line": "#f6c634",
       "line_alpha": 0.55
     }
+  },
+  "image": {
+    "_note": "Ảnh listing (image-studio). Tông ĐEN / ĐỎ / TRẮNG đo từ ảnh thật của shop (Sếp 12/11): nền sáng → chữ đen #000, nền tối → chữ trắng; nhãn đỏ #ce0000 chữ trắng (đảo: trắng chữ đỏ; hoặc đen chữ trắng), bo góc vuông nhẹ; viền chữ rất mảnh. Brand kit trên app (nhãn vàng chữ đỏ, chữ đỏ trên nền sáng) KHÔNG đúng ảnh thật nên ghi đè ở đây. Logo thẻ đỏ treo giữa mép trên.",
+    "fonts": [
+      "helvetins",
+      "utm-avo",
+      "poppins"
+    ],
+    "ink": "#000000",
+    "colors": {
+      "heading": "#ffffff",
+      "sub": "#ffffff",
+      "accent": "#ce0000",
+      "primary": "#c01818",
+      "dark": "#111111",
+      "hl_on_dark": "#ff3b3b"
+    },
+    "badge": {
+      "bg": "#ce0000",
+      "text": "#ffffff",
+      "bg_opacity": 100,
+      "border": "#000000",
+      "border_pct": 2.2,
+      "gradient": false
+    },
+    "pill": "solid",
+    "pill_shape": "square",
+    "headline": "plain",
+    "edge": 0.02,
+    "bolder": 0,
+    "logo_placement": "top-center",
+    "logo_width_pct": 22,
+    "watermark_mode": "text",
+    "watermark_text": "GIA DỤNG PLUS",
+    "watermark_opacity": 0.38
   }
 }

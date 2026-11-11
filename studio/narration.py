@@ -15,7 +15,7 @@ from google.genai import types
 
 from studio import config, gemini, outro
 from studio.templates import shop_voice
-from studio.voice import TTS_MODEL, HearUnavailable, _match, gemini_dead, hear, spoken, synthesize
+from studio.voice import TTS_MODEL, HearUnavailable, _match, _norm, gemini_dead, hear, spoken, synthesize
 
 ALIGN_SCHEMA = {
     "type": "object",
@@ -105,10 +105,34 @@ def _tempo(piece: np.ndarray, rate: int, k: float, work: Path) -> np.ndarray:
     return out
 
 
-def _tts(text: str, voice: dict, out: Path, usage: Path | None = None) -> tuple[str, str]:
-    """TTS theo chuỗi dự phòng (voice.TTS_CHAIN) rồi nghe lại. Trả (chữ nghe ra, model đã dùng)."""
-    used = synthesize(text, voice, out, usage)
+def _tts(text: str, voice: dict, out: Path, usage: Path | None = None, extra: dict | None = None) -> tuple[str, str]:
+    """TTS theo chuỗi dự phòng (voice.TTS_CHAIN) rồi nghe lại. Trả (chữ nghe ra, model đã dùng).
+    `extra` nhận dữ liệu thêm của nhà cung cấp (vclip: blocks = mốc SRT)."""
+    used = synthesize(text, voice, out, usage, extra=extra)
     return _hear(out), used
+
+
+def _group_blocks(blocks: list[dict], said: list[str]) -> list[tuple[float, float]] | None:
+    """Gom khối SRT vclip về từng đoạn kịch bản. vclip giữ ranh giới đoạn (\\n\\n) nhưng tách đoạn dài theo câu →
+    ranh giới đoạn i = ranh giới khối có tỉ lệ chữ cộng dồn gần tỉ lệ chữ cộng dồn của đoạn nhất. None = không gom được."""
+    if len(blocks) < len(said):
+        return None
+    def n(s: str) -> int:
+        return max(1, len(_norm(s).replace(" ", "")))
+    bc = np.cumsum([n(b["text"]) for b in blocks]) / sum(n(b["text"]) for b in blocks)
+    pc = np.cumsum([n(s) for s in said]) / sum(n(s) for s in said)
+    ends, lo = [], 0  # chỉ số khối CUỐI của mỗi đoạn
+    for i in range(len(said) - 1):
+        hi = len(blocks) - (len(said) - i)  # chừa ít nhất 1 khối cho mỗi đoạn sau
+        k = min(range(lo, hi + 1), key=lambda j: abs(bc[j] - pc[i]))
+        ends.append(k)
+        lo = k + 1
+    ends.append(len(blocks) - 1)
+    spans, first = [], 0
+    for k in ends:
+        spans.append((blocks[first]["start"], blocks[k]["end"]))
+        first = k + 1
+    return spans
 
 
 def build(job_dir: Path, retries: int = 3) -> dict:
@@ -118,19 +142,26 @@ def build(job_dir: Path, retries: int = 3) -> dict:
     paras = [p for p in nar.get("paragraphs", []) if (p.get("text") or "").strip()]
     if not paras:
         raise ValueError("edl.json chưa có narration.paragraphs")
-    # giọng: edl.narration.voice (ép tay) → giọng của shop (shop.json voice) → Kore
+    # giọng vclip (TTS chính, Sếp 11/11): edl.narration.voice_vclip (ép tay) → shop.json voice.vclip
     sv = shop_voice(edl["shop"]) if edl.get("shop") else None
-    voice = nar.get("voice") or (sv or {}).get("name") or "Kore"
+    vclip_id = nar.get("voice_vclip") or (sv or {}).get("vclip")
+    voice = ((sv or {}).get("vclip_name") if vclip_id == (sv or {}).get("vclip") else None) or vclip_id \
+        or nar.get("voice") or (sv or {}).get("name") or "Kore"
     # giọng cho model dự phòng gpt-audio: edl.narration.voice_openai → shop.json voice.openai → theo giới tính
-    vspec = {"name": voice, "gender": (sv or {}).get("gender", "nữ"),
-             "openai": nar.get("voice_openai") or (sv or {}).get("openai")}
-    # chữ GỬI TTS (tên brand đã đổi sang cách đọc chuẩn); mọi bước kiểm ngược so với bản này
-    said = [spoken(p["text"].strip()) for p in paras]
+    # tốc độ đọc GỐC của vclip (0,5–2,0; shop.json voice.speed, ép tay edl.narration.voice_speed) — khác `tempo`
+    # (atempo sau cổng kiểm). Giọng clone đọc quá nhanh (PHALEDO My ~45% nhanh hơn Hà, đo 11/11) → < 1 cho rõ chữ.
+    speed = float(nar.get("voice_speed") or (sv or {}).get("speed") or 1.0)
+    vspec = {"vclip": vclip_id, "speed": speed, "name": nar.get("voice") or (sv or {}).get("name") or "Kore",
+             "gender": (sv or {}).get("gender", "nữ"), "openai": nar.get("voice_openai") or (sv or {}).get("openai")}
+    # chữ GỬI TTS (tên brand đã đổi sang cách đọc chuẩn); mọi bước kiểm ngược so với bản này.
+    # Xuống dòng trong 1 đoạn → dấu cách: vclip coi "\n\n" là ranh giới đoạn.
+    said = [" ".join(spoken(p["text"].strip()).split()) for p in paras]
     full = "\n\n".join(said)
     work = job_dir / "narration"
     work.mkdir(exist_ok=True)
     # khoá cache giữ TTS_MODEL (model chính) dù lượt đọc do model dự phòng làm → take cũ vẫn dùng lại được
-    key = hashlib.sha1(f"{TTS_MODEL}|{voice}|{full}".encode()).hexdigest()[:12]
+    sp = f"|x{speed:g}" if abs(speed - 1.0) > 1e-6 else ""  # tốc độ 1,0 giữ khoá cũ → take đã đọc vẫn dùng lại
+    key = hashlib.sha1(f"{TTS_MODEL}|{vclip_id or vspec['name']}{sp}|{full}".encode()).hexdigest()[:12]
     raw = work / f"take_{key}.wav"
     usage = job_dir / "usage.jsonl"
 
@@ -139,12 +170,15 @@ def build(job_dir: Path, retries: int = 3) -> dict:
     if not (raw.exists() and take_meta.exists()):
         last = ""
         for attempt in range(1, retries + 1):
-            heard, used = _tts(full, vspec, raw, usage)
+            extra: dict = {}
+            heard, used = _tts(full, vspec, raw, usage, extra)
             score = _match(full, heard)
             with usage.open("a", encoding="utf-8") as fh:
-                fh.write(json.dumps({"label": f"narration[{key}]#{attempt}", "model": used, "match": round(score, 3)}) + "\n")
+                fh.write(json.dumps({"label": f"narration[{key}]#{attempt}", "model": used, "match": round(score, 3),
+                                     "chars": extra.get("chars")}) + "\n")
             if score >= 0.9:
-                take_meta.write_text(json.dumps({"heard": heard.strip(), "match": round(score, 3), "model": used},
+                take_meta.write_text(json.dumps({"heard": heard.strip(), "match": round(score, 3), "model": used,
+                                                 "blocks": extra.get("blocks") or []},
                                                 ensure_ascii=False, indent=2), encoding="utf-8")
                 break
             last = heard.strip()
@@ -152,8 +186,20 @@ def build(job_dir: Path, retries: int = 3) -> dict:
         else:
             raise RuntimeError(f"TTS không khớp kịch bản sau {retries} lần. Nghe ra: {last[:300]!r}")
     a, rate = _read(raw)
+    tm = json.loads(take_meta.read_text(encoding="utf-8"))
 
-    # 2) Định vị từng đoạn trong audio
+    # 2) Định vị từng đoạn trong audio. vclip trả SRT mốc từng khối → ranh giới đoạn CHÍNH XÁC (khối cách nhau
+    #    0,1s lặng), không cần Gemini định vị / nghe dò điểm cắt; bước 4 vẫn nghe lại từng mảnh làm cổng.
+    srt_spans = _group_blocks(tm.get("blocks") or [], said)
+    if srt_spans:
+        cuts = [0]
+        for i in range(1, len(paras)):
+            g0, g1 = srt_spans[i - 1][1], srt_spans[i][0]
+            mid = (g0 + g1) / 2
+            cuts.append(max(cuts[-1] + 1, _quietest(a, rate, mid, radius=max(0.02, (g1 - g0) / 2 + 0.03))))
+        cuts.append(len(a))
+        return _place(job_dir, meta, edl, nar, paras, said, a, rate, cuts, raw, tm, voice, "vclip srt", work)
+
     listing = "\n".join(f"{i}: {s}" for i, s in enumerate(said))
     align, radius = "gemini", 1.6
     try:
@@ -197,6 +243,12 @@ def build(job_dir: Path, retries: int = 3) -> dict:
                 break
         cuts.append(best_cut)
     cuts.append(len(a))
+    return _place(job_dir, meta, edl, nar, paras, said, a, rate, cuts, raw, tm, voice, align, work)
+
+
+def _place(job_dir: Path, meta: dict, edl: dict, nar: dict, paras: list, said: list[str], a: np.ndarray, rate: int,
+           cuts: list[int], raw: Path, tm: dict, voice: str, align: str, work: Path) -> dict:
+    """Đặt từng mảnh (cắt tại `cuts`) vào cảnh của nó (`at`), cổng kiểm từng mảnh, ghi narration.wav + narration.json."""
     dur = outro.total_duration(edl, meta)  # thuyết minh được phép chạy sang outro (câu chốt brand trên màn kết)
     timeline = np.zeros(int(dur * rate), dtype=np.float32)
     placed, warnings, cursor = [], [], 0.0
@@ -231,11 +283,22 @@ def build(job_dir: Path, retries: int = 3) -> dict:
             warnings.append(f"mảnh {i} CHƯA KIỂM được ({str(exc)[:70]}) — nghe tay trước khi giao")
             continue
         pl["heard"], pl["match"] = heard.strip(), round(_match(pl["said"], heard), 3)
+        # máy nghe hay "bịa" với mảnh ngắn ~2s (đo 11/11: mảnh vclip cắt đúng, lần nghe 1 ra câu khác hẳn, 3 lần sau
+        # đều đúng) → khớp thấp thì nghe thêm tối đa 2 lần, lấy lần khớp nhất trước khi kết luận cắt lệch
+        for _ in range(2):
+            if pl["match"] >= 0.8:
+                break
+            try:
+                again = _hear(piece_path)
+            except HearUnavailable:
+                break
+            if _match(pl["said"], again) > pl["match"]:
+                pl["heard"], pl["match"] = again.strip(), round(_match(pl["said"], again), 3)
+        heard = pl["heard"]
         if pl["match"] < 0.8:
             warnings.append(f"mảnh {i} cắt lệch (khớp {pl['match']}): nghe ra {heard.strip()[:80]!r}")
     out = job_dir / "narration.wav"
     _write(out, timeline, rate)
-    tm = json.loads(take_meta.read_text(encoding="utf-8"))
     used = tm.get("model", TTS_MODEL)  # take cũ (trước 21/10) không ghi model = model chính
     if used != TTS_MODEL:
         warnings.append(f"lượt đọc do model DỰ PHÒNG {used} làm (model chính hết quota/lỗi) — nghe lại giọng trước khi giao")

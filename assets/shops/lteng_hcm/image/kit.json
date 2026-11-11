@@ -1,0 +1,116 @@
+{
+  "shop": "lteng_hcm",
+  "brand_name": "LTENG",
+  "synced_at": "2026-11-11",
+  "source_listing": 93,
+  "_note": "Brand kit lấy từ app (Shop Manager). KHÔNG sửa tay — `ims.py kit sync` ghi đè. Tinh chỉnh riêng cho ảnh: shop.json mục \"image\".",
+  "files": {
+    "logo": "logo.png",
+    "watermark": "watermark.png",
+    "font_reference": "font_reference.jpg"
+  },
+  "kit": {
+    "tone": "thân thiện, bán hàng, dứt khoát — nhấn lợi ích (chịu lực, lắp nhanh, bền)",
+    "palette": {
+      "primary": "#a83030",
+      "accent": "#c0392b",
+      "dark": "#5a1410",
+      "text_on_dark": "#ffffff",
+      "text_on_light": "#a83030"
+    },
+    "text_radius_pct": 15,
+    "cover": {
+      "style": "badge_heavy",
+      "heading_color": "#ffffff",
+      "sub_color": "#ffffff",
+      "heading_gradient": {
+        "on": true,
+        "stops": [
+          "#c0392b",
+          "#a83030",
+          "#5a1410"
+        ],
+        "angle": 90,
+        "glow": {
+          "on": false,
+          "color": "#c0392b",
+          "side": "left",
+          "size_pct": 1
+        }
+      }
+    },
+    "badge": {
+      "bg": "#c0392b",
+      "text": "#ffffff",
+      "bg_opacity": 100,
+      "bg_gradient": {
+        "on": false,
+        "stops": [
+          "#0A2F5C",
+          "#062955",
+          "#041E40",
+          "#030E2B"
+        ],
+        "angle": 90,
+        "glow": {
+          "on": false,
+          "color": "#19B6C8",
+          "side": "left",
+          "size_pct": 6
+        }
+      },
+      "border": {
+        "on": false,
+        "color": "#0f172a",
+        "width_pct": 1.0
+      }
+    },
+    "logo": {
+      "placement": "top-left",
+      "width_pct": 30,
+      "apply_to": [
+        "anh-bia",
+        "anh-san-pham"
+      ]
+    },
+    "watermark": {
+      "enabled": true,
+      "text": "",
+      "opacity": 20,
+      "bg_opacity": 100,
+      "image_opacity": 20
+    },
+    "image_targets": {
+      "cover": {
+        "logo": false,
+        "watermark": true,
+        "logo_placement": "top-left",
+        "watermark_placement": "center"
+      },
+      "product_image": {
+        "logo": false,
+        "watermark": true,
+        "logo_placement": "top-center",
+        "watermark_placement": "center"
+      },
+      "description_image": {
+        "logo": false,
+        "watermark": true,
+        "logo_placement": "top-center",
+        "watermark_placement": "center"
+      },
+      "variant_image": {
+        "logo": false,
+        "watermark": true,
+        "logo_placement": "top-center",
+        "watermark_placement": "center"
+      }
+    },
+    "typography": {
+      "font_name": "UTM Avo Bold",
+      "header": "Bold, ALL CAPS, ≤5 từ/hàng, tối đa 2 hàng, chữ rất lớn",
+      "sub": "Regular, 1 dòng ngắn, factual",
+      "badge": "Chip góc trên nền đỏ chữ trắng bold; số/đơn vị đóng khung accent"
+    }
+  }
+}

@@ -3,6 +3,7 @@
 In OK / LỖI / CHỜ cho từng mục, thoát mã 1 nếu có LỖI. Không bao giờ in API key.
 """
 
+import json
 import subprocess
 import sys
 
@@ -95,6 +96,26 @@ else:
             time.sleep(3 * (attempt + 1))
     else:
         check(f"Gemini ({config.GEMINI_MODEL})", "LỖI", f"{type(last).__name__}: {str(last)[:200]}")
+
+# 6. Giọng đọc vclip (TTS chính, Sếp 11/11) — chỉ liệt kê giọng, không tốn ký tự
+if not config.VCLIP_API_KEY:
+    check("vclip TTS key", "CHỜ", "chưa có VCLIP_API_KEY (hoặc KEY_TTS) trong .env (Sếp tự dán)")
+else:
+    try:
+        from studio.voice import vclip_voices
+
+        ids = {v["id"] for v in vclip_voices()}
+        need = {}
+        for p in sorted((config.ROOT / "assets" / "shops").glob("*/shop.json")):
+            vid = (json.loads(p.read_text(encoding="utf-8")).get("voice") or {}).get("vclip")
+            if vid:
+                need[p.parent.name] = vid
+        missing = [s for s, v in need.items() if v not in ids]
+        # giọng thư viện vclip (Sếp chốt 11/11) không nằm trong getUserVoices → chỉ báo, không phải lỗi
+        check("vclip TTS", "OK", f"{len(need)} shop đã gán giọng · {len(ids)} giọng riêng"
+              + (f" · giọng thư viện (ngoài danh sách riêng): {', '.join(missing)}" if missing else ""))
+    except Exception as exc:
+        check("vclip TTS", "LỖI", f"{type(exc).__name__}: {str(exc)[:200]}")
 
 width = max(len(n) for _, n, _ in results)
 for status, name, detail in results:

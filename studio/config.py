@@ -21,6 +21,8 @@ FONT_REGULAR = FONTS / "BeVietnamPro" / "BeVietnamPro-Regular.ttf"
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "").strip() or "gemini-3-flash-preview"
 TOKENROUTER_API_KEY = os.getenv("TOKENROUTER_API_KEY", "").strip()  # TTS dự phòng gpt-audio (studio/voice.py)
+# TTS chính (Sếp 11/11): tts.vclip.io — giọng clone riêng của Sếp. Nhận cả tên cũ KEY_TTS.
+VCLIP_API_KEY = (os.getenv("VCLIP_API_KEY", "") or os.getenv("KEY_TTS", "")).strip()
 
 _WINGET_LINKS = Path(os.getenv("LOCALAPPDATA", "")) / "Microsoft" / "WinGet" / "Links"
 

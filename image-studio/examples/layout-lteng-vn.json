@@ -1,0 +1,83 @@
+{
+  "schema": "gdp_image_layout@1",
+  "shop": "lteng_vn",
+  "images": {
+    "6905": {
+      "kind": "cover",
+      "base": "clean/6905.jpg",
+      "keep": [
+        [
+          8,
+          11,
+          90,
+          76
+        ]
+      ],
+      "watermark": {
+        "x": 48,
+        "y": 60
+      },
+      "blocks": [
+        {
+          "id": "loi-ich",
+          "type": "headline",
+          "text": "THOÁT NƯỚC NHANH",
+          "x": 96.5,
+          "y": 84.5,
+          "anchor": "bottom-right",
+          "size": 50,
+          "lines": 1
+        },
+        {
+          "id": "hook",
+          "type": "headline",
+          "text": "KHÔNG KHOAN TƯỜNG",
+          "x": 96.5,
+          "y": 96.5,
+          "anchor": "bottom-right",
+          "size": 50,
+          "lines": 1,
+          "bg": {
+            "fill": "brand",
+            "pad": 14,
+            "radius": 14
+          }
+        }
+      ]
+    },
+    "6906": {
+      "kind": "product_image",
+      "base": "clean/6906.jpg",
+      "keep": [
+        [
+          8,
+          17,
+          92,
+          72
+        ]
+      ],
+      "watermark": {
+        "x": 48,
+        "y": 56
+      },
+      "blocks": [
+        {
+          "id": "tam-tieu-de",
+          "type": "headline",
+          "text": "KỆ 2 TẦNG GỌN ĐẸP",
+          "note": "Đựng đồ tắm & treo khăn tiện lợi",
+          "x": 50,
+          "y": 96.5,
+          "anchor": "bottom-center",
+          "size": 62,
+          "lines": 1,
+          "bg": {
+            "fill": "brand",
+            "pad": 20,
+            "radius": 20
+          }
+        }
+      ]
+    }
+  }
+}

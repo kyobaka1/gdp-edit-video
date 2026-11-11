@@ -1,6 +1,6 @@
 ---
 name: gdp-video-localize
-description: Việt hoá video sản phẩm tiếng Trung (Taobao/1688/Douyin/NCC) cho brand Gia Dụng Plus (PHALEDO, LTENG, GIADUNGPLUS…) bằng GDP Video Studio chạy local (repo gdp-video-studio, Windows / Mac) — che chữ Trung đồ hoạ bằng ô chữ Việt theo MẪU brand (HTML), giữ nguyên chữ trên sản phẩm/phụ kiện, lồng thuyết minh tiếng Việt liền mạch (Gemini TTS) + nhạc nền (Lyria), QA tự động 0 chữ Hán sót. Dùng khi Sếp nói "Việt hoá video", "dịch video tiếng Trung", "làm video này sang tiếng Việt", "che chữ Trung trong video", "lồng tiếng Việt cho video", "thả video vào inbox rồi chạy", "render final video", hoặc đưa file .mp4 tiếng Trung cần làm cho brand. KHÔNG dùng cho video Shopee Video upload/gán sản phẩm (module marketing/shopee_video) hay dựng video từ ảnh.
+description: Việt hoá video sản phẩm tiếng Trung (Taobao/1688/Douyin/NCC) cho brand Gia Dụng Plus (PHALEDO, LTENG, GIADUNGPLUS…) bằng GDP Video Studio chạy local (repo gdp-video-studio, Windows / Mac) — che chữ Trung đồ hoạ bằng ô chữ Việt theo MẪU brand (HTML), giữ nguyên chữ trên sản phẩm/phụ kiện, lồng thuyết minh tiếng Việt liền mạch (TTS vclip — giọng clone riêng của Sếp) + nhạc nền (Lyria), QA tự động 0 chữ Hán sót. Dùng khi Sếp nói "Việt hoá video", "dịch video tiếng Trung", "làm video này sang tiếng Việt", "che chữ Trung trong video", "lồng tiếng Việt cho video", "thả video vào inbox rồi chạy", "render final video", hoặc đưa file .mp4 tiếng Trung cần làm cho brand. KHÔNG dùng cho video Shopee Video upload/gán sản phẩm (module marketing/shopee_video) hay dựng video từ ảnh.
 ---
 
 # GDP Video Localize — Việt hoá video TQ (Claude Code điều khiển)
@@ -14,7 +14,7 @@ Set-Location C:\Users\Admin\gdp-video-studio; $env:PYTHONIOENCODING='utf-8'; .\.
 
 **Máy khác / Mac:** thư mục studio = nơi đã clone / chép repo (máy Sếp: `C:\Users\Admin\gdp-video-studio`). Mac / Linux chạy bằng bash trong thư mục đó: `export PYTHONIOENCODING=utf-8; .venv/bin/python vs.py …` (thay `.\.venv\Scripts\python.exe` → `.venv/bin/python`, `\` → `/` ở mọi lệnh bên dưới). Cài máy mới: `SETUP.md` (mục 8 = Mac). Skill này nằm sẵn trong repo `.claude/skills/` — máy khác KHÔNG cần `sync_skill.py`.
 
-Gemini key riêng của Sếp trong `.env` (KHÔNG đọc/in ra). Không chạy model nặng local. Kiểm môi trường: `doctor.py`.
+Gemini key + vclip key (`VCLIP_API_KEY`, tên cũ `KEY_TTS`) riêng của Sếp trong `.env` (KHÔNG đọc/in ra). Không chạy model nặng local. Kiểm môi trường: `doctor.py`.
 Cài trên máy mới / cấu hình chạy 3 video song song: `SETUP.md` trong thư mục studio (có số đo thật).
 **Nguồn skill này = `studio\.claude\skills\gdp-video-localize\`** (đi theo thư mục). Sửa skill → sửa bản đó → chạy
 `tools\sync_skill.py install` (cài cho Claude `~\.claude\skills` + Codex `~\.codex\skills`) → đẩy bản sao lên repo
@@ -44,7 +44,7 @@ giadungplus `skills/gdp-video-localize/`.
     `vs.py hear`; model xịn chỉ đọc kết luận dạng chữ rồi quyết định. Giao cả job cho subagent thì cũng chọn model rẻ;
     người điều phối chấm lại bằng số đo + `look`.
 - Gemini báo `402 … prepayment credits are depleted` = hết tiền nạp → báo Sếp nạp ở AI Studio. Khi đó `qa` vẫn chạy bằng
-  Codex (`gemini_confirm_error` khác rỗng → ô sót là ô Codex thô, patch xong soát mắt); TTS tự sang gpt-audio-mini;
+  Codex (`gemini_confirm_error` khác rỗng → ô sót là ô Codex thô, patch xong soát mắt); TTS (vclip) không phụ thuộc Gemini;
   `narrate` / `hear` tự sang **tokenrouter gpt-audio-mini để nghe** + định vị đoạn **ước theo độ dài chữ**
   (`narration.json.align`). `analyze` + nhạc Lyria vẫn đứng tới khi nạp.
   ⚠️ Dự phòng nghe CHỈ để không đứng việc, chất lượng kém Gemini (đo 22/10, LTENG HCM, TTS + nghe đều dự phòng):
@@ -319,11 +319,14 @@ Bẫy V2 đã gặp (11/11, job 0379):
 - Job chép nguồn không cần Sếp duyệt bản nháp → render thẳng `--final` được; vẫn qa/audiocheck/soát khung đầy đủ.
 - TTS mỗi lượt dài ngắn lệch ~±1s → mỗi đoạn chừa ~10% thời lượng cảnh; báo trễ/tràn thì rút chữ đoạn trước.
 
-## Giọng đọc theo shop (`shop.json.voice`, Sếp chốt 20/10)
+## Giọng đọc theo shop (`shop.json.voice.vclip`, Sếp 11/11: TTS = tts.vclip.io, KHÔNG dùng Gemini tạo giọng nữa)
 
-- GIADUNGPLUS = Kore (nữ, chắc — giọng đang dùng) · LTENG VN = Puck (nam, tươi) · LTENG HCM = Charon (nam, chắc, khác
-  VN) · PHALEDO = Sulafat (nữ, ấm). `narrate` tự lấy giọng shop; ép tay bằng `edl.narration.voice`. Đừng ghi `voice`
-  trong direct.py trừ khi Sếp yêu cầu giọng khác.
+- Giọng = giọng vclip Sếp CHỐT 11/11: **GIADUNGPLUS = Hà · LTENG VN = Vương · LTENG HCM = Chinh · PHALEDO = My (tốc độ 0,85 — Sếp chốt)**
+  (id trong `voice.vclip`; 4 giọng này là giọng thư viện vclip, KHÔNG nằm trong `tools\vclip_voices.py` = giọng
+  clone riêng — doctor chỉ báo, không coi là lỗi). Đổi giọng = sửa `voice.vclip` (+ `vclip_name`). Tốc độ đọc gốc vclip: `voice.speed` (0,5–2,0; ép tay `edl.narration.voice_speed`)
+  — khác `tempo`; đo 11/11 My nhanh hơn Hà ~45%, mảnh ngắn của My hay bị máy nghe chép sai (cắt vẫn đúng) → mảnh
+  báo lệch mà cả bài khớp ≥0,9 thì nghe tay trước khi sửa kịch bản. `narrate` tự lấy giọng shop; ép tay bằng `edl.narration.voice_vclip` (id). Đừng ghi
+  giọng trong direct.py trừ khi Sếp yêu cầu. `voice.name` / `voice.openai` = giọng Gemini / gpt-audio cũ, chỉ cho dự phòng.
 
 ## Luật thuyết minh (Sếp chốt 20/10)
 
@@ -331,7 +334,10 @@ Bẫy V2 đã gặp (11/11, job 0379):
   giới thiệu brand + sản phẩm → công dụng theo đúng thứ tự cảnh, có câu chuyển ý → hướng dẫn (nếu video có) → câu chốt brand.
 - Mỗi đoạn một `at` = giây bắt đầu cảnh tương ứng. Ngân sách ≈ 3,4 âm tiết/giây của khoảng cảnh; `narrate` báo
   "trễ"/"tràn" → gộp/rút đoạn hoặc lùi `at` (Sếp chấp nhận lệch ≤ ~0,5s).
-- Đọc MỘT lượt TTS cho cả bài (một giọng, một tông) → cắt tại khoảng lặng thật → đặt theo `at`. Không ghép nhiều lượt TTS.
+- Đọc MỘT lượt TTS cho cả bài (một giọng, một tông) → cắt giữa các đoạn → đặt theo `at`. Không ghép nhiều lượt TTS.
+  vclip trả kèm SRT mốc từng khối (khối = 1 đoạn; đoạn dài bị tách theo câu, tự gom lại) → cắt đúng ranh giới đoạn,
+  KHÔNG cần Gemini định vị (`narration.json.align = "vclip srt"`). Mảnh nghe lại khớp thấp → tự nghe thêm ≤2 lần
+  (đo 11/11: máy nghe hay "bịa" với mảnh ~2s, cắt vẫn đúng).
 - ⛔ TTS gửi ĐÚNG văn bản, không kèm chỉ dẫn giọng điệu: có chỉ dẫn là model đọc tiếp/bịa (đã bịa "khoan bê tông",
   "miễn phí vận chuyển"). Cổng kiểm ngược (cả bài ≥0,9, từng mảnh ≥0,8) bắt buộc — không nới.
 - Số viết chữ số ("48 đến 72 giờ").
@@ -340,14 +346,13 @@ Bẫy V2 đã gặp (11/11, job 0379):
   LTENG → "Lờ teng"**. Brand/tên riêng mới → hỏi Sếp cách đọc rồi thêm vào file đó.
 - TTS mỗi lượt đọc hơi khác (tốc độ, cách nhấn tên riêng). Lượt đọc được cache theo nội dung (`narration/take_<hash>.wav`):
   lượt nào đạt thì giữ, chỉnh mốc `at` không làm đọc lại; đổi chữ kịch bản = đọc lượt mới → kiểm lại từ đầu.
-- **TTS dự phòng (21/10)** — `voice.TTS_CHAIN`, tự nhảy, không cần lệnh riêng: 3.1-flash-tts-preview (chỉ 100 req/24h)
-  → gemini-3.8-flash-tts → tokenrouter `openai/gpt-audio-mini` → `openai/gpt-audio` (đang bị nhà cung cấp chặn 403).
-  Hết quota ngày/402/403 → bỏ model cả lượt chạy; 429 theo phút → đợi 61s thử lại. Giọng gpt-audio = `voice.openai`
-  trong shop.json (GDP coral · LTENG VN verse · LTENG HCM cedar · PHALEDO marin). `narration.json.model` ghi model đã
-  đọc; khác model chính → `narrate` cảnh báo **"model DỰ PHÒNG"** → phải nghe lại trước khi giao. Đo 21/10:
-  gpt-audio-mini đọc tiếng Việt kém Gemini (cả bài khớp 0,90 vs 0,998; câu ngắn có brand chỉ 0,73, từng nuốt
-  "Lên đơn ngay!") → mảnh <0,8 thì viết câu chốt dài hơn / tách brand khỏi câu cụt, hoặc chờ quota Gemini hồi
-  (đầu ngày theo giờ Mỹ ≈ 14–15h VN) rồi xoá `narration/take_*` để đọc lại.
+- **TTS chính = vclip (Sếp 11/11)** — `voice.TTS_CHAIN`: `vclip` → tokenrouter `openai/gpt-audio-mini` (dự phòng, tự nhảy).
+  Đo 11/11: vclip đọc nguyên văn (cả bài khớp 0,98–1,0; 4 shop 0,95–0,99), ~3s cho bài 500 ký tự, WAV 48 kHz mono.
+  vclip hỏng (hết ký tự / key sai / mạng) → gpt-audio-mini giọng KHÁC HẲN: `narrate` cảnh báo **"model DỰ PHÒNG"** →
+  báo Sếp (nạp ký tự vclip), ưu tiên chờ rồi xoá `narration/take_*` đọc lại; không giao bản giọng dự phòng khi chưa hỏi.
+  Giọng gpt-audio = `voice.openai` trong shop.json. 402/403 → bỏ model cả lượt chạy; 429 theo phút → đợi 61s.
+  Gemini TTS chỉ còn gọi tay (`synthesize(..., chain=[("gemini", "gemini-3.1-flash-tts-preview")])`), không trong chuỗi.
+  Kiểm chuỗi: `tools\probe_tts_chain.py sim` (0 ký tự) · `… live vclip` (đọc thật 4 shop → `jobs\_probe\chain\`).
 
 ## Tài nguyên theo SHOP (`assets/shops/<shop>/`, chuẩn: `assets/shops/README.md`)
 

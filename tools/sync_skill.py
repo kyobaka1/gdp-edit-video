@@ -17,7 +17,7 @@ from pathlib import Path
 
 STUDIO = Path(__file__).resolve().parent.parent / ".claude" / "skills"
 TARGETS = {"claude": Path.home() / ".claude" / "skills", "codex": Path.home() / ".codex" / "skills"}
-SKILLS = ["gdp-video-localize", "gdp-video-motion", "gdp-video-edit"]  # skill liên quan studio
+SKILLS = ["gdp-video-localize", "gdp-video-motion", "gdp-video-edit", "gdp-image-listing"]  # skill liên quan studio
 
 
 def files(root: Path) -> set[str]:

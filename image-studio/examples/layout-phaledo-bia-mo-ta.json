@@ -1,0 +1,120 @@
+{
+  "schema": "gdp_image_layout@1",
+  "shop": "phaledo_official",
+  "images": {
+    "test-image-1": {
+      "kind": "cover",
+      "base": "clean/test-image-1.jpg",
+      "keep": [
+        [
+          22,
+          35,
+          76,
+          78
+        ]
+      ],
+      "watermark": {
+        "y": 80
+      },
+      "blocks": [
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "BẢO HÀNH BỂ VỠ",
+          "x": 50,
+          "y": 17.5,
+          "w": 90,
+          "size": 68,
+          "lines": 1
+        },
+        {
+          "id": "cam-ket",
+          "type": "pills",
+          "items": [
+            "1 ĐỔI 1",
+            "180 NGÀY"
+          ],
+          "x": 50,
+          "y": 28,
+          "size": 48,
+          "gap": 44
+        }
+      ]
+    },
+    "test-anh-mo-ta-3-4": {
+      "kind": "description_image",
+      "base": "clean/test-anh-mo-ta-3-4.jpg",
+      "keep": [
+        [
+          32,
+          42,
+          69,
+          80
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "MỘT THÌA LÀ VỪA\nNGỌT NGÀO TRỌN VỊ",
+          "x": 50,
+          "y": 15.3,
+          "w": 88,
+          "size": 66,
+          "lines": 2
+        },
+        {
+          "id": "sub",
+          "type": "sub",
+          "text": "Hũ thuỷ tinh nắp gỗ keo\nthêm nét ấm cho gian bếp",
+          "x": 50,
+          "y": 26.1,
+          "w": 80,
+          "size": 37,
+          "lines": 2
+        },
+        {
+          "id": "ten-hu",
+          "type": "badge",
+          "text": "HŨ ĐỰNG ĐƯỜNG",
+          "x": 25,
+          "y": 34.9,
+          "size": 37
+        },
+        {
+          "id": "tile-1",
+          "type": "text",
+          "text": "Kín khí",
+          "x": 29.9,
+          "y": 95.0,
+          "w": 12.8,
+          "size": 27,
+          "bold": true,
+          "lines": 1
+        },
+        {
+          "id": "tile-2",
+          "type": "text",
+          "text": "Kèm thìa",
+          "x": 49.0,
+          "y": 95.0,
+          "w": 12.8,
+          "size": 27,
+          "bold": true,
+          "lines": 1
+        },
+        {
+          "id": "tile-3",
+          "type": "text",
+          "text": "An toàn",
+          "x": 68.4,
+          "y": 95.0,
+          "w": 12.8,
+          "size": 27,
+          "bold": true,
+          "lines": 1
+        }
+      ]
+    }
+  }
+}

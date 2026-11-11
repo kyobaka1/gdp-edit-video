@@ -21,7 +21,8 @@ Set-Location C:\Users\Admin\gdp-video-studio; $env:PYTHONIOENCODING='utf-8'
 #   Bộ nhận diện chữ / badge / khung dải theo SHOP = assets\shops\<shop>\shop.json mục `caps` (direct.py không ghi màu);
 #   soát bằng ẢNH, không render video: .\.venv\Scripts\python.exe tools\caps_previews.py <job…> --at 3.2,4.9,6.9
 .\.venv\Scripts\python.exe vs.py music <id>              # nhạc Lyria không lời
-.\.venv\Scripts\python.exe vs.py narrate <id>            # thuyết minh liền mạch, 1 lượt TTS
+.\.venv\Scripts\python.exe vs.py narrate <id>            # thuyết minh liền mạch, 1 lượt TTS vclip (Sếp 11/11; giọng = shop.json voice.vclip)
+.\.venv\Scripts\python.exe tools\vclip_voices.py         # giọng vclip của Sếp + shop nào đang dùng (key VCLIP_API_KEY/KEY_TTS trong .env)
 .\.venv\Scripts\python.exe vs.py render <id> [--final]
 .\.venv\Scripts\python.exe vs.py qa <id> [--final]        # phải ĐẠT (sót 0); chưa → vs.py patch <id>
 .\.venv\Scripts\python.exe vs.py audiocheck <id> [--final]
@@ -68,6 +69,30 @@ chọn/bỏ; `vs.py motion storyboard <id>` ảnh soát. Thêm animation mới =
 Chữ hiện dần + khối nhấn + ảnh bìa + tiếng khẽ (Sếp 29/10, học từ skill brag): job mới khai `edl.reveal = {"mode": "auto"}`,
 `edl.poster = {"mode": "auto"}`, `audio.sfx: true`; `*cụm từ*` trong `text_vi` = khối nhấn màu shop. Render cảnh báo
 `⚠ chữ hiện ngắn` → rút bản dịch. Luật đầy đủ: skill `gdp-video-localize`. Test: `tools\test_reveal.py`.
+
+## Ảnh listing (Image Studio — Sếp 11/11)
+
+Nhân sự chỉ XOÁ CHỮ TRUNG rồi upload ảnh sạch lên app; Claude phủ chữ Việt + logo + watermark đúng nhận diện shop bằng MỘT
+LỚP HTML trên ảnh (ảnh là nền cuối, không sửa nền). Quy trình + luật: skill **`gdp-image-listing`**; công cụ `image-studio/ims.py`.
+
+```powershell
+Set-Location C:\Users\Admin\gdp-video-studio\image-studio; $env:PYTHONIOENCODING='utf-8'
+..\.venv\Scripts\python.exe ims.py pull <listing_id>          # ảnh sạch + ảnh Trung gốc + ngữ cảnh → jobs\listing-<id>\
+..\.venv\Scripts\python.exe ims.py sheet <job>                # ảnh so: Trung gốc | đã xoá chữ | FINAL
+..\.venv\Scripts\python.exe ims.py grid <job> [key…]          # lưới toạ độ % + vùng trống
+#   → điền jobs\<job>\layout.json (mẫu: examples\layout-phaledo-bia-mo-ta.json; trường: skill → references\layout.md)
+..\.venv\Scripts\python.exe ims.py render <job> [key…]        # → out\<key>.jpg + QA (phải ĐẠT) → soát MẮT từng ảnh
+..\.venv\Scripts\python.exe ims.py push <job> --yes           # nộp lên app — CHỈ khi Sếp đã duyệt ảnh
+..\.venv\Scripts\python.exe ims.py kit show <shop>            # nhận diện ảnh của shop; `kit demo` = ảnh mẫu khối + bộ font; `kit sync` = lấy lại từ app
+..\.venv\Scripts\python.exe ..\tools\test_image_studio.py     # test bộ dựng + QA
+```
+
+Nhận diện dùng chung `assets/shops/<shop>/`: `shop.json` (+ mục `image`: bộ font, viền chữ, logo…) và `image/kit.json` (brand kit
+lấy từ app, không sửa tay). Bộ font: PHALEDO = Averta (ExtraBold / Regular) · GDP chữ lớn = UTM HelvetIns · UTM Avo ưu tiên cấp 1 ·
+Poppins / PS Young để đổi gió. Layout không ghi mã màu, không che sản phẩm (`keep`), không thêm tuyên bố ngoài nguồn.
+KHÔNG CHỈNH MÀU ẢNH (Sếp 12/11): chỉ thêm chữ + logo, không lớp tối dần / lớp phủ màu. MOBILE FIRST: chữ nhỏ → nâng cỡ rồi tách 2 dòng / rút gọn.
+LTENG HCM: đen / trắng / đỏ (dải đỏ + dải đen chữ trắng). LTENG VN: tấm navy chữ trắng / chữ navy viền trắng. GDP (Sếp 12/11): tông ĐEN / ĐỎ / TRẮNG theo nền (nền sáng chữ đen, nền
+tối chữ trắng), nhãn đỏ+trắng hoặc trắng+đỏ bo góc nhẹ, viền chữ mảnh — brand kit app lệch thì đo màu ảnh thật, ghi đè ở `shop.json → image`.
 
 ## 5 luật không được quên
 

@@ -1,6 +1,6 @@
-"""Giọng đọc tiếng Việt (Gemini TTS) + nhạc nền (Lyria) cho một job.
+"""Giọng đọc tiếng Việt (tts.vclip.io — Sếp 11/11; dự phòng gpt-audio-mini) + nhạc nền (Lyria) cho một job.
 
-Mỗi câu TTS phải qua CỔNG KIỂM NGƯỢC: Gemini nghe lại → chữ phải khớp câu gốc. Lý do: thử 20/10, TTS từng
+Mỗi câu TTS phải qua CỔNG KIỂM NGƯỢC: nghe lại (Gemini → tokenrouter) → chữ phải khớp câu gốc. Lý do: thử 20/10, TTS từng
 tự chèn thêm câu "Miễn phí vận chuyển…" — tuyên bố quảng cáo không được phép lọt vào video.
 """
 
@@ -21,20 +21,20 @@ from google.genai import types
 
 from studio import config, gemini, media
 
-# Đo 20/10 (tools/probe_tts_literal.py): kèm câu chỉ dẫn giọng điệu là model "nhập vai" và ĐỌC TIẾP
-# (3.8-flash-tts tự thêm "…dùng khoan bê tông…" vào câu "Đánh dấu vị trí bằng bút."). Gửi ĐÚNG câu,
-# không chỉ dẫn → cả 3 model đọc nguyên văn; 3.1-flash-tts-preview ổn định nhất (khớp 1,00 mọi kiểu).
-TTS_MODEL = "gemini-3.1-flash-tts-preview"
-# Chuỗi dự phòng (Sếp 21/10): TTS_MODEL chỉ 100 request/24h → hết quota (429) thì nhảy sang model kế.
-# Model hết quota được nhớ trong tiến trình, các câu sau đi thẳng model kế. Lỗi khác (5xx, mạng) chỉ bỏ
-# qua model đó cho LƯỢT gọi này. Mọi model vẫn phải qua cổng kiểm ngược như cũ.
+# Sếp 11/11: TTS chính = tts.vclip.io (giọng clone riêng của Sếp, shop.json voice.vclip) — KHÔNG dùng Gemini
+# key để tạo giọng nữa. Đo 11/11: đọc nguyên văn (khớp 0,98), ~3s cho cả bài, trả WAV 48 kHz mono + SRT mốc
+# từng khối (khối = 1 đoạn, đoạn dài bị tách theo câu) → narration cắt đoạn theo SRT, không cần Gemini định vị.
+TTS_MODEL = "vclip"
+# Chuỗi dự phòng: vclip lỗi → tokenrouter gpt-audio-mini (giọng khác hẳn → narrate cảnh báo nghe lại).
+# Gemini TTS (gemini-3.1-flash-tts-preview …) vẫn gọi được bằng chain=[("gemini", "<model>")] nhưng không còn
+# trong chuỗi mặc định. Model hết quota được nhớ trong tiến trình; mọi model vẫn phải qua cổng kiểm ngược.
 TTS_CHAIN = [
-    ("gemini", TTS_MODEL),
-    ("gemini", "gemini-3.8-flash-tts"),
+    ("vclip", "vclip"),
     ("tokenrouter", "openai/gpt-audio-mini"),  # chat completions + audio ra; cần lời dặn "đọc nguyên văn"
-    ("tokenrouter", "openai/gpt-audio"),
 ]
 TOKENROUTER_URL = "https://api.tokenrouter.com/v1/chat/completions"
+VCLIP_URL = "https://api-tts.vclip.io/json-rpc"
+VCLIP_TIMEOUT = 300  # giây chờ xuất audio (đo 11/11: ~3s cho bài 200 chữ)
 # Giọng OpenAI khi shop.json voice không khai `openai` (gpt-audio không có giọng prebuilt của Gemini)
 OPENAI_VOICE_BY_GENDER = {"nữ": "coral", "nam": "ash"}
 _READ_VERBATIM = ("Bạn là máy đọc văn bản tiếng Việt. Đọc to NGUYÊN VĂN đoạn người dùng gửi, không thêm, "
@@ -123,6 +123,81 @@ def _gemini_tts(model: str, text: str, voice: dict) -> tuple[bytes, str]:
     return part.inline_data.data, part.inline_data.mime_type
 
 
+class VclipError(RuntimeError):
+    pass
+
+
+def _vclip_rpc(method: str, params: dict) -> dict:
+    r = requests.post(VCLIP_URL, timeout=60, json={"method": method, "input": params},
+                      headers={"Authorization": f"Bearer {config.VCLIP_API_KEY}"})
+    r.raise_for_status()  # 401/402/403 → _classify coi là 'dead'
+    body = r.json()
+    if body.get("error"):
+        raise VclipError(f"{method}: {body['error'].get('code')} {body['error'].get('message')}")
+    return body["result"]
+
+
+_SRT_TIME = re.compile(r"(\d+):(\d+):(\d+)[,.](\d+)\s*-->\s*(\d+):(\d+):(\d+)[,.](\d+)")
+
+
+def parse_srt(text: str) -> list[dict]:
+    """SRT vclip → [{start, end, text}] (giây). Mỗi khối = 1 đoạn kịch bản, đoạn dài bị tách theo câu."""
+    out = []
+    for chunk in re.split(r"\n\s*\n", text.replace("\r", "").strip()):
+        lines = chunk.strip().split("\n")
+        for k, ln in enumerate(lines):
+            m = _SRT_TIME.search(ln)
+            if m:
+                g = [int(x) for x in m.groups()]
+                out.append({"start": g[0] * 3600 + g[1] * 60 + g[2] + g[3] / 1000,
+                            "end": g[4] * 3600 + g[5] * 60 + g[6] + g[7] / 1000,
+                            "text": " ".join(lines[k + 1:]).strip()})
+                break
+    return out
+
+
+def vclip_voices() -> list[dict]:
+    """Giọng của tài khoản vclip (trang 'Giọng nói của bạn'): [{id, name, description}]."""
+    if not config.VCLIP_API_KEY:
+        raise RuntimeError("Thiếu VCLIP_API_KEY (hoặc KEY_TTS) trong .env")
+    items, page = [], 1
+    while True:
+        res = _vclip_rpc("getUserVoices", {"page": page})
+        items += [{"id": v["id"], "name": v["name"], "description": v.get("description", "")} for v in res["items"]]
+        if not res.get("hasNext"):
+            return items
+        page += 1
+
+
+def _vclip_tts(model: str, text: str, voice: dict) -> tuple[bytes, str, dict]:
+    """tts.vclip.io: ttsLongText → chờ getExportStatus 'completed' → tải WAV + SRT. Không gửi chỉ dẫn giọng điệu."""
+    if not config.VCLIP_API_KEY:
+        raise RuntimeError("Thiếu VCLIP_API_KEY (hoặc KEY_TTS) trong .env")
+    vid = voice.get("vclip")
+    if not vid:
+        raise RuntimeError("shop.json voice chưa khai `vclip` (id giọng vclip) — xem tools\\vclip_voices.py")
+    job = _vclip_rpc("ttsLongText", {"text": text, "userVoiceId": vid, "speed": float(voice.get("speed", 1.0))})
+    eid, t0 = job["projectExportId"], time.time()
+    while True:
+        st = _vclip_rpc("getExportStatus", {"projectExportId": eid})
+        if st.get("state") == "completed" and st.get("url"):
+            break
+        if st.get("state") in ("failed", "error", "cancelled"):
+            raise VclipError(f"xuất audio {eid} thất bại: {st}")
+        if time.time() - t0 > VCLIP_TIMEOUT:
+            raise VclipError(f"xuất audio {eid} quá {VCLIP_TIMEOUT}s (state={st.get('state')})")
+        time.sleep(2)
+    a = requests.get(st["url"], timeout=120)
+    a.raise_for_status()
+    blocks = []
+    if st.get("srtUrl"):
+        s = requests.get(st["srtUrl"], timeout=60)
+        if s.ok:
+            s.encoding = "utf-8"
+            blocks = parse_srt(s.text)
+    return a.content, "audio/wav", {"blocks": blocks, "export_id": eid, "chars": job.get("characterCount")}
+
+
 def _tokenrouter_tts(model: str, text: str, voice: dict) -> tuple[bytes, str]:
     if not config.TOKENROUTER_API_KEY:
         raise RuntimeError("Thiếu TOKENROUTER_API_KEY trong .env")
@@ -202,10 +277,20 @@ def _tokenrouter_hear(path: Path) -> str:
         return text
 
 
+_PREAMBLE = re.compile(r"^[^\n\"“]{0,80}(nguyên văn|lời nói|chép lại)[^\n\"“]{0,40}:\s*", re.IGNORECASE)
+
+
 def hear(path: Path) -> str:
-    """Chép lại lời Việt trong file audio (cổng kiểm ngược, vs.py hear). Gemini trước; Gemini hết tiền / lỗi →
-    tokenrouter gpt-audio-mini (Codex không nhận audio). Gemini 'dead' thì cả lượt chạy đi thẳng tokenrouter.
-    Dự phòng không nghe được (từ chối mảnh ngắn) → HearUnavailable."""
+    """Chép lại lời Việt trong file audio (cổng kiểm ngược, vs.py hear). Bỏ câu dẫn kiểu "Dưới đây là nguyên văn
+    lời nói…:" + ngoặc kép bao ngoài (đo 11/11: câu dẫn kéo khớp cả bài 0,99 → 0,93)."""
+    text = _hear_raw(path)
+    stripped = _PREAMBLE.sub("", text.strip(), count=1).strip()
+    return stripped.strip('"“”') if stripped != text.strip() else text
+
+
+def _hear_raw(path: Path) -> str:
+    """Gemini trước; Gemini hết tiền / lỗi → tokenrouter gpt-audio-mini (Codex không nhận audio). Gemini 'dead' thì
+    cả lượt chạy đi thẳng tokenrouter. Dự phòng không nghe được (từ chối mảnh ngắn) → HearUnavailable."""
     if not gemini_dead():
         mime = {".mp3": "audio/mp3", ".m4a": "audio/mp4"}.get(path.suffix.lower(), "audio/wav")
         try:
@@ -218,17 +303,21 @@ def hear(path: Path) -> str:
 
 
 def synthesize(text: str, voice: dict, out: Path, usage: Path | None = None,
-               chain: list[tuple[str, str]] | None = None) -> str:
+               chain: list[tuple[str, str]] | None = None, extra: dict | None = None) -> str:
     """TTS `text` ra `out` (WAV) theo TTS_CHAIN, trả tên model đã dùng. `voice` = shop.json voice
-    ({name: giọng Gemini, gender, openai?: giọng gpt-audio}). Hết cả chuỗi → lỗi kèm lý do từng model."""
+    ({vclip: id giọng vclip, name: giọng Gemini, gender, openai?: giọng gpt-audio}). `extra` (nếu đưa) nhận thêm
+    dữ liệu của nhà cung cấp — vclip: {blocks: mốc SRT từng khối}. Hết cả chuỗi → lỗi kèm lý do từng model."""
     errors = []
     for provider, model in chain or TTS_CHAIN:
-        call = _gemini_tts if provider == "gemini" else _tokenrouter_tts
+        call = globals()[f"_{provider}_tts"]  # tra lúc gọi → test giả lập thay được hàm
         for attempt in range(3):  # chỉ lặp khi bị giới hạn theo phút
             if model in _exhausted:
                 break
             try:
-                data, mime = call(model, text, voice)
+                data, mime, *more = call(model, text, voice)
+                if extra is not None:
+                    extra.clear()
+                    extra.update(more[0] if more else {})
             except Exception as exc:
                 kind = _classify(exc)
                 if kind == "dead":

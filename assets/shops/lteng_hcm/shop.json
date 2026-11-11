@@ -80,11 +80,13 @@
     "text_radius_pct": 15
   },
   "voice": {
+    "vclip": "8VXsCLxU7Pn55ADXQc6sAf",
+    "vclip_name": "Chinh",
     "name": "Charon",
     "gender": "nam",
     "openai": "cedar",
     "style": "chắc, kiểu thuyết minh — khác giọng nam của LTENG VN",
-    "model_note": "Gemini TTS prebuilt voice; Sếp chốt nhóm giọng 20/10 (GDP hiện tại, LTENG VN nam, LTENG HCM nam khác, PHALEDO nữ ấm)"
+    "model_note": "vclip = giọng TTS chính (tts.vclip.io, Sếp chốt 11/11; tools/vclip_voices.py); name/openai = giọng Gemini/gpt-audio cũ, chỉ dự phòng; Sếp chốt nhóm giọng 20/10 (GDP hiện tại, LTENG VN nam, LTENG HCM nam khác, PHALEDO nữ ấm)"
   },
   "watermark": {
     "enabled": true,
@@ -214,5 +216,32 @@
       "line": "#c0392b",
       "line_alpha": 0.75
     }
+  },
+  "image": {
+    "_note": "Ảnh listing (image-studio). Tông ĐEN / TRẮNG / ĐỎ (Sếp 12/11): dải đỏ phẳng #a83030 chữ trắng là kiểu tiêu đề mặc định; phối thêm dải / nhãn ĐEN chữ trắng (style plate-dark, variant dark) tuỳ trường hợp; chữ thường trên nền sáng = đen, trên nền tối = trắng. KHÔNG dùng nhãn trắng chữ đỏ. Logo LTENG|HCM góc trên-trái; watermark chữ LTENG mờ giữa sản phẩm. Kit app ghi #c0392b + dải màu — ảnh thật là đỏ phẳng nên ghi đè.",
+    "fonts": [
+      "utm-avo",
+      "poppins"
+    ],
+    "headline": "plate",
+    "heading_gradient": false,
+    "edge": 0.07,
+    "bolder": 0.006,
+    "colors": {
+      "primary": "#a83030",
+      "accent": "#a83030",
+      "dark": "#111111",
+      "hl_on_dark": "#ff6a5c"
+    },
+    "badge": {
+      "bg": "#a83030",
+      "text": "#ffffff",
+      "bg_opacity": 100,
+      "gradient": false,
+      "border": null
+    },
+    "pill_shape": "square",
+    "pill": "solid",
+    "ink": "#111111"
   }
 }

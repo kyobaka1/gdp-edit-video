@@ -78,7 +78,7 @@ Kiểm model Gemini mà key dùng được (tên model đổi theo thời gian �
 @'
 from studio import gemini
 names = [m.name for m in gemini.client().models.list()]
-for need in ("gemini-3-flash-preview", "gemini-3.1-flash-tts-preview", "lyria-3.5"):
+for need in ("gemini-3-flash-preview", "lyria-3.5"):
     print(need, "OK" if any(need in n for n in names) else "KHÔNG CÓ")
 '@ | .\.venv\Scripts\python.exe -
 ```
@@ -86,10 +86,13 @@ for need in ("gemini-3-flash-preview", "gemini-3.1-flash-tts-preview", "lyria-3.
 - **Codex CLI** (soát ảnh `qa` / `vs.py look` bằng gói ChatGPT, không tốn tiền API): `npm i -g @openai/codex` → NHỜ NGƯỜI
   DÙNG chạy `codex login` (chọn ChatGPT). Kiểm: `.\.venv\Scripts\python.exe vs.py look jobs\<id>\contact.jpg -q "Có chữ Hán không?"`
   → dòng cuối `[codex gpt-5.6-luna]`. Không có Codex thì qa tự dùng Gemini (tốn tiền hơn).
-- `GEMINI_MODEL` (phân tích/QA/nghe lại) trong `.env` · TTS `studio/voice.py: TTS_MODEL` · nhạc `MUSIC_MODEL`.
-- TTS dự phòng `studio/voice.py: TTS_CHAIN`: 3.1-flash-tts-preview (100 req/24h) → gemini-3.8-flash-tts → tokenrouter
-  openai/gpt-audio-mini → openai/gpt-audio. Kiểm: `.\.venv\Scripts\python.exe tools\probe_tts_chain.py sim` (0 token)
-  rồi `... live` (gọi thật). tokenrouter giới hạn 5 req/phút, tính cả lượt lỗi — 3 video song song vẫn đủ (1 req/lượt đọc).
+- `GEMINI_MODEL` (phân tích/QA/nghe lại) trong `.env` · nhạc `MUSIC_MODEL`.
+- **Giọng đọc = tts.vclip.io (Sếp 11/11, không dùng Gemini tạo giọng nữa)**: dán `VCLIP_API_KEY` (hoặc tên cũ `KEY_TTS`)
+  vào `.env`; giọng từng shop = `shop.json voice.vclip`. Xem giọng của tài khoản: `.\.venv\Scripts\python.exe tools\vclip_voices.py`;
+  `doctor.py` báo `vclip TTS … N shop đã gán`.
+- TTS dự phòng `studio/voice.py: TTS_CHAIN`: vclip → tokenrouter openai/gpt-audio-mini (giọng khác, narrate cảnh báo).
+  Kiểm: `.\.venv\Scripts\python.exe tools\probe_tts_chain.py sim` (0 ký tự) rồi `... live vclip` (gọi thật 4 shop).
+  tokenrouter giới hạn 5 req/phút, tính cả lượt lỗi — 3 video song song vẫn đủ (1 req/lượt đọc).
 
 Chạy thử đầu-cuối không tốn video thật (video mẫu có sự thật biết trước):
 
@@ -137,7 +140,7 @@ Video nguồn 1080×1920 dài ~60s ≈ 4 lần khối lượng mã hoá so với
 
 - **Gemini API key ở hạng trả phí** (Tier 1 trở lên). Mỗi job gọi tới 4 yêu cầu cùng lúc (lô 10 khung) → 3 job ≈ 12 yêu
   cầu đồng thời; key miễn phí sẽ bị 429 (code có thử lại 3 lần nhưng sẽ chậm/hỏng). Máy gốc chạy 12 đồng thời không lỗi.
-  Chi phí ước tính mỗi video 47s: ~0,2M token phân tích+QA + 1 lượt TTS + 1 đoạn nhạc Lyria.
+  Chi phí ước tính mỗi video 47s: ~0,2M token phân tích+QA + 1 lượt TTS vclip (~500 ký tự) + 1 đoạn nhạc Lyria.
 - **Claude**: mỗi subagent Sonnet ~150k token/video (đo 20/10: 5–9 phút/bản) + điều phối (Opus) chấm lại → 3 video
   ≈ 0,5–0,7M token/lượt; nên dùng gói Claude có hạn mức cao (Max).
 - Chạy song song an toàn: mỗi job một thư mục riêng; file tạm render đặt tên theo tiến trình (không giẫm nhau).
@@ -152,7 +155,7 @@ Video nguồn 1080×1920 dài ~60s ≈ 4 lần khối lượng mã hoá so với
 | `không tải được font` | đường dẫn `url(...)` trong mẫu sai so với `assets\fonts\<Họ font>\` (cổng font chặn có chủ đích) |
 | Gemini 429 / quota | key miễn phí hoặc vượt hạn mức → nâng hạng, hoặc chạy ít job song song hơn |
 | Gemini 503 UNAVAILABLE | Google quá tải nhất thời (gặp khi kiểm SETUP 20/10) → chờ vài giây chạy lại; code/doctor có thử lại |
-| Gemini 404 model | tên model đã đổi → kiểm `models.list()` (mục 3), sửa `.env` / `TTS_MODEL` / `MUSIC_MODEL` |
+| Gemini 404 model | tên model đã đổi → kiểm `models.list()` (mục 3), sửa `.env` / `MUSIC_MODEL` |
 | Chữ tiếng Việt lỗi khi in log | thiếu `$env:PYTHONIOENCODING='utf-8'` |
 | Claude Code chặn `Remove-Item`/`git rm` ("system path") | bộ kiểm lệnh hiểu nhầm đường dẫn → xoá bằng Python `Path(...).unlink()` rồi `git add -A` |
 | `[IO.File]` báo không thấy file dù có | PowerShell .NET hiểu đường dẫn tương đối theo thư mục khởi động → dùng đường dẫn tuyệt đối / `Resolve-Path` |

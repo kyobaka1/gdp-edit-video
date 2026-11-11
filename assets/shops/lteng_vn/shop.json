@@ -86,11 +86,13 @@
     "text_radius_pct": 15
   },
   "voice": {
+    "vclip": "cLZiqtzLcKYqwYrWJemAJB",
+    "vclip_name": "Vương",
     "name": "Puck",
     "gender": "nam",
     "openai": "verse",
     "style": "tươi, năng động — hợp giọng văn bán hàng dứt khoát",
-    "model_note": "Gemini TTS prebuilt voice; Sếp chốt nhóm giọng 20/10 (GDP hiện tại, LTENG VN nam, LTENG HCM nam khác, PHALEDO nữ ấm)"
+    "model_note": "vclip = giọng TTS chính (tts.vclip.io, Sếp chốt 11/11; tools/vclip_voices.py); name/openai = giọng Gemini/gpt-audio cũ, chỉ dự phòng; Sếp chốt nhóm giọng 20/10 (GDP hiện tại, LTENG VN nam, LTENG HCM nam khác, PHALEDO nữ ấm)"
   },
   "watermark": {
     "enabled": true,
@@ -209,5 +211,18 @@
       "line": "#3aa6e8",
       "line_alpha": 0.6
     }
+  },
+  "image": {
+    "_note": "Ảnh listing (image-studio, 12/11) — đo trên ảnh nhân sự đã làm (listing 129): TẤM navy bo góc chữ trắng (tiêu đề + dòng phụ chung tấm), hoặc chữ navy #002850 viền trắng trên nền sáng; nhãn navy chữ trắng bo góc nhẹ; logo thẻ navy treo giữa mép trên; watermark chữ LTENG mờ giữa sản phẩm.",
+    "fonts": [
+      "utm-avo",
+      "poppins"
+    ],
+    "headline": "plain",
+    "heading_gradient": false,
+    "edge": 0.07,
+    "bolder": 0.006,
+    "pill_shape": "square",
+    "pill": "solid"
   }
 }

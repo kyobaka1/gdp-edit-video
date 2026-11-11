@@ -55,11 +55,14 @@
   },
   "style": "theo phaledo_official: tone tối, chữ trắng có bóng nhẹ",
   "voice": {
+    "vclip": "vcXEe1p3FxPfpswf3BhwbG",
+    "vclip_name": "My",
+    "speed": 0.85,
     "name": "Sulafat",
     "gender": "nữ",
     "openai": "marin",
     "style": "theo phaledo_official",
-    "model_note": "Gemini TTS prebuilt voice; Sếp chốt nhóm giọng 20/10 (GDP hiện tại, LTENG VN nam, LTENG HCM nam khác, PHALEDO nữ ấm)"
+    "model_note": "vclip = giọng TTS chính (tts.vclip.io, Sếp chốt 11/11; tools/vclip_voices.py); name/openai = giọng Gemini/gpt-audio cũ, chỉ dự phòng; Sếp chốt nhóm giọng 20/10 (GDP hiện tại, LTENG VN nam, LTENG HCM nam khác, PHALEDO nữ ấm)"
   },
   "watermark": {
     "enabled": true,

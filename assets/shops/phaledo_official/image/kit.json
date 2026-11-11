@@ -1,0 +1,117 @@
+{
+  "shop": "phaledo_official",
+  "brand_name": "Phaledo",
+  "synced_at": "2026-11-11",
+  "source_listing": 136,
+  "_note": "Brand kit lấy từ app (Shop Manager). KHÔNG sửa tay — `ims.py kit sync` ghi đè. Tinh chỉnh riêng cho ảnh: shop.json mục \"image\".",
+  "files": {
+    "logo": "logo.png",
+    "watermark": "watermark.png",
+    "font_reference": "font_reference.jpg"
+  },
+  "kit": {
+    "tone": "cao cấp, tinh tế, tối giản — nhấn chất liệu, độ bền, sang trọng",
+    "palette": {
+      "primary": "#c0b7a6",
+      "accent": "#b89a6a",
+      "dark": "#161616",
+      "text_on_dark": "#ececec",
+      "text_on_light": "#161616"
+    },
+    "text_radius_pct": 15,
+    "cover": {
+      "style": "minimal_premium",
+      "heading_color": "#f2e9e3",
+      "sub_color": "#f2e9e3",
+      "heading_gradient": {
+        "on": false,
+        "stops": [
+          "#0A2F5C",
+          "#062955",
+          "#041E40",
+          "#030E2B"
+        ],
+        "angle": 90,
+        "glow": {
+          "on": false,
+          "color": "#19B6C8",
+          "side": "left",
+          "size_pct": 6
+        }
+      }
+    },
+    "badge": {
+      "bg": "#c0b7a6",
+      "text": "#f2e9e3",
+      "bg_opacity": 35,
+      "bg_gradient": {
+        "on": true,
+        "stops": [
+          "#0A2F5C",
+          "#062955",
+          "#041E40",
+          "#030E2B"
+        ],
+        "angle": 90,
+        "glow": {
+          "on": false,
+          "color": "#19B6C8",
+          "side": "left",
+          "size_pct": 6
+        }
+      },
+      "border": {
+        "on": true,
+        "color": "#f2e9e3",
+        "width_pct": 4.0
+      }
+    },
+    "logo": {
+      "placement": "top-center",
+      "width_pct": 26,
+      "apply_to": [
+        "anh-bia",
+        "anh-san-pham"
+      ]
+    },
+    "watermark": {
+      "enabled": false,
+      "text": "PHALEDO",
+      "opacity": 10,
+      "bg_opacity": 100,
+      "image_opacity": 100
+    },
+    "image_targets": {
+      "cover": {
+        "logo": false,
+        "watermark": false,
+        "logo_placement": "top-center",
+        "watermark_placement": "center"
+      },
+      "product_image": {
+        "logo": false,
+        "watermark": false,
+        "logo_placement": "top-center",
+        "watermark_placement": "center"
+      },
+      "description_image": {
+        "logo": false,
+        "watermark": false,
+        "logo_placement": "top-center",
+        "watermark_placement": "center"
+      },
+      "variant_image": {
+        "logo": false,
+        "watermark": false,
+        "logo_placement": "top-center",
+        "watermark_placement": "center"
+      }
+    },
+    "typography": {
+      "font_name": "UTM Avo Bold",
+      "header": "Bold, ALL CAPS, ≤5 từ/hàng, tối đa 2 hàng, chữ rất lớn",
+      "sub": "Regular, 1 dòng ngắn, factual",
+      "badge": "Số/đơn vị đóng khung màu accent, chữ bold"
+    }
+  }
+}

@@ -454,7 +454,7 @@ Bản final: nghe lại 1 lần `vs.py hear final.mp4` (đủ lời, không cụ
 ## Chi phí
 
 Whisper chạy local GPU = 0 đồng (Sếp duyệt ngoại lệ luật "không chạy model nặng local", 05/11). Gemini chỉ khi
-`fix --hear` (vài nghìn token/video) và TTS khi cần giọng đọc (`studio.voice.synthesize`, chuỗi dự phòng như Việt hoá).
+`fix --hear` (vài nghìn token/video) và TTS khi cần giọng đọc (`studio.voice.synthesize` — vclip, giọng `shop.json voice.vclip`; dự phòng như Việt hoá).
 Chữ động render bằng Chrome local; khung chữ đứng yên dùng lại ảnh (đo: chụp 908/1220 khung, 21s).
 
 ## Bẫy đã gặp (05/11)

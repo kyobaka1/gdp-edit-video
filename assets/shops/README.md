@@ -19,6 +19,8 @@ assets/shops/<mã shop>/
 ├── watermark/       ← watermark.png (nếu shop dùng)
 ├── motion/          ← (tuỳ chọn) animation RIÊNG shop này — animation chung theo brand ở assets/motion/
 ├── fonts/           ← font riêng của shop (nếu có; font chung ở assets/fonts/)
+├── image/           ← nhận diện cho ẢNH LISTING (image-studio): kit.json + logo + watermark lấy từ app (`ims.py kit sync`,
+│                      không sửa tay), _demo.jpg / _fonts.jpg ảnh mẫu. Tinh chỉnh tay: shop.json mục `image` (skill gdp-image-listing)
 └── reference/       ← ảnh tham chiếu phong cách (mẫu font, ảnh bìa, bài đăng mẫu)
 ```
 
