@@ -44,7 +44,10 @@ MIN_SEEN = 0.5       # dò thấy nét ở ≥ 50% khung trong mốc mới tin b
 PANEL_GAP = 0.8      # hai dòng chữ Trung cách nhau < 0,8s → khung dải giữ liền
 PANEL_LEAD = 0.25    # khung dải vào sớm trước dòng chữ Trung đầu
 PANEL_FADE = 0.2
-VERSION = 17
+COVER_MAX = 0.22     # một nhóm chữ Trung phủ > 22% diện tích khung → badge che quá to, phải cân nhắc phương án khác
+PANEL_MAX = 0.17     # khung dải chỉ được cắt tối đa 17% chiều cao khung (Sếp 11/11, video 0374: phụ đề ở 17–21% H mà
+#                      phủ khung dải thì mất gần 1/4 khung → "không được"); quá ngưỡng → badge che ôm chữ
+VERSION = 19
 
 
 def enabled(edl: dict) -> bool:
@@ -255,6 +258,13 @@ def _decide(regs: list[dict], fps: float, n_frames: int, W: int, H: int, cuts: l
                               if r["band"][0] <= (e[2] + e[3]) / 2 <= r["band"][1]}
                 for i in r["loose"]:
                     on.update(range(i - 1, i + 2))
+                # Mối cắt cảnh SÁT mốc phân tích (≤ 0,45s phía ngoài, ≤ 0,15s phía trong) = ranh thật của dòng chữ: dòng
+                # kế cùng chỗ / nét của cảnh kế hay "khớp" khung chung (đo 0374: nhãn giữa cảnh o4 bị xoá sớm 0,47s lên
+                # hũ cà phê của cảnh trước; hai phụ đề nối nhau chồng mốc ~1s).
+                lim_a, lim_b = round(0.45 * fps), round(0.15 * fps)
+                lo = max((c for c in cuts if a - lim_a <= c <= a + lim_b), default=None)
+                hi = min((c for c in cuts if b - lim_b <= c <= b + lim_a), default=None)
+                on = {i for i in on if (lo is None or i >= lo) and (hi is None or i < hi)}
             else:   # sticker to: vùng rộng dễ "thấy nét" của cảnh kế → không kéo qua mối cắt cảnh sát mốc
                 lim = round(0.4 * fps)
                 lo = max((c for c in cuts if a - lim <= c <= a + lim), default=None)
@@ -312,6 +322,34 @@ def _decide(regs: list[dict], fps: float, n_frames: int, W: int, H: int, cuts: l
         r["hug"] = [int(max(0, bx[:, 0].min())), int(max(0, bx[:, 1].min())),
                     int(min(W, bx[:, 0].max())), int(min(H, bx[:, 1].max()))]
     return warns
+
+
+def _resolve_overlaps(regs: list[dict], fps: float) -> None:
+    """Hai dòng chữ Trung NỐI TIẾP cùng một chỗ (phụ đề đổi câu) đều "thấy" nét của nhau → khoảng xoá chồng lên nhau.
+    Chia ranh: khung đầu tiên mà nét khớp khung chung của dòng SAU hơn dòng trước (bề rộng hai câu khác nhau); không
+    phân biệt được thì lấy giữa hai mốc phân tích. Dòng hiện CÙNG LÚC (khối nhiều dòng) không đụng."""
+    rs = sorted((r for r in regs if r.get("med") and r["on"] and abs(r["angle"]) < 4), key=lambda r: r["start"])
+    for i, a in enumerate(rs):
+        for b in rs[i + 1:]:
+            both = sorted(a["on"] & b["on"])
+            if not both:
+                continue
+            ot = min(a["end"], b["end"]) - max(a["start"], b["start"])
+            if ot >= 0.6 * min(a["end"] - a["start"], b["end"] - b["start"]):
+                continue   # hiện cùng lúc
+            (ax0, ay0, ax1, ay1), (bx0, by0, bx1, by1) = a["hug"], b["hug"]
+            if min(ax1, bx1) <= max(ax0, bx0) or min(ay1, by1) - max(ay0, by0) < 0.5 * min(ay1 - ay0, by1 - by0):
+                continue   # không cùng chỗ
+            cut = round((a["end"] + b["start"]) / 2 * fps)
+            for k in both:
+                ia = _iou(a["seen"][k], a["med"]) if k in a["seen"] else 0.0
+                ib = _iou(b["seen"][k], b["med"]) if k in b["seen"] else 0.0
+                if ib > ia and ib >= 0.45:
+                    cut = k
+                    break
+            cut = min(max(cut, both[0]), both[-1] + 1)
+            a["on"] = {k for k in a["on"] if k < cut}
+            b["on"] = {k for k in b["on"] if k >= cut}
 
 
 def _fill_masks(shape: tuple, rect: tuple) -> dict:
@@ -454,9 +492,12 @@ def _panel(f: np.ndarray, b: dict) -> None:
     f[y0:y1] = np.clip(out, 0, 255).astype(np.uint8)
 
 
-def _auto_panels(regs: list[dict], cfg: dict, H: int, fps: float, cuts: list[int]) -> tuple[list[dict], list[str]]:
-    """Chữ Trung ngang ở dải đáy / đỉnh → một khung lấp cả dải (các ô đó không vá riêng nữa)."""
-    out, warns = [], []
+def _auto_panels(regs: list[dict], cfg: dict, H: int, fps: float, cuts: list[int]) -> tuple[list[dict], list[str], list[str]]:
+    """Chữ Trung ngang ở dải đáy / đỉnh → một khung lấp cả dải (các ô đó không vá riêng nữa) — CHỈ KHI phần khung phải
+    cắt (từ mép khung tới mép xa của chữ) ≤ `panel_max` (17% H). Ô nằm sâu quá ngưỡng bị loại khỏi khung dải (→ badge
+    che, xem _groups); loại hết thì không có khung dải. Trả (dải, cảnh báo, ghi chú)."""
+    out, warns, notes = [], [], []
+    pmax = float(cfg.get("panel_max", PANEL_MAX))
     for side in ("bottom", "top"):
         if cfg.get(side, "panel") != "panel":
             continue
@@ -465,15 +506,21 @@ def _auto_panels(regs: list[dict], cfg: dict, H: int, fps: float, cuts: list[int
               and (mid(r) > 0.78 * H if side == "bottom" else mid(r) < 0.22 * H)]
         if not rs:
             continue
+        # phần khung phải cắt nếu ô này nằm trong dải; loại dần ô sâu nhất cho tới khi dải ≤ ngưỡng
+        need = (lambda r: 1 - (r["hug"][1] - 10) / H) if side == "bottom" else (lambda r: (r["hug"][3] + 10) / H)
+        deep = [r for r in rs if need(r) > pmax]
+        rs = [r for r in rs if need(r) <= pmax]
+        if deep:
+            notes.append(f"khung dải {side}: {len(deep)} ô ({', '.join(r['id'] for r in deep[:6])}{'…' if len(deep) > 6 else ''}) "
+                         f"nằm sâu — phủ dải sẽ cắt {max(need(r) for r in deep):.0%} chiều cao khung (> {pmax:.0%}) → dùng "
+                         f"BADGE che ôm chữ")
+        if not rs:
+            continue
         if side == "bottom":
-            y0 = max(int(0.74 * H), min(r["hug"][1] for r in rs) - 10)
-            band = {"y0": round(y0 / H, 4), "y1": 1.0}
+            band = {"y0": round(max(0, min(r["hug"][1] for r in rs) - 10) / H, 4), "y1": 1.0}
         else:
-            y1 = min(int(0.26 * H), max(r["hug"][3] for r in rs) + 10)
-            band = {"y0": 0.0, "y1": round(y1 / H, 4)}
-        lost = [r["id"] for r in rs if (r["hug"][1] < band["y0"] * H - 2 or r["hug"][3] > band["y1"] * H + 2)]
-        if lost:
-            warns.append(f"khung dải {side}: ô {', '.join(lost)} thò ra ngoài khung — soát khung, hoặc khai bands tay")
+            band = {"y0": 0.0, "y1": round(min(H, max(r["hug"][3] for r in rs) + 10) / H, 4)}
+        lost = []
         band.update(mode="panel", side=side, auto=True, **(cfg.get("panel") or {}))
         frames = sorted(set().union(*[r["on"] for r in rs if r["id"] not in lost]))
         spans = []   # khoảng có chữ Trung trong dải (khung) — gộp khe ngắn để khung không chớp tắt giữa hai dòng
@@ -502,7 +549,76 @@ def _auto_panels(regs: list[dict], cfg: dict, H: int, fps: float, cuts: list[int
                 r["t_span"] = (min(r["on"]) / fps, (max(r["on"]) + 1) / fps) if r["on"] else None
                 r["on"], r["method"], r["mode"] = set(), "panel", f"khung dải {side}"
         out.append(band)
-    return out, warns
+    return out, warns, notes
+
+
+def _groups(regs: list[dict], cfg: dict, fps: float, cuts: list[int], W: int, H: int) -> list[dict]:
+    """Gom các dòng chữ Trung NGANG không nằm trong khung dải thành NHÓM để lớp chữ Việt phủ MỘT badge cho cả nhóm:
+    - `bar`   = các dòng nối tiếp nhau cùng một chỗ (phụ đề chạy suốt): badge giữ liền, chỉ đổi chữ bên trong;
+    - `block` = các dòng hiện cùng lúc, xếp chồng (tiêu đề 2 dòng): một badge che cả khối;
+    - `single`= một dòng / nhãn lẻ.
+    Dòng xoay (sticker nghiêng) không gom — mỗi ô một badge xoay riêng (`caps.items[].over`)."""
+    rs = [r for r in regs if abs(r["angle"]) < 4 and r["method"] in ("fill", "blur") and r["on"]]
+    for r in rs:
+        r["_t"] = (min(r["on"]) / fps, (max(r["on"]) + 1) / fps)
+    gap = float(cfg.get("lane_gap", PANEL_GAP))
+    parent = list(range(len(rs)))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    kinds = {}
+    for i, a in enumerate(rs):
+        for j in range(i + 1, len(rs)):
+            b = rs[j]
+            (ax0, ay0, ax1, ay1), (bx0, by0, bx1, by1) = a["hug"], b["hug"]
+            ha, hb = ay1 - ay0, by1 - by0
+            # quan hệ thời gian theo MỐC PHÂN TÍCH (khoảng dò nét của hai dòng cùng chỗ hay lấn sang nhau)
+            ot = min(a["end"], b["end"]) - max(a["start"], b["start"])               # thời gian trùng (âm = khe)
+            ox = min(ax1, bx1) - max(ax0, bx0)
+            ov = min(ay1, by1) - max(ay0, by0)                                       # trùng dọc (âm = khoảng hở)
+            same_time = ot >= 0.6 * min(a["end"] - a["start"], b["end"] - b["start"])
+            if same_time and ox > 0.3 * min(ax1 - ax0, bx1 - bx0) and -ov <= 0.7 * min(ha, hb):
+                link = "block"                                                        # cùng lúc, xếp chồng / kề nhau
+            elif (ot < 0.35 and -ot <= gap and ov >= 0.6 * min(ha, hb) and 0.65 <= ha / max(1, hb) <= 1.55
+                  and abs((ax0 + ax1) - (bx0 + bx1)) / 2 <= 0.2 * W):
+                link = "bar"                                                          # nối tiếp nhau, cùng chỗ, cùng cỡ
+            else:
+                continue
+            ra, rb = find(i), find(j)
+            if ra != rb:
+                parent[rb] = ra
+            kinds.setdefault(find(i), set()).add(link)
+    by = {}
+    for i, r in enumerate(rs):
+        by.setdefault(find(i), []).append(r)
+    near = round(0.35 * fps)
+    out = []
+    for root, ms in sorted(by.items(), key=lambda kv: min(m["_t"][0] for m in kv[1])):
+        k = set()
+        for key, v in kinds.items():
+            if find(key) == root:
+                k |= v
+        a, b = min(min(m["on"]) for m in ms), max(max(m["on"]) for m in ms)
+        cin = max((c for c in cuts if a - near <= c <= a + GROW), default=None)
+        cout = min((c for c in cuts if b - GROW <= c <= b + near), default=None)
+        t0 = cin / fps if cin is not None else a / fps
+        t1 = cout / fps if cout is not None else (b + 1) / fps
+        g = {"id": f"G{len(out) + 1}", "kind": "bar" if "bar" in k else "block" if "block" in k else "single",
+             "members": [m["id"] for m in sorted(ms, key=lambda m: m["_t"][0])],
+             "box": [max(0, min(m["hug"][0] for m in ms) - 4), max(0, min(m["hug"][1] for m in ms) - 4),
+                     min(W, max(m["hug"][2] for m in ms) + 4), min(H, max(m["hug"][3] for m in ms) + 4)],
+             "t0": round(t0, 3), "t1": round(t1, 3),
+             "hard_in": bool(cin is not None or a <= 1), "hard_out": cout is not None,
+             "area_pct": 0.0}
+        g["area_pct"] = round((g["box"][2] - g["box"][0]) * (g["box"][3] - g["box"][1]) / (W * H), 4)
+        for m in ms:
+            m["group"] = g["id"]
+        out.append(g)
+    return out
 
 
 def _band_k(b: dict, t: float) -> float:
@@ -561,7 +677,8 @@ def build(job_dir: Path, edl: dict, meta: dict, force: bool = False) -> Path | N
     st = src.stat()
     cfg = dict(_cfg(edl))
     cfg["panel"] = {**(shop_caps(edl.get("shop")).get("panel") or {}), **(cfg.get("panel") or {})}   # màu khung dải theo shop
-    key = hashlib.sha1(json.dumps([regs, bands, {k: cfg.get(k) for k in ("bottom", "top", "panel")},
+    key = hashlib.sha1(json.dumps([regs, bands, {k: cfg.get(k) for k in ("bottom", "top", "panel", "panel_max",
+                                                                         "lane_gap", "cover_max")},
                                    st.st_size, st.st_mtime_ns, VERSION], sort_keys=True,
                                   ensure_ascii=False).encode()).hexdigest()[:16]
     out, rep_path = job_dir / OUT, job_dir / "clean.json"
@@ -570,10 +687,17 @@ def build(job_dir: Path, edl: dict, meta: dict, force: bool = False) -> Path | N
             return out
     n, cuts = _scan(src, regs, fps)
     warns = _decide(regs, fps, n, W, H, cuts)
-    auto, w2 = _auto_panels(regs, cfg, H, fps, cuts)
+    _resolve_overlaps(regs, fps)
+    auto, w2, notes = _auto_panels(regs, cfg, H, fps, cuts)
     bands += auto
     covered = {r["id"] for r in regs if r["method"] == "panel"}   # ô đã nằm trong khung dải: khỏi báo "ô tĩnh"
     warns = [w for w in warns if w.split(" ", 1)[0] not in covered] + w2
+    groups = _groups(regs, cfg, fps, cuts, W, H)
+    big = float(cfg.get("cover_max", COVER_MAX))
+    for g in groups:   # chữ Trung phủ quá nhiều khung → badge che cũng không tinh tế nổi
+        if g["area_pct"] > big:
+            warns.append(f"nhóm {g['id']} ({', '.join(g['members'])}) {g['t0']:.1f}–{g['t1']:.1f}s phủ {g['area_pct']:.0%} khung "
+                         f"(> {big:.0%}) — badge che sẽ quá to: cân nhắc cắt bỏ đoạn / đổi cảnh / thẻ phủ khung, hỏi Sếp")
     tmp = job_dir / "source-clean.tmp.mp4"
     cmd = [config.FFMPEG, "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{W}x{H}", "-r", f"{fps}",
            "-i", "-", "-i", str(src), "-map", "0:v", "-map", "1:a?", "-c:v", "libx264", "-preset", "veryfast",
@@ -626,7 +750,8 @@ def build(job_dir: Path, edl: dict, meta: dict, force: bool = False) -> Path | N
         if proc.wait() != 0:
             raise RuntimeError(f"Ghi {OUT} lỗi: {err[-600:]}")
     tmp.replace(out)
-    rep = {"key": key, "frames": n, "cuts": [round(c / fps, 3) for c in cuts], "warnings": warns, "bands": len(bands),
+    rep = {"key": key, "frames": n, "cuts": [round(c / fps, 3) for c in cuts], "warnings": warns, "notes": notes,
+           "groups": groups, "bands": len(bands),
            "panels": [{"side": b.get("side") or ("bottom" if b["y1"] >= 0.99 else "top" if b["y0"] <= 0.01 else "mid"),
                        "y0": int(round(b["y0"] * H)), "y1": int(round(b["y1"] * H)), "spans": b.get("spans")}
                       for b in bands if b.get("mode") == "panel"], "regions": [
@@ -637,12 +762,17 @@ def build(job_dir: Path, edl: dict, meta: dict, force: bool = False) -> Path | N
          "t0": round(r["t_span"][0], 3) if r.get("t_span") else round(min(r["on"]) / fps, 3) if r["on"] else None,
          "t1": round(r["t_span"][1], 3) if r.get("t_span") else round((max(r["on"]) + 1) / fps, 3) if r["on"] else None,
          "ts": round((min(set(r["on"]) - set(r.get("pre", ()))) / fps), 3) if set(r["on"]) - set(r.get("pre", ())) else None,
-         "pre": len(r.get("pre", ())), "held": r.get("hold_at") is not None}
+         "pre": len(r.get("pre", ())), "held": r.get("hold_at") is not None, "group": r.get("group")}
         for r in regs]}
     rep_path.write_text(json.dumps(rep, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"  xoá chữ Trung: {len(regs)} vùng ({sum(r['method'] == 'panel' for r in regs)} nằm trong khung dải, "
           f"{sum(r['method'] == 'fill' for r in regs)} nội suy nền, {sum(r['method'] == 'blur' for r in regs)} nhoè) "
           f"+ {len(bands)} dải → {OUT}")
+    for g in groups:
+        print(f"    nhóm {g['id']} [{g['kind']}] {g['t0']:.2f}–{g['t1']:.2f}s · ô {g['box']} ({g['area_pct']:.0%} khung) · "
+              f"{', '.join(g['members'])}")
+    for w in notes:
+        print(f"  ℹ {w}")
     for w in warns:
         print(f"  ⚠ {w}")
     return out
