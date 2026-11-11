@@ -92,6 +92,19 @@ def _trim(a: np.ndarray, rate: int, thr: float = 0.008) -> np.ndarray:
     return a[max(0, idx[0] - pad): idx[-1] + pad]
 
 
+def _tempo(piece: np.ndarray, rate: int, k: float, work: Path) -> np.ndarray:
+    """Đọc nhanh hơn k lần, GIỮ cao độ (ffmpeg atempo) — Sếp 11/11: giọng TTS đọc hơi chậm so với nhịp video bán hàng."""
+    import subprocess
+    a, b = work / "tempo_in.wav", work / "tempo_out.wav"
+    _write(a, piece, rate)
+    subprocess.run([config.FFMPEG, "-y", "-v", "error", "-i", str(a), "-af", f"atempo={k:.3f}", "-ar", str(rate),
+                    "-ac", "1", str(b)], check=True)
+    out, _ = _read(b)
+    a.unlink(missing_ok=True)
+    b.unlink(missing_ok=True)
+    return out
+
+
 def _tts(text: str, voice: dict, out: Path, usage: Path | None = None) -> tuple[str, str]:
     """TTS theo chuỗi dự phòng (voice.TTS_CHAIN) rồi nghe lại. Trả (chữ nghe ra, model đã dùng)."""
     used = synthesize(text, voice, out, usage)
@@ -187,8 +200,13 @@ def build(job_dir: Path, retries: int = 3) -> dict:
     dur = outro.total_duration(edl, meta)  # thuyết minh được phép chạy sang outro (câu chốt brand trên màn kết)
     timeline = np.zeros(int(dur * rate), dtype=np.float32)
     placed, warnings, cursor = [], [], 0.0
+    # tốc độ đọc (edl.narration.tempo, 1.0–1.15; giữ cao độ). Áp SAU cổng kiểm ngược, trên từng mảnh đã cắt → lượt TTS
+    # trong cache dùng lại được, đổi tempo không tốn lượt đọc mới.
+    tempo = min(1.15, max(1.0, float(nar.get("tempo", 1.0))))
     for i, p in enumerate(paras):
         piece = _trim(a[cuts[i]:cuts[i + 1]], rate)
+        if tempo > 1.001:
+            piece = _tempo(piece, rate, tempo, work)
         start = max(float(p["at"]), cursor + (GAP if i else 0.0))
         end = start + len(piece) / rate
         drift = start - float(p["at"])

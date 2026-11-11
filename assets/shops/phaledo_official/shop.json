@@ -151,5 +151,23 @@
     "overrides": {},
     "note": "PHALEDO: premium, quiet luxury — ánh sáng mềm, reveal chậm. Shop phaledo + 2 shop TikTok mượn qua templates_from.",
     "min_gap": 5.0
+  },
+  "caps": {
+    "_note": "PHALEDO — nền tối, nét vàng đồng, chữ Averta (Việt hoá V2, 11/11 — bản Sếp xem trên 0379).",
+    "style": "phaledo-tap-chi",
+    "skin": {},
+    "plate": {
+      "bg": "#161616",
+      "alpha": 0.93,
+      "radius": 0.2,
+      "line": "#b89a6a",
+      "line_alpha": 0.5,
+      "shadow": 0.0,
+      "motion": "fade"
+    },
+    "panel": {
+      "line": "#b89a6a",
+      "line_alpha": 0.45
+    }
   }
 }

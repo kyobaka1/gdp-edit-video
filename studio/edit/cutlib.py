@@ -348,13 +348,15 @@ class Cut:
 
     def cap(self, markup: str, *, exit: str | None = None, pos: str = "auto", y: float | None = None,
             hold: float = 0.45, morph: bool = True, at=None, until=None, dur: float | None = None,
-            stagger: float = 0.1):
+            stagger: float = 0.1, eat: bool = False):
         """Khối chữ. Dòng cách nhau " / "; đầu dòng: `!` cụm khoá IN HOA đậm · `!!` khoá nghiêng · `~` chữ mảnh to ·
         `.` dòng phụ nhỏ · không dấu = dòng đang nói; thêm `^` = tô màu nhấn (vàng). Mẫu: ".không có mặt bằng nào / !HOÀN HẢO HẾT".
         exit: words (rút từng từ) | rise (trôi lên) | fade (không ghi = theo phong cách). pos: auto | center | left | right.
         at = KHỐI KHÔNG BÁM LỜI (video không lời / ASMR): hiện lúc `at` (giây đầu ra | "c01#3" mốc bật cụm tiếng | cụm lời),
         từng từ cách nhau `stagger` giây (cả khối vào ≤ 0,6s), đứng tới `until` (giây | "c01#3" = hết đuôi cụm | cụm lời) hoặc
-        `dur` giây; không ghi = đủ thời gian đọc (0,3s/từ + 0,5s, ≥ 1,2s). Chữ trong khối không cần khớp lời."""
+        `dur` giây; không ghi = đủ thời gian đọc (0,3s/từ + 0,5s, ≥ 1,2s). Chữ trong khối không cần khớp lời.
+        eat=True (chỉ với at=): khối hiện TRƯỚC lời mà nó chép (hook "NHÌN KỸ 3 CHỖ NÀY" hiện ≤0,6s) → lời nói trong lúc
+        khối đứng được coi là đã có chữ, khối bám lời kế tiếp bắt đầu từ sau đó."""
         exit = exit or self._style_get("captions", "exit", default="words")
         if exit not in EXITS:
             raise CutError(f"exit '{exit}' không có (dùng {', '.join(sorted(EXITS))})")
@@ -362,7 +364,9 @@ class Cut:
             raise CutError(f"cap('{markup}'): until/dur chỉ dùng cùng at= (khối không bám lời)")
         cap = {"markup": markup, "exit": exit, "pos": pos, "y": y, "hold": hold, "morph": morph}
         if at is not None:
-            cap.update(at=at, until=until, dur=dur, stagger=float(stagger))
+            cap.update(at=at, until=until, dur=dur, stagger=float(stagger), eat=bool(eat))
+        elif eat:
+            raise CutError(f"cap('{markup}'): eat chỉ dùng cùng at= (khối không bám lời)")
         self.caps.append(cap)
         return self
 
@@ -676,6 +680,9 @@ class Cut:
         for n, c in enumerate(self.caps if caps is None else caps):
             if c.get("at") is not None:
                 blocks.append(self._timed_block(n, c, words, cards, total))
+                if c.get("eat"):   # lời trong lúc khối đứng đã có chữ (khối hiện trước lời) → con trỏ lời đi qua
+                    while cur < len(words) and words[cur]["t0"] < blocks[-1]["last_end"]:
+                        cur += 1
                 continue
             lines = self._parse(c["markup"])
             first_idx, last_idx = None, None

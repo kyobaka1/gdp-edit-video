@@ -153,5 +153,45 @@
     "overrides": {},
     "note": "Tính cách GDP: thân thiện, gần gũi, vui — logo cười, chuyển động mềm. Peek-a-Boo (accent) chèn tay.",
     "min_gap": 2.5
+  },
+  "caps": {
+    "_note": "GDP — đỏ ấm của logo, bo tròn thân thiện, nhấn vàng (Việt hoá V2, 11/11). Màu đo từ logo: đỏ #c0202x + trắng.",
+    "style": "san-pham-thuan",
+    "skin": {
+      "keyMode": "text",
+      "accentMode": "box",
+      "keyUpper": false,
+      "liveWeight": 400,
+      "shadow": "soft",
+      "box": "#f6c634",
+      "boxText": "#7a1010",
+      "boxRadius": 0.22,
+      "textTop": "#ffffff",
+      "textBottom": "#fff0e8",
+      "size": {
+        "live": 0.031,
+        "key": 0.044,
+        "sub": 0.024,
+        "big": 0.06
+      },
+      "lineGap": 0.14
+    },
+    "plate": {
+      "bg": "#d32b2d",
+      "bg2": "#b01419",
+      "alpha": 0.96,
+      "radius": 0.36,
+      "line": "#ffffff",
+      "line_alpha": 0.26,
+      "shadow": 0.28,
+      "motion": "pop"
+    },
+    "panel": {
+      "tint": "#6e0f12",
+      "tint_mix": 0.66,
+      "dim": 0.26,
+      "line": "#f6c634",
+      "line_alpha": 0.55
+    }
   }
 }

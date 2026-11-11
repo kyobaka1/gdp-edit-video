@@ -53,7 +53,131 @@ giadungplus `skills/gdp-video-localize/`.
   **"CHƯA KIỂM được"** = phải nghe tay, KHÔNG coi là đạt. Bản đọc bằng dự phòng: báo Sếp rõ, ưu tiên chờ Gemini rồi
   xoá `narration/take_*` đọc lại. Mẫu nhận diện từ chối: `tools/test_hear_refusal.py` (16/16, nhầm 0/525).
 
-## Quy trình một video
+## ⭐ Việt hoá V2 — XOÁ chữ Trung + chữ Việt ĐỘNG (Sếp 11/11 — MẶC ĐỊNH cho job mới)
+
+Sếp chê bản cũ (0379): ô chữ Việt vừa CHE vừa HIỂN THỊ nên phải đục và to bằng cả dải (phụ đề Trung cao ~40px bị thay
+bằng viên đen 720×134), một kiểu chữ, một độ đậm, đổi chữ chậm, bám 100% câu Trung. V2 tách hai việc:
+**`studio/clean.py` lo XOÁ / LẤP chữ Trung** · **`studio/vcaps.py` lo CHỮ VIỆT** (bộ chữ động + Phong cách của skill
+`gdp-video-edit`: nhiều độ đậm trong một khối, từng từ mờ-trồi vào, hộp nhấn màu shop, đặt tự do theo khung).
+Mẫu đủ bộ: `jobs/phaledo-0379-v2/direct.py` (bản lưu git: `tools/localize_v2_example.py`). Job cũ không khai
+`edl.clean` / `edl.caps` render y như trước.
+
+**Ba trường hợp theo VỊ TRÍ chữ Trung (Sếp chốt 11/11 — máy tự chọn, đừng làm khác):**
+
+| Chữ Trung nằm ở | Cách lấp | Chữ Việt |
+|---|---|---|
+| **ĐÁY** (tâm > 78% H) hoặc **ĐỈNH** (< 22% H) — phụ đề, dải tiêu đề | **KHUNG DẢI** phủ cả dải (nền = phần hình kề bên lật gương, nhoè mạnh + tối, mép sắc). KHÔNG vá từng dòng — vá nền để lại vệt mờ, "nhìn vẫn biết là edit lại" | đặt trên khung, tự phóng đầy ~70% chiều cao khung; không ghi `y` |
+| **GIỮA** khung — sticker hook, nhãn nghiêng | xoá (nhoè trong hình chữ nhật xoay ôm sát NÉT chữ) **+ BADGE nền đục** che kín đúng vùng đó, xoay cùng góc | nằm trong badge, tự phóng vừa badge: `{"over": "<id ô>", "text": …}` |
+| không có chữ Trung (chữ CHÈN MỚI) | — | `x`, `y` tự do + bóng tối mềm sau chữ (`scrim`) |
+
+- ⛔ **Khung dải + badge chỉ hiện ĐÚNG LÚC có chữ Trung** (Sếp: "không lock từ đầu tới cuối"). Máy dò nét chữ từng
+  khung → khung dải vào sớm 0,25s trước dòng đầu (sát đó có mối cắt cảnh thì bật / tắt ĐÚNG mối cắt), giữ liền qua khe
+  < 0,8s giữa hai dòng, mờ ra khi dòng cuối tắt; badge đục 100% suốt khoảng chữ Trung của ô đó, mờ vào TRƯỚC và mờ ra
+  SAU khoảng đó (trên hình sạch — không bao giờ lộ mảng nhoè), mép trùng mối cắt cảnh thì chữ + badge tắt cứng. Khoá suốt video chỉ khi Sếp yêu cầu: `edl.clean.panel = {"hold": true}`.
+- ⛔ **Outro của shop LUÔN bật** (`edl.outro = {"enabled": true}`) khi thư mục `assets/shops/<shop>/outro/` có video —
+  cả PHALEDO (`PHALEDO Outro v2.mp4`, 3,7s). Câu chốt brand đặt `at` ≥ thời lượng video chính để đọc TRÊN outro.
+- Chữ trong cảnh (`kind: scene` — bao bì, nhãn) vẫn giữ nguyên như luật cũ.
+
+**Khai trong direct.py** (thay cho việc điền `text_vi` / `template` từng ô):
+
+```python
+edl["clean"] = {"mode": "auto"}                    # màu khung dải tự theo shop (shop.json `caps.panel`)
+edl["narration"] = {"tempo": 1.1, "paragraphs": [{"at": 0.0, "text": "…"}, …]}       # tempo 1,0–1,15: đọc nhanh, giữ cao độ
+edl["caps"] = {"items": [                          # chữ + badge tự theo bộ nhận diện của shop (shop.json `caps`)
+    {"over": "o2", "text": "!Bếp bừa bộn?"},                    # badge lấp chữ Trung ô o2 (không ghi at = theo chữ Trung)
+    {"at": "p1", "text": "!PHALEDO / Hũ thủy tinh vuông"},       # "p1" = lúc đoạn thuyết minh 1 bắt đầu đọc
+    {"at": "p1+1.9", "text": "Gom gọn, / !^nhìn là thấy"},       # 2 tầng: dòng dẫn thường + cụm khoá; ^ = hộp nhấn
+    {"at": "p9", "until": DUR - 0.1, "text": "Xem đủ kích cỡ / !^ở giỏ hàng", "exit": "fade"},
+]}
+edl["outro"] = {"enabled": True}
+```
+
+- Ô che chữ Trung KHÔNG điền `text_vi` = chỉ là vùng xoá. Ô vụn (Gemini bắt 1–2 ký tự lúc chữ đang bay vào) cứ để —
+  nằm trong khung dải thì vô hại. Ép cách xoá từng ô: `overlay["clean"] = "fill" | "blur" | "none"` hoặc
+  `{"method", "box", "start", "end", "detect": false}`; không dùng khung dải: `edl.clean = {"bottom": "fill"}`.
+- **Markup chữ** (như `cap()` của cut.py): dòng cách nhau ` / `; `!` cụm khoá đậm · `.` dòng phụ mảnh · `~` chữ mảnh to ·
+  không dấu = dòng thường; thêm `^` = hộp nhấn màu shop (THƯA: ~1 hộp / 3–4 khối). Mỗi khối 1–2 dòng, ≤ 6 từ.
+- **Mốc**: giây, hoặc `"p3"` / `"p3+1.5"` (bám đoạn thuyết minh — chạy `narrate` trước `render`), `"p3e"` = lúc đọc xong.
+  Không ghi `until` = đứng tới sát khối kế (màn hình luôn có chữ — tắt tiếng vẫn hiểu).
+- **Bộ nhận diện theo SHOP** (Sếp 11/11 "làm lại bộ nhận diện animation, text, badge … phối màu tinh tế và chuẩn") —
+  khai MỘT lần trong `assets/shops/<shop>/shop.json` mục **`caps`** (`style` · `skin` chữ · `plate` badge · `panel`
+  khung dải), `vcaps.py` + `clean.py` tự đọc (shop phụ mượn qua `templates_from`). ⛔ direct.py KHÔNG ghi `style` /
+  `skin` / `plate` / `panel` — chỉ ghi đè khi Sếp yêu cầu riêng cho video đó (`edl.caps.plate`, `edl.clean.panel`).
+  Màu đo từ pixel logo từng shop (không ước lượng). **Sếp DUYỆT bộ GDP / LTENG VN / LTENG HCM 11/11** (xem ảnh demo
+  trên nguồn 0379) — đừng tự đổi màu / phông / kiểu vào; muốn đổi thì làm ảnh demo mới gửi Sếp duyệt lại. Ảnh demo: `assets/shops/_caps-preview.jpg` (chữ / badge / khung dải)
+  + `_caps-motion.jpg` (badge đang vào).
+
+  | Shop | Chữ | Badge (lấp chữ Trung giữa khung) | Badge vào | Hộp nhấn `^` | Khung dải |
+  |---|---|---|---|---|---|
+  | `giadungplus_official` | UTM Avo: dòng dẫn Regular + cụm khoá Bold | đỏ logo chuyển màu #d32b2d → #b01419, bo tròn 0,36h như logo, viền trắng mảnh, bóng mềm | **bật nảy** (pop) | vàng #f6c634 / chữ đỏ sậm #7a1010 | đỏ rượu #6e0f12 + nét vàng |
+  | `lteng_vn` | UTM Avo Regular + Bold | navy chuyển màu như logo #1274b6 → #04204a, góc 0,16h, viền cyan mảnh | **quét ngang** (wipe) theo dòng chữ | trắng / chữ navy #062955 | navy #04214a + nét cyan #3aa6e8 |
+  | `lteng_hcm` | dòng dẫn UTM Avo + cụm khoá **UTM HelvetIns IN HOA** | đen #171717, góc 0,12h, **thanh đỏ** #c0392b đầu dòng | **trượt** dọc dòng chữ (slide) | đỏ gạch #b8302c / chữ trắng | đen + nét đỏ |
+  | `phaledo_official` | Averta (phong cách `phaledo-tap-chi`) | tối #161616, viền vàng đồng #b89a6a | mờ vào (fade) | vàng đồng / chữ đen | nền hình nhoè tối + nét vàng đồng |
+
+  Khoá của `plate`: `bg` (+ `bg2` chuyển màu dọc dòng chữ) · `alpha` · `radius` (× chiều cao) · `line` + `line_alpha`
+  (viền trong) · `bar {color, w}` (thanh nhấn đầu dòng) · `shadow` · `motion` pop | wipe | slide | fade. Của `panel`:
+  `tint` + `tint_mix` (màu phủ lên nền nhoè) · `dim` · `line` + `line_alpha`. Của `skin` (thêm cho V2): `liveWeight: 400`
+  (dòng dẫn nét thường) · `keyFont: "helvetins"` · `lineGap` (em — UTM Avo đặt dấu nặng rất thấp, dòng sát nhau thì dấu
+  "ụ ạ ệ" rơi vào đầu chữ dòng dưới: "Gia Dụng Plus / Hũ thủy tinh" từng ra dấu nặng nằm trên chữ t) · `box` / `boxText`.
+  Badge vào XONG trước lúc chữ Trung xuất hiện (0,24s, trên hình sạch) rồi chữ Việt mới hiện từng từ; mép trùng mối cắt
+  cảnh / đầu video thì bật cứng (không chạy hiệu ứng).
+- **Soát bộ nhận diện bằng ẢNH, không render video** (Sếp 11/11: "chỉ cần demo lên ảnh"):
+  `tools\caps_previews.py <job> [<job> …] --at 3.2,4.9,6.9 [--width 720] [--out file.jpg]` — mỗi job một hàng khung (nguồn
+  đã xoá chữ Trung + lớp chữ Việt, ~20s/job, không logo / tiếng). Sửa `shop.json` mục `caps` → chạy lại là thấy. Dải khung
+  dày quanh `t0` của một badge (`--at 0.63,0.68,0.73,0.78,0.86`) = xem hiệu ứng vào. Soát ở cỡ thật (`--width 720`) rồi
+  phóng to vùng chữ: dấu tiếng Việt, mép badge, độ tương phản chữ / khung dải.
+  Shop mới / đổi màu: đo màu logo → khai `caps` → ảnh demo → gửi Sếp duyệt TRƯỚC khi dùng cho video giao.
+- Cỡ chữ: `caps.scale` / `scale` từng khối.
+- Render in `⚠ chữ Việt: …` khi: khối đứng ngắn hơn ~0,2s/từ (rút chữ / dời khối kế) · badge lấn khối khác (dời `x`)
+  · khối không ghi `y` rơi vào lúc khung dải không hiện (bỏ khối / đặt `y` trên hình). Sửa hết cảnh báo trước khi giao.
+
+**Nội dung — không cần bám 100% bản Trung (Sếp 11/11):**
+- Được viết lại cách dẫn dắt, thêm câu chuyển ý / câu kêu gọi ("Xem đủ kích cỡ trong giỏ hàng nhé"), đổi thứ tự nhấn
+  cho hợp cảnh. ⛔ Vẫn KHÔNG thêm công dụng / thông số / cam kết không có trong video gốc hoặc dữ liệu SKU (luật 5).
+- **Nhịp nhanh hơn bản cũ**: lời đọc ~4 âm tiết/giây, không để lặng > 0,8s giữa các đoạn (0379 cũ: 8 đoạn ≈ 70 âm
+  tiết / 31s → V2: 11 đoạn ≈ 115 âm tiết + `tempo` 1,1). Chữ đổi mỗi 1,5–2,5s: một đoạn lời dài chia 2 khối
+  (`"p3"` rồi `"p3+1.5"`). `narrate` báo trễ > 0,5s → tăng `tempo` (không tốn lượt TTS mới) rồi mới rút chữ.
+- Chữ trên hình = ý ĐẮT của câu đang đọc (không chép nguyên câu): danh từ / lợi ích ở dòng `!`, phần dẫn ở dòng thường.
+
+**Quy trình V2** (thay bước 3–5 của quy trình cũ bên dưới; các bước khác giữ nguyên):
+1. `new` → `analyze` như cũ → viết `direct.py` theo mẫu: `clean` + kịch bản + `outro`/`logo`/`motion`.
+2. `vs.py narrate <id>` → xem mốc từng đoạn → viết `caps.items` bám `"pN"` → chạy lại `direct.py`.
+3. `vs.py render <id>` → đọc `clean.json` (mỗi ô: `mode` "dò nét" / "ô tĩnh" / "khung dải", `seen_ratio`, `t0–t1`;
+   `panels[].spans` = lúc khung dải hiện). Ô báo **"ô tĩnh"** (chữ Trung không phải kiểu sáng-viền-tối → máy không dò
+   được nét) = xoá theo ô + mốc Gemini → PHẢI soát khung ±0,4s quanh mốc như luật cũ.
+4. `vs.py qa <id>` phải ĐẠT sót 0 (QA vẫn là lưới cuối bắt chữ Hán lọt) + `audiocheck` + soát mắt: khung chuyển
+   (lúc khung dải / badge vào – ra), badge có che kín vùng nhoè không, chữ có bị logo đè không; **mỗi ô sticker soát
+   dày 0,07s quanh lúc chữ Trung vào** (mục "Chữ Trung BẬT / NẢY / CHỚP" bên dưới — QA không thay được bước này).
+5. Gửi Sếp ảnh so sánh + preview; duyệt → `--final` + `qa --final` + `hear`.
+
+**Chữ Trung BẬT / NẢY / CHỚP lúc vào** (sticker hook — đo từng khung 0379: chữ CHỚP đúng 1 khung ở 0,833s và 2,200s,
+tắt / phóng to nhoè 3 khung, rồi vào lại và nảy ~0,3s; dòng 3 còn "nhân bản" mảnh chữ ra sát mép trái, phải, đáy khung):
+hình chữ nhật cuối + badge không che nổi quãng này. Máy tự xử lý: tìm khung đầu tiên số nét trong ô bao rộng vọt khỏi
+mức nền → cả quãng tới lúc chữ đứng yên **giữ hình SẠCH của khung ngay trước đó** trên vùng ô bao rộng (không nhoè, không
+lộ chữ; vùng đó đứng hình 0,3–0,45s), badge + chữ Việt bật lên đúng lúc chữ Trung gốc bật lên. `clean.json` ghi mỗi ô
+`pre` (số khung giữ hình) + `held` (có khung sạch không; chữ vào đúng mối cắt cảnh → `held: false` → nhoè vùng rộng).
+⛔ **QA lấy mẫu 0,5s KHÔNG bắt được quãng này** (bản QA "ĐẠT sót 0" vẫn lộ nguyên một dòng chữ Trung 5 khung) → với
+MỖI ô sticker phải cắt khung dày **mỗi 0,07s trong ±0,5s quanh `t0`** của nó (và quanh `t1`), xem ở cỡ thật, đối chiếu
+với cùng khung của nguồn. Lệch thì in số đo của bộ dò (số nét từng khung) rồi mới sửa — đoán mò 2 vòng không ra.
+
+Bẫy V2 đã gặp (11/11, job 0379):
+- Sticker to bật vào làm cả khung đổi mạnh → từng bị coi là "mối cắt cảnh" rồi chặn nhầm thời điểm xoá; giờ mối cắt đo
+  NGOÀI vùng chữ đang hoạt động. Vùng giữ hình / vùng xoá chạm biên khung thì mép đó phải đục (mép mềm 10px từng để lọt
+  mảnh chữ sát mép khung).
+- Vá nền từng dòng phụ đề (nội suy + nhoè) sạch chữ nhưng **vẫn thấy vệt mờ** → Sếp không duyệt; chỉ dùng `fill`
+  khi Sếp chủ ý không muốn khung dải. Chữ Việt không nền đặt trên mảng nhoè của hook cũng bị chê → luôn có badge.
+- Chữ Trung **bay vào / bật từng chữ** nằm lệch chỗ dòng chính vài khung; ô Gemini dư tới 2–3 lần chiều cao chữ thật →
+  máy dò nét từng khung, đừng nới ô tay.
+- Vùng nhoè to (sticker) "thấy nét" của cảnh kế → máy tự dừng ở mối cắt cảnh sát mốc; nếu badge còn dính sang cảnh
+  sau, ghi `overlay["clean"] = {"end": <giây>}`.
+- Badge nghiêng có thể thò xuống khung dải → render báo "bị badge … lấn" → dời `x` khối dưới hoặc cho hiện sau.
+- `preview.mp4` / `final.mp4` đang mở ở trình xem (Sếp đang coi) → ffmpeg báo `Permission denied`: render bản còn
+  lại (`--final` ↔ preview) hoặc nhờ Sếp đóng file; đừng xoá file.
+- ⚠ Mới chạy thật 1 job giao (PHALEDO 3:4). GDP / LTENG VN / LTENG HCM mới có ẢNH DEMO bộ nhận diện trên nguồn 0379
+  (job thử `_skin-*`, chưa có bản giao nào dùng bộ mới — bản `gdp-0379-v2` render TRƯỚC khi có bộ nhận diện, phải render
+  lại). Chưa thử: chữ Trung ở ĐỈNH, nguồn 9:16 → lần đầu gặp phải soát kỹ và báo Sếp.
+
+## Quy trình một video (bản cũ — ô mẫu shop; vẫn dùng khi Sếp muốn nhãn theo mẫu HTML của shop)
 
 1. `vs.py new inbox\<file>.mp4 --id <brand>-<slug>` → `jobs/<id>/`.
 2. `vs.py analyze <id>` — Gemini quét khung mỗi 0,5s: chữ Hán + ô + `kind` (overlay = đồ hoạ hậu kỳ /
@@ -234,7 +358,8 @@ giadungplus `skills/gdp-video-localize/`.
   `edl.outro = {"enabled": true}` → `studio/outro.py` lấy `shop.json.outro.file`, không có thì file video đầu tiên trong
   thư mục; không có file → báo lỗi, đừng tự làm. Nối sau video chính (scale giữ tỉ lệ, viền đen nếu lệch). Đang có
   (20/10): GDP `GDP Outro v2.mp4` (1080×1440, 3,8s) · LTENG VN + LTENG HCM `LTENG Outro.mp4` (1440×1920, 3,7s) — đều
-  3:4, KHÔNG tiếng. Phaledo chưa có outro. Thuyết minh/nhạc tự kéo qua outro → câu chốt brand đặt `at` ≥
+  3:4, KHÔNG tiếng · PHALEDO `PHALEDO Outro v2.mp4` (1440×1920, 3,7s — 11/11: bản 0379 cũ tắt nhầm, Sếp nhắc "vẫn có
+  outro theo shop chứ không bỏ"). Thuyết minh/nhạc tự kéo qua outro → câu chốt brand đặt `at` ≥
   thời lượng video để đọc TRÊN outro. Outro có tiếng riêng: hiện CHƯA trộn — làm khi gặp. Đổi cùng video sang shop khác: chép job (source, analysis, edl.draft, music, direct.py) + sửa
   `shop` / tên brand trong thuyết minh — không cần phân tích lại (vd `lteng-vn-ke-nha-tam-01`, `lteng-hcm-ke-nha-tam-01` chép từ `gdp-ke-nha-tam-01`).
 - Logo: tên file theo Sếp đặt, khai trong `shop.json.logo.files` (`primary` dùng mọi nền; `on_dark` cho nền tối; `on_light`; `icon`).

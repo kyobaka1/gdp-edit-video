@@ -169,5 +169,45 @@
     "overrides": {},
     "note": "LTENG VN: chính xác, kỹ thuật — ưu tiên Precision Assembly / Rail Glide.",
     "min_gap": 2.5
+  },
+  "caps": {
+    "_note": "LTENG VN — navy chuyển màu như logo (xanh sáng → navy), góc vuông kỹ thuật, nét cyan (Việt hoá V2, 11/11).",
+    "style": "san-pham-thuan",
+    "skin": {
+      "keyMode": "text",
+      "accentMode": "box",
+      "keyUpper": false,
+      "liveWeight": 400,
+      "shadow": "soft",
+      "box": "#ffffff",
+      "boxText": "#062955",
+      "boxRadius": 0.12,
+      "textTop": "#ffffff",
+      "textBottom": "#e3f1ff",
+      "size": {
+        "live": 0.031,
+        "key": 0.044,
+        "sub": 0.024,
+        "big": 0.06
+      },
+      "lineGap": 0.14
+    },
+    "plate": {
+      "bg": "#1274b6",
+      "bg2": "#04204a",
+      "alpha": 0.96,
+      "radius": 0.16,
+      "line": "#7fd0ff",
+      "line_alpha": 0.34,
+      "shadow": 0.3,
+      "motion": "wipe"
+    },
+    "panel": {
+      "tint": "#04214a",
+      "tint_mix": 0.74,
+      "dim": 0.2,
+      "line": "#3aa6e8",
+      "line_alpha": 0.6
+    }
   }
 }

@@ -111,6 +111,21 @@ def shop_voice(shop: str, _seen: tuple = ()) -> dict | None:
     return shop_voice(nxt, _seen + (shop,)) if nxt and nxt not in _seen else None
 
 
+def shop_caps(shop: str | None, _seen: tuple = ()) -> dict:
+    """Bộ nhận diện Việt hoá V2 của shop (shop.json `caps`: style + skin chữ động + plate badge + panel khung dải);
+    không khai thì theo shop mượn mẫu (templates_from). Shop chưa có hồ sơ → {}."""
+    if not shop:
+        return {}
+    try:
+        prof = shop_profile(shop)
+    except FileNotFoundError:
+        return {}
+    if prof.get("caps"):
+        return prof["caps"]
+    nxt = prof.get("templates_from")
+    return shop_caps(nxt, _seen + (shop,)) if nxt and nxt not in _seen else {}
+
+
 def template_dir(shop: str, _seen: tuple = ()) -> Path:
     """Thư mục mẫu của shop; không có mẫu riêng thì theo `templates_from` (chặn vòng lặp)."""
     d = SHOPS / shop / "templates"

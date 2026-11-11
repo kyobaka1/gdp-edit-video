@@ -30,6 +30,8 @@
   @font-face { font-family: "AvoK"; font-weight: 700; font-style: italic; src: url("../../fonts/UTM Avo/UTM AvoBold_Italic.ttf"); }
   @font-face { font-family: "AvoK"; font-weight: 400; font-style: normal; src: url("../../fonts/UTM Avo/UTM_Avo.ttf"); }
   @font-face { font-family: "AvoK"; font-weight: 400; font-style: italic; src: url("../../fonts/UTM Avo/UTM AvoItalic.ttf"); }
+  /* LTENG HCM: tiêu đề / nhấn mạnh = UTM HelvetIns (shop.json fonts.rule) — skin.keyFont = "helvetins" */
+  @font-face { font-family: "HelvK"; font-weight: 400; font-style: normal; src: url("../../fonts/UTM HelvetIns/UTM HelvetIns.ttf"); }
   /* phong cách vlog không thương hiệu (S5, mẫu Blue 1): sans Be Vietnam Pro + serif nghiêng (Georgia của hệ điều hành) */
   @font-face { font-family: "BvpK"; font-weight: 800; src: url("../../fonts/BeVietnamPro/BeVietnamPro-ExtraBold.ttf"); }
   @font-face { font-family: "BvpK"; font-weight: 700; src: url("../../fonts/BeVietnamPro/BeVietnamPro-Bold.ttf"); }
@@ -66,6 +68,12 @@
   #stage.f-avo .role-key, #stage.f-avo .role-live { font-weight: 700; }
   #stage.f-avo .role-sub, #stage.f-avo .role-big { font-weight: 400; }
   #stage.key-lower .role-key { text-transform: none; letter-spacing: -0.02em; }
+  /* bộ nhận diện theo shop (Việt hoá V2): dòng dẫn NÉT THƯỜNG cạnh cụm khoá đậm → 2 tầng rõ hơn; phông tiêu đề riêng */
+  #stage.live-regular .role-live { font-weight: 400; letter-spacing: -0.005em; }
+  /* skin.lineGap: UTM Avo đặt dấu nặng rất thấp → dòng sát nhau thì dấu "ụ ạ ệ" của dòng trên rơi vào đầu chữ dòng dưới
+     (đo 11/11 "Gia Dụng Plus / Hũ thủy tinh": dấu nặng nằm ngay trên chữ t) */
+  #stage.line-gap .line + .line { margin-top: var(--gap); }
+  #stage.key-helv .role-key { font-family: "HelvK", "AvoK", sans-serif; font-weight: 400; letter-spacing: 0.012em; }
   #stage.skinned .w { background: linear-gradient(180deg, var(--t0) 0%, var(--t0) 42%, var(--t1) 100%);
                       -webkit-background-clip: text; background-clip: text; }
   #stage.skinned .accent .w { background: linear-gradient(180deg, var(--a0) 0%, var(--a0) 50%, var(--a1) 100%);
@@ -139,6 +147,7 @@
   let D = null, W = 1080, H = 1920;
 
   function exitSpan(b) {
+    if (b.exit === 'cut') return 0;   // tắt cứng đúng lúc end (khối trên badge kết thúc ở mối cắt cảnh — Việt hoá V2)
     if (b.exit === 'rise') return STYLE.exitRise.dur;
     if (b.exit === 'fade') return STYLE.exitFade.dur;
     return (b._n - 1) * stagger(b) + STYLE.exitWords.dur;
@@ -169,6 +178,9 @@
     if (SKIN.lineGrad) { cl.add('line-grad'); st.setProperty('--lg', SKIN.lineGrad); }
     if (SKIN.tightKey) cl.add('tight-key');
     if (SKIN.keyUpper === false) cl.add('key-lower');
+    if (SKIN.liveWeight === 400) cl.add('live-regular');
+    if (SKIN.lineGap) { cl.add('line-gap'); st.setProperty('--gap', SKIN.lineGap + 'em'); }
+    if (SKIN.keyFont === 'helvetins') cl.add('key-helv');
     if (SKIN.italicMode === 'light') cl.add('italic-light');
     if (SKIN.shadow === 'soft') cl.add('shadow-soft');
     const acc = SKIN.accent || '#ffd23f';
@@ -198,7 +210,7 @@
       const L = document.createElement('div');
       L.className = `line role-${ln.role}` + (ln.italic ? ' italic' : '') + (ln.accent ? ' accent' : '') + (boxed(ln, b) ? ' boxed' : '');
       ln._boxed = boxed(ln, b);
-      ln._el = L; ln._base = STYLE.size[ln.role] * H * (ln.italic && SKIN.italicScale ? SKIN.italicScale : 1) *
+      ln._el = L; ln._base = STYLE.size[ln.role] * H * (b.scale || 1) * (ln.italic && SKIN.italicScale ? SKIN.italicScale : 1) *
                              (b.light && SKIN.cardScale ? SKIN.cardScale * (ln.role === 'key' ? 1.35 : 1) : 1);
       ln.words.forEach((w, i) => {
         const s = document.createElement('span');
@@ -242,7 +254,7 @@
     const el = b._el, x = (b.x ?? 0.5) * W, y = (b.y ?? 0.47) * H;
     const tx = b.align === 'left' ? '0' : b.align === 'right' ? '-100%' : '-50%';
     el.style.left = x + 'px'; el.style.top = y + 'px';
-    b._anchor = `translate(${tx}, -50%)`;
+    b._anchor = `translate(${tx}, -50%)` + (b.rot ? ` rotate(${b.rot}deg)` : '');   // rot: khối nghiêng theo badge (Việt hoá V2)
   }
 
   function lineSize(ln, t) {

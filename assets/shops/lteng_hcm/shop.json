@@ -169,5 +169,50 @@
     },
     "note": "LTENG HCM dùng chung thư viện LTENG nhưng khác cách dùng: ưu tiên sting ngắn Magenta Signal, Rail Glide chạy chiều ngược (rtl), watermark nhỏ hơn VN.",
     "min_gap": 2.5
+  },
+  "caps": {
+    "_note": "LTENG HCM — đen tuyền + nhãn đỏ gạch của logo, tiêu đề UTM HelvetIns IN HOA, thanh nhấn đỏ (Việt hoá V2, 11/11).",
+    "style": "san-pham-thuan",
+    "skin": {
+      "keyMode": "text",
+      "accentMode": "box",
+      "keyUpper": true,
+      "keyFont": "helvetins",
+      "liveWeight": 400,
+      "shadow": "soft",
+      "box": "#b8302c",
+      "boxText": "#ffffff",
+      "boxRadius": 0.08,
+      "textTop": "#ffffff",
+      "textBottom": "#f1ecea",
+      "size": {
+        "live": 0.031,
+        "key": 0.047,
+        "sub": 0.024,
+        "big": 0.06
+      },
+      "lineGap": 0.12
+    },
+    "plate": {
+      "bg": "#171717",
+      "bg2": "#0b0b0b",
+      "alpha": 0.96,
+      "radius": 0.12,
+      "bar": {
+        "color": "#c0392b",
+        "w": 0.1
+      },
+      "line": "#ffffff",
+      "line_alpha": 0.16,
+      "shadow": 0.32,
+      "motion": "slide"
+    },
+    "panel": {
+      "tint": "#0d0d0d",
+      "tint_mix": 0.78,
+      "dim": 0.2,
+      "line": "#c0392b",
+      "line_alpha": 0.75
+    }
   }
 }

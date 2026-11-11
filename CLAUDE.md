@@ -13,6 +13,11 @@ Set-Location C:\Users\Admin\gdp-video-studio; $env:PYTHONIOENCODING='utf-8'
 .\.venv\Scripts\python.exe vs.py new inbox\<file>.mp4 --id <brand>-<slug>
 .\.venv\Scripts\python.exe vs.py analyze <id>            # --regroup: không tốn token
 #   → viết jobs\<id>\direct.py (mẫu: jobs\gdp-ke-nha-tam-01\direct.py) → chạy nó ra edl.json
+#   ⭐ Việt hoá V2 (Sếp 11/11, mặc định job mới — mẫu tools\localize_v2_example.py): edl.clean (xoá / lấp chữ Trung:
+#   ĐÁY-ĐỈNH = khung dải, GIỮA = nhoè + badge nền; chỉ hiện lúc có chữ Trung) + edl.caps (chữ Việt động, "pN" bám lời)
+#   + narration.tempo + outro shop LUÔN bật → skill gdp-video-localize mục "Việt hoá V2"
+#   Bộ nhận diện chữ / badge / khung dải theo SHOP = assets\shops\<shop>\shop.json mục `caps` (direct.py không ghi màu);
+#   soát bằng ẢNH, không render video: .\.venv\Scripts\python.exe tools\caps_previews.py <job…> --at 3.2,4.9,6.9
 .\.venv\Scripts\python.exe vs.py music <id>              # nhạc Lyria không lời
 .\.venv\Scripts\python.exe vs.py narrate <id>            # thuyết minh liền mạch, 1 lượt TTS
 .\.venv\Scripts\python.exe vs.py render <id> [--final]

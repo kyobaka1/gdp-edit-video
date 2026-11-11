@@ -26,7 +26,7 @@ Job thử đủ bộ: `jobs/test-vlog-bac-kinh/cut.py` (bản lưu git: `tools/e
 |---|---|---|
 | Nguồn | 1 video TQ đã dựng | nhiều clip thô CÓ tiếng + PLAN |
 | Tiếng | thuyết minh AI mới | **giọng gốc là chính** (hoặc giọng đọc riêng Sếp/AI có kịch bản) |
-| Chữ | ô che chữ Hán theo mẫu shop | **chữ động theo từng từ đã nói**, không ô nền |
+| Chữ | V2 (11/11): xoá / lấp chữ Hán (khung dải, badge) + chữ động của CHÍNH skill này qua `edl.caps` | **chữ động theo từng từ đã nói**, không ô nền |
 | Khung | 3:4 Shopee | **9:16 TikTok** (GĐ1); 3:4 làm sau |
 
 ## ⛔ Bước 0 — chốt chế độ TRƯỚC KHI EDIT (Sếp chốt 05/11)

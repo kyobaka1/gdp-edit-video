@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from studio import config, logo, media, motion, motiondirector, motionlib, outro, watermark
+from studio import clean, config, logo, media, motion, motiondirector, motionlib, outro, vcaps, watermark
 from studio.overlay import grow_to_min_font, render_label
 from studio.templates import TemplateRenderer, has_marks, strip_marks
 
@@ -216,8 +216,16 @@ def validate(edl: dict, meta: dict, allow_empty: bool) -> list[dict]:
     W, H, dur = meta["width"], meta["height"], meta["duration"]
     style = edl.get("style", {})
     layers, problems = [], []
+    cleaning = clean.enabled(edl)
     for o in edl.get("overlays", []):
         if o.get("skip") or o.get("mode") == "keep":  # keep = chữ trong cảnh, giữ nguyên
+            continue
+        # Việt hoá V2: chữ Trung do studio/clean.py xoá → ô không có text_vi (hoặc mode=clean) chỉ là VÙNG XOÁ, không vẽ
+        # nhãn; chữ Việt nằm ở edl.caps. Ô có text_vi + template vẫn vẽ nhãn mẫu shop như cũ.
+        if o.get("mode") == "clean" or (cleaning and o.get("mode", "label") == "label"
+                                        and not (o.get("text_vi") or "").strip()):
+            if not cleaning:
+                problems.append(f"{o['id']}: mode=clean nhưng edl.clean chưa bật (edl['clean'] = {{'mode': 'auto'}})")
             continue
         x, y, w, h = (int(v) for v in o["box"])
         if w <= 0 or h <= 0 or x < 0 or y < 0 or x + w > W or y + h > H:
@@ -252,7 +260,7 @@ def validate(edl: dict, meta: dict, allow_empty: bool) -> list[dict]:
 
 
 def _poster(job_dir: Path, edl: dict, meta: dict, items: list[dict], inputs: list[str], chain: list[str],
-            final: bool) -> dict | None:
+            final: bool, caps: list[dict] | None = None) -> dict | None:
     """Ảnh bìa (học từ brag): khung ĐÃ GHÉP ở lúc chữ đứng yên của ô mạnh nhất (hook > badge > ô đầu tiên),
     ghi <final|preview>.jpg + PNG để gắn làm khung 0 — Shopee/TikTok/Zalo lấy khung 0 làm ảnh chờ.
     Job khai `edl.poster = {"mode": "auto"}` hoặc `{"at": giây}` (chọn tay); không khai = flow cũ (khung 0 gốc).
@@ -268,8 +276,14 @@ def _poster(job_dir: Path, edl: dict, meta: dict, items: list[dict], inputs: lis
                     key=lambda it: it["start"])
         rank = {"hook": 0, "badge": 1}
         pick = min(ok, key=lambda it: rank.get(it.get("template"), 2), default=None)
-        at, why = (settled(pick), f"ô {pick.get('template') or 'chữ'} '{pick['text'][:40]}' đủ chữ") if pick else \
-            (min(1.5, dur * 0.2), "không có ô chữ đứng đủ lâu — lấy 1,5s")
+        # Việt hoá V2: khối chữ động đầu tiên có cụm khoá (hook) lúc đã đủ chữ
+        cap = next((b for b in caps or [] if any(ln["role"] == "key" for ln in b["lines"])
+                    and b["full_at"] + 0.3 < b["end"]), None) if not pick else None
+        if cap:
+            at, why = round(cap["full_at"] + 0.3, 3), f"khối chữ động '{cap['text'][:40]}' đủ chữ"
+        else:
+            at, why = (settled(pick), f"ô {pick.get('template') or 'chữ'} '{pick['text'][:40]}' đủ chữ") if pick else \
+                (min(1.5, dur * 0.2), "không có ô chữ đứng đủ lâu — lấy 1,5s")
     png = job_dir / ("poster_final.png" if final else "poster_preview.png")
     filt = job_dir / "poster_filter.txt"
     filt.write_text(";\n".join(chain), encoding="utf-8")
@@ -353,7 +367,11 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
         if renderer is not None:
             renderer.__exit__(None, None, None)
 
-    inputs = ["-i", str(job_dir / meta["source"])]
+    # Việt hoá V2 (edl.clean): nguồn đã XOÁ chữ Trung (nội suy nền / nhoè / dải) thay nguồn gốc — cache source-clean.mp4
+    cleaned = clean.build(job_dir, edl, meta)
+    src_video = cleaned or job_dir / meta["source"]
+    crep = clean.report(job_dir) if cleaned else None
+    inputs = ["-i", str(src_video)]
     chain, prev, n_png = [], "0:v", 0
     # 1) làm mờ (dưới cùng)
     for i, L in enumerate([L for L in layers if L["mode"] == "blur"], 1):
@@ -420,6 +438,15 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
     boxes = [{"x": it["x"], "y": it["y"], "w": it["w"], "h": it["h"], "start": it["s0"], "end": it["e1"]} for it in items]
     boxes += [{"x": o["box"][0], "y": o["box"][1], "w": o["box"][2], "h": o["box"][3], "start": o["start"], "end": o["end"]}
               for o in edl.get("overlays", []) if o.get("mode") == "keep"]
+    # Việt hoá V2 (edl.caps): chữ Việt ĐỘNG (bộ chữ + phong cách của skill gdp-video-edit) — không che gì, đặt tự do;
+    # vùng chữ đưa vào `boxes` để logo / watermark / animation né.
+    try:
+        vc = vcaps.build(job_dir, edl, meta, src_video, crep)
+    except vcaps.CapsError as exc:
+        raise EdlError(str(exc))
+    if vc:
+        boxes += vc["boxes"]
+        read_warn += vc["warnings"]
 
     # Nhận diện động (chỉ khi edl.motion có khai — không khai = flow cũ y nguyên, kể cả cỡ logo + watermark chữ trôi):
     # logo THƯỜNG TRỰC V2 (nhỏ, sát mép trên, chỉ tạm ẩn trong KHOẢNG animation thay logo), animation từ thư viện
@@ -462,6 +489,11 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
         inputs += ins
         chain += lines
         prev = f"v{j}"
+    if vc:  # chữ Việt động: trên ô mẫu shop + animation thường, dưới logo
+        n_png += 1
+        inputs += ["-i", str(vc["mov"])]
+        chain.append(f"[{prev}][{n_png}:v]overlay=0:0:format=auto:eof_action=pass[vcaps]")
+        prev = "vcaps"
     # Logo chính của shop: suốt phần video chính, vẽ trên cùng; góc do logo.plan tự chọn (né ô chữ + chỗ nhiều chi tiết).
     # Gắn TRƯỚC khi nối outro → outro không có logo đè.
     if lp:
@@ -497,7 +529,7 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
         n_in += 1
     else:
         chain.append(f"[{prev}]format=yuv420p{scale}[{vl}]")
-    poster = _poster(job_dir, edl, meta, items, inputs, chain, final) if poster_on else None
+    poster = _poster(job_dir, edl, meta, items, inputs, chain, final, vc["blocks"] if vc else None) if poster_on else None
 
     audio = edl.get("audio", {})
     mode = audio.get("mode", "keep")
@@ -605,6 +637,12 @@ def run(job_dir: Path, final: bool = False, allow_empty: bool = False) -> Path:
         "watermark": f"motion:{m_wm['id']}" if m_wm else ("text" if wp else None),
         "watermark_segments": m_wm["segments"] if m_wm else None,
         "motion": [it["id"] for it in m_items], "labels": len(items), "outro": bool(op), "final": final,
+        "clean": {"regions": len(crep["regions"]), "bands": crep["bands"], "panels": crep.get("panels", []),
+                  "warnings": crep["warnings"]} if crep else None,
+        "caps": [{"id": b["id"], "t": [b["first"], b["end"]], "rect": b["rect"], "scrim": b["scrim"], "text": b["text"],
+                  "plate": bool(b.get("plate"))}
+                 for b in vc["blocks"]] if vc else None,
+        "caps_style": vc["style"] if vc else None,
         "reveal": sum(1 for it in items if it.get("revealed")),
         "highlights": sum(len(it["punch_at"]) for it in items), "read_warnings": read_warn,
         "poster": {"at": poster["at"], "why": poster["why"]} if poster else None,

@@ -29,6 +29,14 @@ Chi tiết: `assets/motion/README.md`. `vs.py motion list --shop <mã>` = animat
 Thêm shop mới: `.\.venv\Scripts\python.exe tools\init_shop.py <mã shop>` → sửa `shop.json` → thả logo/mẫu.
 Xem shop đã đủ đồ chưa: `vs.py shops`. Xem mẫu chữ của shop: `vs.py templates <mã shop>`.
 
+## Bộ nhận diện Việt hoá V2 (`shop.json` mục `caps`) — 11/11
+
+Chữ Việt động + badge lấp chữ Trung + khung dải đáy / đỉnh của shop khai MỘT lần ở `shop.json`:
+`"caps": {"style": <Style Pack>, "skin": {…chữ…}, "plate": {…badge…}, "panel": {…khung dải…}}` — `studio/vcaps.py` và
+`studio/clean.py` tự đọc; shop không khai thì theo `templates_from`. Bảng 4 shop + nghĩa từng khoá: skill
+`gdp-video-localize` mục "Việt hoá V2". Ảnh demo: `_caps-preview.jpg`, `_caps-motion.jpg` (dựng bằng
+`tools/caps_previews.py`, không render video). Màu lấy từ pixel logo của chính shop.
+
 ## Hợp đồng mẫu chữ HTML (`templates/`)
 
 Claude (đạo diễn) CHỈ chọn mẫu có sẵn (`"template": "<slot>"` trong `edl.json`), không tự sáng tạo kiểu mới.
