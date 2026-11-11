@@ -59,16 +59,44 @@ Sếp chê bản cũ (0379): ô chữ Việt vừa CHE vừa HIỂN THỊ nên p
 bằng viên đen 720×134), một kiểu chữ, một độ đậm, đổi chữ chậm, bám 100% câu Trung. V2 tách hai việc:
 **`studio/clean.py` lo XOÁ / LẤP chữ Trung** · **`studio/vcaps.py` lo CHỮ VIỆT** (bộ chữ động + Phong cách của skill
 `gdp-video-edit`: nhiều độ đậm trong một khối, từng từ mờ-trồi vào, hộp nhấn màu shop, đặt tự do theo khung).
-Mẫu đủ bộ: `jobs/phaledo-0379-v2/direct.py` (bản lưu git: `tools/localize_v2_example.py`). Job cũ không khai
-`edl.clean` / `edl.caps` render y như trước.
+Mẫu đủ bộ (bản lưu git): `tools/localize_v2_example.py` (0379 — phụ đề sát đáy + sticker hook nghiêng: khung dải +
+badge xoay) · `tools/localize_v2_example_badge.py` (0374 — tiêu đề lớn + phụ đề ở vùng trên nhưng thấp: badge nhóm).
+Job cũ không khai `edl.clean` / `edl.caps` render y như trước.
 
-**Ba trường hợp theo VỊ TRÍ chữ Trung (Sếp chốt 11/11 — máy tự chọn, đừng làm khác):**
+### Chọn CÁCH LẤP chữ Trung — theo VỊ TRÍ + CỠ (Sếp chốt 11/11 qua 0379 và 0374; máy tự chọn, in ra khi render)
 
-| Chữ Trung nằm ở | Cách lấp | Chữ Việt |
-|---|---|---|
-| **ĐÁY** (tâm > 78% H) hoặc **ĐỈNH** (< 22% H) — phụ đề, dải tiêu đề | **KHUNG DẢI** phủ cả dải (nền = phần hình kề bên lật gương, nhoè mạnh + tối, mép sắc). KHÔNG vá từng dòng — vá nền để lại vệt mờ, "nhìn vẫn biết là edit lại" | đặt trên khung, tự phóng đầy ~70% chiều cao khung; không ghi `y` |
-| **GIỮA** khung — sticker hook, nhãn nghiêng | xoá (nhoè trong hình chữ nhật xoay ôm sát NÉT chữ) **+ BADGE nền đục** che kín đúng vùng đó, xoay cùng góc | nằm trong badge, tự phóng vừa badge: `{"over": "<id ô>", "text": …}` |
-| không có chữ Trung (chữ CHÈN MỚI) | — | `x`, `y` tự do + bóng tối mềm sau chữ (`scrim`) |
+Nguyên tắc Sếp: **badge nền che phủ + xoá chữ linh hoạt, tinh tế**; khung dải chỉ dùng khi phần phải cắt NHỎ; chữ càng
+to thì càng phải cân nhắc, không phủ bừa. Máy đo từng dòng chữ Trung (hộp ôm NÉT thật, không phải ô Gemini) rồi quyết:
+
+| # | Dạng chữ Trung | Điều kiện máy đo | Cách lấp | Chữ Việt |
+|---|---|---|---|---|
+| 1 | Phụ đề / dải chữ **sát mép** đáy hoặc đỉnh | dòng ngang, tâm > 78% H hoặc < 22% H, **và** phủ dải chỉ cắt ≤ **17% H** (`panel_max`) | **KHUNG DẢI** phủ cả dải (nền = phần hình kề bên lật gương, nhoè mạnh + tối, mép sắc) | trên khung, tự phóng ~70% chiều cao khung; không ghi `y` |
+| 2 | Phụ đề **chạy suốt cùng một chỗ** nhưng nằm sâu (0374: 15–23% H) hoặc ở giữa khung | các dòng ngang nối tiếp nhau (khe ≤ 0,8s), cùng chỗ, cùng cỡ — không đạt #1 | **THANH PHỤ ĐỀ** (nhóm `bar`): MỘT badge bo góc phủ hộp chung của cả chuỗi, giữ liền, chỉ đổi chữ bên trong | khối bám lời (`"pN"`) không ghi `y` tự vào thanh; **1 dòng, ≤ 5 từ / khối** |
+| 3 | **Tiêu đề lớn** / khối nhiều dòng (0374: 1 dòng rộng 88% × cao 11% H; 2 dòng 75% × 17% H) | 1 dòng lẻ, hoặc các dòng hiện cùng lúc xếp chồng (nhóm `single` / `block`) | **BADGE KHỐI** phủ đúng hộp của dòng / cả khối | `{"over": "<id một ô của khối>", "text": …}`; khối 1 dòng → 1 dòng chữ TO, khối 2 dòng → dẫn + cụm khoá |
+| 4 | **Nhãn nhỏ** giữa cảnh (chú thích chỉ vào vật, < 3% khung) | nhóm `single` nhỏ | **CHIP**: badge mini đúng chỗ nhãn | chỉ nhận chữ qua `over` (1–3 từ) |
+| 5 | **Sticker nghiêng** (hook xoay ≥ 4°) | dòng xoay | nhoè trong hình chữ nhật xoay ôm nét + **BADGE XOAY** cùng góc; quãng chữ bật / nảy vào: giữ hình sạch khung trước | `{"over": "<id ô>", "text": …}`, chữ tự phóng vừa badge |
+| 6 | Chữ **quá lớn** — một nhóm phủ > **22% khung** (`cover_max`) | render in `⚠ nhóm … phủ x% khung` | ⛔ KHÔNG tự phủ badge to: hỏi Sếp — cắt bỏ đoạn đó / đổi cảnh khác / thẻ phủ khung (`scene-chapter-card` của skill edit) | — |
+| 7 | Chữ có **sẵn nền** (sticker nền màu, nhãn hộp) | ô phân tích phải ôm cả nền | BADGE phủ cả nền gốc (nới `overlay["clean"] = {"box": […]}` cho bao hết nền) | như #3 / #4 |
+| — | Không có chữ Trung (chữ CHÈN MỚI) | — | — | `x`, `y` tự do + bóng tối mềm sau chữ (`scrim`) |
+
+- **Vì sao 17%**: 0379 phụ đề sát đáy → dải 15,7% H, Sếp duyệt. 0374 phụ đề ở 15–23% H → dải phải cắt 29% H: "chỗ cắt
+  phần text và phía dưới quá lớn thì không được" → máy tự rớt xuống #2 / #3 và in `ℹ khung dải top: … → dùng BADGE che`.
+  Ô nào nằm sâu quá ngưỡng bị loại riêng; các ô sát mép còn lại vẫn vào khung dải. Đổi ngưỡng (chỉ khi Sếp bảo):
+  `edl.clean = {"panel_max": 0.2, "cover_max": 0.25, "lane_gap": 1.5}` (`lane_gap` = khe tối đa để thanh phụ đề giữ liền).
+- **Dưới badge vẫn XOÁ chữ Trung** (nội suy nền / nhoè) — badge có lệch 1–2 khung cũng không lộ chữ Hán. Badge phủ kín
+  hộp nét của cả nhóm, đục 100% suốt lúc có chữ Trung, bật / tắt đúng mối cắt cảnh sát mốc.
+- **Hình badge nhóm** tự tính: rộng = max(hộp chữ Trung, chữ Việt dài nhất + đệm) ≤ 94% W; cao = max(hộp chữ Trung, 6,4% H
+  cho 1 dòng / 10% H nếu có khối 2 dòng); chữ Việt phóng / thu theo chiều cao badge (0,72–1,7×). Render in từng badge:
+  `badge G4 [bar] 5.50–22.40s · 469×80px (5% khung) · 6 khối chữ` → đọc cột % để biết badge có to quá không.
+- ⛔ **Badge không được đứng TRỐNG**: khối đầu của nhóm tự kéo về lúc badge hiện; trong thanh phụ đề chữ cũ đứng tới đúng
+  lúc chữ mới vào rồi tắt gọn (không mờ chéo, không "trôi lên" ra ngoài badge); khối cuối đứng tới lúc badge tắt. Nhóm
+  không có khối chữ nào → render báo `⚠ nhóm … KHÔNG có chữ Việt` (không vẽ badge, chữ Trung chỉ được vá nền) → thêm chữ.
+- **Trong thanh phụ đề: mỗi khối 1 dòng** — thanh cao theo khối cao nhất, một khối 2 dòng làm cả thanh to lên. Muốn 2
+  tầng (dẫn + cụm khoá) thì chia thành 2 khối nối tiếp. Xen dòng thường với dòng `!`, hộp `^` thưa.
+- Khe không có chữ Trung giữa hai thanh (0374: 22,4–25,4s) → không badge (đúng luật "chỉ hiện khi có chữ Trung"); lời
+  đọc vẫn chạy, đừng nhét chữ trần vào khe ngắn.
+- `clean.json` ghi `groups` (id, kind, members, box, t0–t1, % khung) + `notes`; mỗi ô có `group`. Xem trước không cần
+  render: `tools\caps_previews.py <job> --at …`.
 
 - ⛔ **Khung dải + badge chỉ hiện ĐÚNG LÚC có chữ Trung** (Sếp: "không lock từ đầu tới cuối"). Máy dò nét chữ từng
   khung → khung dải vào sớm 0,25s trước dòng đầu (sát đó có mối cắt cảnh thì bật / tắt ĐÚNG mối cắt), giữ liền qua khe
@@ -160,6 +188,20 @@ lộ chữ; vùng đó đứng hình 0,3–0,45s), badge + chữ Việt bật l�
 MỖI ô sticker phải cắt khung dày **mỗi 0,07s trong ±0,5s quanh `t0`** của nó (và quanh `t1`), xem ở cỡ thật, đối chiếu
 với cùng khung của nguồn. Lệch thì in số đo của bộ dò (số nét từng khung) rồi mới sửa — đoán mò 2 vòng không ra.
 
+Bẫy V2 đã gặp (11/11, job 0374 — badge nhóm):
+- **Dòng Trung có đuôi chữ Latin / số** ("…产出的CO₂", "304不锈钢", "5L"): ô phân tích chỉ ôm phần chữ Hán → phần đuôi
+  nằm ngoài vùng dò → xoá hụt, còn lơ lửng "O₂" cạnh badge. QA chữ Hán KHÔNG bắt (không phải chữ Hán). Nới ô trong
+  direct.py: `by_id["o3"]["clean"] = {"box": [x, y, w rộng hơn, h]}` rồi soát khung.
+- **Hai dòng nối tiếp cùng chỗ "thấy" nét của nhau** → mốc xoá chồng ~1s, không gom được thành thanh. Máy giờ chia ranh
+  theo dòng nào khớp nét hơn + dừng ở mối cắt cảnh sát mốc phân tích; nếu `clean.json` vẫn ra nhiều nhóm `single` chồng
+  giờ ở cùng một chỗ → xem lại `start` / `end` các ô đó.
+- **Nhãn nhỏ giữa cảnh nhiều chi tiết** (hạt cà phê, vải) — nét cảnh giống nét chữ → từng bị xoá sớm 0,47s lên cảnh trước;
+  đã chặn theo mối cắt cảnh. Vẫn phải soát khung trước / sau mối cắt của ô đó.
+- **Đoạn thuyết minh cụt < ~1,5s** ("Cách dùng rất gọn." 0,9s): cổng nghe lại không ổn định (lần khớp 0,5 vì nghe ra cả
+  câu bịa, lần 0,9) và hay bị cắt dính sang đoạn bên → gộp vào câu kế, đừng nới ngưỡng. Câu kết bằng dấu phẩy nối sang
+  đoạn sau cũng bị cắt lệch → mỗi đoạn là một câu trọn.
+- Từ dễ nghe nhầm tr / ch ("trọn hương" → "chọn hương") cộng tên brand ở câu chốt ngắn → mảnh rớt dưới 0,8 → đổi từ.
+
 Bẫy V2 đã gặp (11/11, job 0379):
 - Sticker to bật vào làm cả khung đổi mạnh → từng bị coi là "mối cắt cảnh" rồi chặn nhầm thời điểm xoá; giờ mối cắt đo
   NGOÀI vùng chữ đang hoạt động. Vùng giữ hình / vùng xoá chạm biên khung thì mép đó phải đục (mép mềm 10px từng để lọt
@@ -173,7 +215,8 @@ Bẫy V2 đã gặp (11/11, job 0379):
 - Badge nghiêng có thể thò xuống khung dải → render báo "bị badge … lấn" → dời `x` khối dưới hoặc cho hiện sau.
 - `preview.mp4` / `final.mp4` đang mở ở trình xem (Sếp đang coi) → ffmpeg báo `Permission denied`: render bản còn
   lại (`--final` ↔ preview) hoặc nhờ Sếp đóng file; đừng xoá file.
-- ⚠ Mới chạy thật 1 job giao (PHALEDO 3:4). GDP / LTENG VN / LTENG HCM mới có ẢNH DEMO bộ nhận diện trên nguồn 0379
+- ⚠ Mới chạy thật 2 job giao (PHALEDO 3:4: 0379 khung dải + badge xoay · 0374 badge nhóm). Dạng #6 (chữ quá lớn) và
+  #7 (chữ có sẵn nền) mới có LUẬT, chưa gặp video thật. GDP / LTENG VN / LTENG HCM mới có ẢNH DEMO bộ nhận diện trên nguồn 0379
   (job thử `_skin-*`, chưa có bản giao nào dùng bộ mới — bản `gdp-0379-v2` render TRƯỚC khi có bộ nhận diện, phải render
   lại). Chưa thử: chữ Trung ở ĐỈNH, nguồn 9:16 → lần đầu gặp phải soát kỹ và báo Sếp.
 

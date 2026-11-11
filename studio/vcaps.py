@@ -132,6 +132,7 @@ def plan(job_dir: Path, edl: dict, meta: dict, clean_rep: dict | None = None) ->
     regs = {r["id"]: r for r in (clean_rep or {}).get("regions", [])}
     panels = {p["side"]: p for p in (clean_rep or {}).get("panels", [])}
     cuts = (clean_rep or {}).get("cuts", [])
+    groups = {g["id"]: g for g in (clean_rep or {}).get("groups", [])}   # nhóm dòng chữ Trung ngang → một badge / nhóm
     exit_def = cfg.get("exit") or st["captions"].get("exit", "rise")
     items = [dict(it) for it in cfg["items"] if not it.get("skip")]
     for n, it in enumerate(items):
@@ -140,16 +141,40 @@ def plan(job_dir: Path, edl: dict, meta: dict, clean_rep: dict | None = None) ->
             raise CapsError(f"caps #{n + 1}: over='{it['over']}' — không có vùng chữ Trung đã xoá mang id đó "
                             f"(có: {', '.join(regs) or 'chưa bật edl.clean'})")
         it["_reg"] = reg
-        # badge lấp vùng xoá: mặc định cho chữ Trung giữa khung (đã nhoè); vùng nằm trong khung dải thì không cần
-        it["_plate"] = bool(reg) and reg.get("t0") is not None and it.get("plate", reg["method"] != "panel")
+        # dòng ngang thuộc một NHÓM (thanh phụ đề / khối tiêu đề / nhãn lẻ) → chữ nằm trong badge của nhóm
+        it["_gid"] = reg.get("group") if reg and reg.get("group") in groups else None
+        # badge xoay riêng: chữ Trung nghiêng giữa khung (đã nhoè); vùng nằm trong khung dải / trong nhóm thì không cần
+        it["_plate"] = (bool(reg) and not it["_gid"] and reg.get("t0") is not None
+                        and it.get("plate", reg["method"] != "panel"))
         if it.get("at") is None:
-            if not it["_plate"]:
+            if it["_gid"]:
+                it["_t0"] = groups[it["_gid"]]["t0"] + 0.03
+            elif it["_plate"]:
+                it["_t0"] = reg["t0"] + 0.03   # chữ Việt bật lên đúng lúc chữ Trung gốc bật lên
+            else:
                 raise CapsError(f"caps #{n + 1} '{it.get('text', '')}': thiếu `at` (chỉ khối `over` có badge mới tự lấy mốc)")
-            it["_t0"] = reg["t0"] + 0.03   # chữ Việt bật lên đúng lúc chữ Trung gốc bật lên
         else:
             it["_t0"] = max(0.0, _when(it["at"], pieces))
     items.sort(key=lambda it: it["_t0"])
-    free = [it for it in items if not it["_plate"]]   # khối thường: nối đuôi nhau; khối badge theo vùng chữ Trung
+    # khối KHÔNG ghi `over` / `y` rơi vào lúc một nhóm lớn (thanh phụ đề, khối tiêu đề) đang hiện → tự vào badge nhóm đó;
+    # nhãn lẻ nhỏ (< 3% khung) chỉ nhận chữ qua `over`
+    for it in items:
+        if it["_gid"] or it["_reg"] or it.get("y") is not None or it.get("band"):
+            continue
+        live = [g for g in groups.values() if g["t0"] - 0.3 <= it["_t0"] < g["t1"] - 0.3
+                and (g["kind"] != "single" or g["area_pct"] >= 0.03)]
+        if live:
+            it["_gid"] = max(live, key=lambda g: g["area_pct"])["id"]
+    # khối thường nối đuôi nhau THEO LÀN: mỗi nhóm badge một làn, phần còn lại (khung dải / trên hình) một làn
+    free = [it for it in items if not it["_plate"]]
+    # ⛔ badge không được đứng TRỐNG: khối đầu của nhóm vào ngay khi badge hiện (lời đọc tới sau một nhịp cũng được);
+    # khối cuối đứng tới lúc badge tắt; giữa hai khối không giới hạn 4,5s (đo 0374: thanh phụ đề trống 1,2s lúc mới hiện)
+    for g in groups.values():
+        lane = [f for f in free if f["_gid"] == g["id"]]
+        if lane and lane[0]["_t0"] > g["t0"] + 0.2:
+            lane[0]["_t0"] = round(g["t0"] + 0.03, 3)
+    for g in groups.values():   # cuối video cũng là mép cứng
+        g["hard_out"] = bool(g["hard_out"] or g["t1"] >= dur - 0.05)
     blocks, warns = [], []
     for n, it in enumerate(items):
         lines = parse(it["text"])
@@ -175,11 +200,28 @@ def plan(job_dir: Path, edl: dict, meta: dict, clean_rep: dict | None = None) ->
             # cảnh sau); hết giữa cảnh → chữ rút xong lúc chữ Trung tắt, badge mờ ra ngay sau đó
             it["_hard_out"] = reg["t1"] >= dur - 0.05 or any(abs(c - reg["t1"]) <= 0.05 for c in cuts)
             end = reg["t1"] - (0.012 if it["_hard_out"] else 0.36)
-        else:   # đứng tới sát khối kế (màn hình luôn có chữ — tắt tiếng vẫn hiểu), tối đa 4,5s
-            j = next(i for i, f in enumerate(free) if f is it)
-            nxt = free[j + 1]["_t0"] if j + 1 < len(free) else None
-            end = min(nxt - EXIT_GAP if nxt is not None else dur - 0.25, t0 + 4.5)
-        end = round(min(end, dur - 0.05), 3)
+        else:   # đứng tới sát khối kế CÙNG LÀN (màn hình luôn có chữ — tắt tiếng vẫn hiểu), tối đa 4,5s
+            lane = [f for f in free if f["_gid"] == it["_gid"]]
+            j = next(i for i, f in enumerate(lane) if f is it)
+            nxt = lane[j + 1]["_t0"] if j + 1 < len(lane) else None
+            if it["_gid"]:
+                # trong badge nhóm: chữ cũ đứng tới ĐÚNG lúc chữ mới vào rồi tắt gọn — không để badge trống, không cho chữ
+                # "trôi lên" ra ngoài badge (đo 0374: thanh phụ đề trống 0,3s mỗi lần đổi câu, chữ rút nổi phía trên thanh)
+                end = nxt - 0.03 if nxt is not None else dur - 0.012
+                it["_swap"] = nxt is not None
+            else:
+                end = min(nxt - EXIT_GAP if nxt is not None else dur - 0.25, t0 + 4.5)
+        if it["_gid"] and it.get("until") is None and not it.get("dur"):
+            # trong badge nhóm: khối cuối đứng tới lúc badge tắt (tắt cứng cùng badge nếu trùng mối cắt cảnh)
+            g = groups[it["_gid"]]
+            lim = g["t1"] - (0.012 if g["hard_out"] else 0.36)
+            lane = [f for f in free if f["_gid"] == it["_gid"]]
+            last = lane[-1] is it
+            if end > lim or last:
+                end = lim
+                it["_hard_out"] = bool(g["hard_out"])
+                it["_swap"] = False
+        end = round(min(end, dur - (0.012 if it["_gid"] else 0.05)), 3)
         if end - full_at < floor - 0.05:
             warns.append(f"'{plain(it['text'])}' {t0:.2f}–{end:.2f}s: đọc được {max(0, end - full_at):.2f}s, cần ~{floor:.1f}s "
                          f"→ rút chữ / dời khối kế")
@@ -188,7 +230,7 @@ def plan(job_dir: Path, edl: dict, meta: dict, clean_rep: dict | None = None) ->
         x = float(it.get("x", cfg.get("x", 0.5)))
         if it.get("y") is not None:
             y = float(it["y"])
-        elif band and not reg:
+        elif band and not reg and not it["_gid"]:
             y = (band["y0"] + band["y1"]) / 2 / H
             spans = band.get("spans")   # None = khung khoá suốt video
             on_band = spans is None or any(a - 0.05 <= t0 and end <= z + 0.25 for a, z in spans)
@@ -198,13 +240,17 @@ def plan(job_dir: Path, edl: dict, meta: dict, clean_rep: dict | None = None) ->
         else:
             y = float(cfg.get("y", 0.9))
         b = {"id": f"v{n + 1:02d}", "end": end, "card": False, "light": False,
-             "exit": "cut" if it.get("_hard_out") and it.get("until") is None else it.get("exit", exit_def),
+             "exit": ("cut" if (it.get("_hard_out") or it.get("_swap")) and it.get("until") is None
+                      else it.get("exit", "fade" if it["_gid"] else exit_def)),
              "lines": lines, "align": it.get("align", cfg.get("align", "center")), "x": x, "y": y, "rot": 0.0,
              "scale": float(it.get("scale", 1.0)) * float(cfg.get("scale", 1.0)), "fit": None, "plate": None,
+             "bar": it["_gid"], "own_scale": it.get("scale") is not None,
              "grow": (0.9 * W, 0.72 * (band["y1"] - band["y0"])) if on_band and it.get("scale") is None else None,
              "first": t0, "full_at": round(full_at, 3), "text": plain(it["text"]), "markup": it["text"],
              "scrim": 0 if on_band else it.get("scrim", cfg.get("scrim", "auto"))}
-        if reg:
+        if it["_gid"]:
+            b.update(scrim=0, grow=None, align="center")
+        elif reg:
             cx, cy, rw, rh, ang = reg["rect"]
             b["x"], b["y"] = float(it.get("x", cx / W)), float(it.get("y", cy / H)) + float(it.get("dy", 0.0))
             if on := panels.get("bottom" if cy > H / 2 else "top"):
@@ -218,7 +264,7 @@ def plan(job_dir: Path, edl: dict, meta: dict, clean_rep: dict | None = None) ->
                 b["scrim"] = 0
         blocks.append(b)
     return {"style": sid, "page": st["page"], "skin": skin, "blocks": blocks, "warnings": warns,
-            "plate": _plate_cfg(edl, kit)}
+            "plate": _plate_cfg(edl, kit), "groups": groups}
 
 
 def _js(blocks: list[dict], flat: bool = False) -> list[dict]:
@@ -234,7 +280,7 @@ def _nudge(blocks: list[dict], boxes: list[dict], W: int, H: int) -> bool:
     moved = False
     x0, y0, x1, y1 = SAFE[0] * W, SAFE[1] * H, SAFE[2] * W, SAFE[3] * H
     for b, bx in zip(blocks, boxes):
-        if b["plate"]:
+        if b["plate"] or b.get("bar"):
             continue
         dx = max(0, x0 - bx["x"]) - max(0, bx["x"] + bx["w"] - x1)
         dy = max(0, y0 - bx["y"]) - max(0, bx["y"] + bx["h"] - y1)
@@ -242,6 +288,45 @@ def _nudge(blocks: list[dict], boxes: list[dict], W: int, H: int) -> bool:
             b["x"], b["y"] = b["x"] + dx / W, b["y"] + dy / H
             moved = True
     return moved
+
+
+BAR_MIN_H = 0.064     # badge nhóm 1 dòng chữ Việt cao tối thiểu 6,4% H (chữ ~3,6% H); có khối 2 dòng → 10% H
+BAR_MIN_H2 = 0.10
+BAR_MAX_W = 0.94
+
+
+def _bars(groups: dict, blocks: list[dict], boxes: list[dict], W: int, H: int, warns: list[str]) -> list[dict]:
+    """Hình badge của từng NHÓM chữ Trung: phủ kín hộp chữ Trung của nhóm, đủ chỗ cho khối chữ Việt dài / cao nhất; chữ
+    Việt phóng / thu theo chiều cao badge. Đặt lại x, y, scale của các khối trong nhóm. Nhóm không có chữ Việt → không
+    vẽ badge (badge trống vô nghĩa) + cảnh báo."""
+    out = []
+    for gid, g in groups.items():
+        bl = [(b, bx) for b, bx in zip(blocks, boxes) if b.get("bar") == gid]
+        x0, y0, x1, y1 = g["box"]
+        if not bl:
+            warns.append(f"nhóm {gid} [{g['kind']}] {g['t0']:.2f}–{g['t1']:.2f}s ({', '.join(g['members'])}) KHÔNG có chữ Việt → "
+                         f"chữ Trung chỉ được vá nền (dễ thấy vệt): thêm khối chữ rơi vào khoảng đó, hoặc `over` một ô của nhóm")
+            continue
+        two = any(len(b["lines"]) >= 2 for b, _ in bl)
+        bar_h = max(y1 - y0, (BAR_MIN_H2 if two else BAR_MIN_H) * H)
+        need_w = float(x1 - x0)
+        for b, bx in bl:
+            fill = 0.76 if len(b["lines"]) >= 2 else 0.62          # chữ chiếm bao nhiêu chiều cao badge
+            b["_s"] = 1.0 if b["own_scale"] else float(np.clip(fill * bar_h / max(1, bx["h"]), 0.72, 1.7))
+            need_w = max(need_w, bx["w"] * b["_s"] / 0.86)
+        bar_w = min(need_w, BAR_MAX_W * W)
+        for b, bx in bl:
+            s = min(b.pop("_s"), 0.86 * bar_w / max(1, bx["w"]))
+            if s < 0.72:
+                warns.append(f"'{b['text']}' quá dài cho badge {gid} (chữ phải thu còn {s:.0%}) → rút chữ")
+            b["scale"] = round(b["scale"] * s, 3)
+        cx = float(np.clip((x0 + x1) / 2, bar_w / 2 + 0.02 * W, W - bar_w / 2 - 0.02 * W))
+        cy = float(np.clip((y0 + y1) / 2, bar_h / 2 + 0.01 * H, H - bar_h / 2 - 0.01 * H))
+        for b, _ in bl:
+            b["x"], b["y"] = cx / W, cy / H
+        out.append({"id": gid, "kind": g["kind"], "rect": [cx, cy, bar_w, bar_h, 0.0], "t0": g["t0"], "t1": g["t1"],
+                    "hard_in": g["hard_in"], "hard_out": g["hard_out"], "n": len(bl)})
+    return out
 
 
 def _scrim(bx: dict, W: int, H: int) -> tuple[np.ndarray, int, int]:
@@ -406,7 +491,8 @@ def build(job_dir: Path, edl: dict, meta: dict, video: Path, clean_rep: dict | N
                 k = min(b["grow"][0] / max(1, bx["w"]), b["grow"][1] / max(1, bx["h"]))
                 b["scale"] = round(b["scale"] * float(np.clip(k, 1.0, 1.45)), 3)
                 again = True
-        if again:
+        bars = _bars(p["groups"], blocks, boxes, W, H, p["warnings"])
+        if again or bars:
             boxes = kin.load(_js(blocks, flat=True))
         if _nudge(blocks, boxes, W, H):
             again = True
@@ -440,6 +526,8 @@ def build(job_dir: Path, edl: dict, meta: dict, video: Path, clean_rep: dict | N
         scrims.append(_scrim(bx, W, H) if b["scrim"] > 0 else None)
         plates.append(_plate_img(b["plate"]["rect"], p["plate"], W, H) if b["plate"] else None)
     cap.release()
+    for bar in bars:
+        bar["pl"] = _plate_img(bar["rect"], p["plate"], W, H)
     mov = job_dir / "caps.mov"
     cmd = [config.FFMPEG, "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "bgra", "-s", f"{W}x{H}", "-r", f"{fps}",
            "-i", "-", "-c:v", "qtrle", "-pix_fmt", "argb", str(mov)]
@@ -452,7 +540,8 @@ def build(job_dir: Path, edl: dict, meta: dict, video: Path, clean_rep: dict | N
             live_s = [(b, sc) for b, sc in zip(blocks, scrims) if sc is not None and b["first"] - 0.12 <= t <= b["end"] + 0.3]
             live_p = [(b, pl) for b, pl in zip(blocks, plates) if pl is not None
                       and min(_plate_k(b["plate"], t)) > 0.001]
-            if ent is None and not live_s and not live_p:
+            live_b = [bar for bar in bars if min(_plate_k(bar, t)) > 0.001]
+            if ent is None and not live_s and not live_p and not live_b:
                 proc.stdin.write(empty)
                 continue
             canvas = np.zeros((H, W, 4), np.float32)
@@ -460,6 +549,8 @@ def build(job_dir: Path, edl: dict, meta: dict, video: Path, clean_rep: dict | N
                 k = _ease((t - (b["first"] - 0.12)) / 0.3) * _ease((b["end"] + 0.3 - t) / 0.3)
                 reg = canvas[y0:y0 + m.shape[0], x0:x0 + m.shape[1], 3]
                 np.maximum(reg, m * b["scrim"] * k, out=reg)
+            for bar in live_b:                   # badge NHÓM (thanh phụ đề / khối tiêu đề / nhãn): giữ liền, chỉ đổi chữ
+                _plate_paint(canvas, bar["pl"], *_plate_k(bar, t), p["plate"].get("motion", "fade"))
             for b, pl in live_p:                 # badge lấp vùng đã xoá — vào theo kiểu của shop, đứng suốt lúc có chữ Trung
                 _plate_paint(canvas, pl, *_plate_k(b["plate"], t), p["plate"].get("motion", "fade"))
             if ent is not None:
@@ -477,11 +568,18 @@ def build(job_dir: Path, edl: dict, meta: dict, video: Path, clean_rep: dict | N
         err = proc.stderr.read().decode("utf-8", "replace")
         if proc.wait() != 0:
             raise RuntimeError(f"Ghi caps.mov lỗi: {err[-600:]}")
-    out_boxes = [{"x": b["rect"][0], "y": b["rect"][1], "w": b["rect"][2], "h": b["rect"][3],
+    out_boxes = [{"x": int(r[0] - r[2] / 2), "y": int(r[1] - r[3] / 2), "w": int(r[2]), "h": int(r[3]),
+                  "start": bar["t0"] - PLATE_IN, "end": bar["t1"] + PLATE_OUT} for bar in bars for r in [bar["rect"]]]
+    out_boxes += [{"x": b["rect"][0], "y": b["rect"][1], "w": b["rect"][2], "h": b["rect"][3],
                   "start": b["plate"]["t0"] - PLATE_IN if b["plate"] else b["first"],
                   "end": b["plate"]["t1"] + PLATE_OUT if b["plate"] else b["end"] + 0.3} for b in blocks]
     for w in p["warnings"]:
         print(f"  ⚠ chữ Việt: {w}")
-    print(f"  chữ Việt động: {len(blocks)} khối ({sum(1 for b in blocks if b['plate'])} trên badge lấp chữ Trung), "
-          f"phong cách {p['style']} → caps.mov")
-    return {"mov": mov, "boxes": out_boxes, "blocks": blocks, "warnings": p["warnings"], "style": p["style"]}
+    print(f"  chữ Việt động: {len(blocks)} khối ({sum(1 for b in blocks if b['plate'])} trên badge xoay, "
+          f"{sum(1 for b in blocks if b['bar'])} trong {len(bars)} badge nhóm), phong cách {p['style']} → caps.mov")
+    for bar in bars:
+        r = bar["rect"]
+        print(f"    badge {bar['id']} [{bar['kind']}] {bar['t0']:.2f}–{bar['t1']:.2f}s · {r[2]:.0f}×{r[3]:.0f}px "
+              f"({r[2] * r[3] / (W * H):.0%} khung) · {bar['n']} khối chữ")
+    return {"mov": mov, "boxes": out_boxes, "blocks": blocks, "warnings": p["warnings"], "style": p["style"],
+            "bars": [{k: bar[k] for k in ("id", "kind", "rect", "t0", "t1", "n")} for bar in bars]}

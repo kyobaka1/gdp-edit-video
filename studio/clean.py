@@ -47,7 +47,7 @@ PANEL_FADE = 0.2
 COVER_MAX = 0.22     # một nhóm chữ Trung phủ > 22% diện tích khung → badge che quá to, phải cân nhắc phương án khác
 PANEL_MAX = 0.17     # khung dải chỉ được cắt tối đa 17% chiều cao khung (Sếp 11/11, video 0374: phụ đề ở 17–21% H mà
 #                      phủ khung dải thì mất gần 1/4 khung → "không được"); quá ngưỡng → badge che ôm chữ
-VERSION = 19
+VERSION = 20
 
 
 def enabled(edl: dict) -> bool:
@@ -554,66 +554,67 @@ def _auto_panels(regs: list[dict], cfg: dict, H: int, fps: float, cuts: list[int
 
 def _groups(regs: list[dict], cfg: dict, fps: float, cuts: list[int], W: int, H: int) -> list[dict]:
     """Gom các dòng chữ Trung NGANG không nằm trong khung dải thành NHÓM để lớp chữ Việt phủ MỘT badge cho cả nhóm:
-    - `bar`   = các dòng nối tiếp nhau cùng một chỗ (phụ đề chạy suốt): badge giữ liền, chỉ đổi chữ bên trong;
-    - `block` = các dòng hiện cùng lúc, xếp chồng (tiêu đề 2 dòng): một badge che cả khối;
+    - `block` = các dòng hiện cùng lúc, xếp chồng / kề nhau (tiêu đề 2 dòng): một badge che cả khối;
+    - `bar`   = các dòng (hoặc khối) nối tiếp nhau cùng một chỗ, cùng cỡ (phụ đề chạy suốt): badge giữ liền, chỉ đổi chữ;
     - `single`= một dòng / nhãn lẻ.
     Dòng xoay (sticker nghiêng) không gom — mỗi ô một badge xoay riêng (`caps.items[].over`)."""
     rs = [r for r in regs if abs(r["angle"]) < 4 and r["method"] in ("fill", "blur") and r["on"]]
-    for r in rs:
-        r["_t"] = (min(r["on"]) / fps, (max(r["on"]) + 1) / fps)
     gap = float(cfg.get("lane_gap", PANEL_GAP))
-    parent = list(range(len(rs)))
 
-    def find(i):
-        while parent[i] != i:
-            parent[i] = parent[parent[i]]
-            i = parent[i]
-        return i
+    def merge(items, linked):
+        parent = list(range(len(items)))
 
-    kinds = {}
-    for i, a in enumerate(rs):
-        for j in range(i + 1, len(rs)):
-            b = rs[j]
-            (ax0, ay0, ax1, ay1), (bx0, by0, bx1, by1) = a["hug"], b["hug"]
-            ha, hb = ay1 - ay0, by1 - by0
-            # quan hệ thời gian theo MỐC PHÂN TÍCH (khoảng dò nét của hai dòng cùng chỗ hay lấn sang nhau)
-            ot = min(a["end"], b["end"]) - max(a["start"], b["start"])               # thời gian trùng (âm = khe)
-            ox = min(ax1, bx1) - max(ax0, bx0)
-            ov = min(ay1, by1) - max(ay0, by0)                                       # trùng dọc (âm = khoảng hở)
-            same_time = ot >= 0.6 * min(a["end"] - a["start"], b["end"] - b["start"])
-            if same_time and ox > 0.3 * min(ax1 - ax0, bx1 - bx0) and -ov <= 0.7 * min(ha, hb):
-                link = "block"                                                        # cùng lúc, xếp chồng / kề nhau
-            elif (ot < 0.35 and -ot <= gap and ov >= 0.6 * min(ha, hb) and 0.65 <= ha / max(1, hb) <= 1.55
-                  and abs((ax0 + ax1) - (bx0 + bx1)) / 2 <= 0.2 * W):
-                link = "bar"                                                          # nối tiếp nhau, cùng chỗ, cùng cỡ
-            else:
-                continue
-            ra, rb = find(i), find(j)
-            if ra != rb:
-                parent[rb] = ra
-            kinds.setdefault(find(i), set()).add(link)
-    by = {}
-    for i, r in enumerate(rs):
-        by.setdefault(find(i), []).append(r)
+        def find(i):
+            while parent[i] != i:
+                parent[i] = parent[parent[i]]
+                i = parent[i]
+            return i
+        hit = set()
+        for i in range(len(items)):
+            for j in range(i + 1, len(items)):
+                if linked(items[i], items[j]):
+                    hit.update((i, j))
+                    parent[find(j)] = find(i)
+        out = {}
+        for i, it in enumerate(items):
+            out.setdefault(find(i), []).append((it, i in hit))
+        return list(out.values())
+
+    def unit(ms, kind):
+        return {"ms": ms, "kind": kind, "start": min(m["start"] for m in ms), "end": max(m["end"] for m in ms),
+                "box": [min(m["hug"][0] for m in ms), min(m["hug"][1] for m in ms),
+                        max(m["hug"][2] for m in ms), max(m["hug"][3] for m in ms)]}
+
+    def stacked(a, b):   # hiện cùng lúc (theo mốc phân tích), chồng / kề nhau theo chiều dọc
+        ot = min(a["end"], b["end"]) - max(a["start"], b["start"])
+        (ax0, ay0, ax1, ay1), (bx0, by0, bx1, by1) = a["hug"], b["hug"]
+        return (ot >= 0.6 * min(a["end"] - a["start"], b["end"] - b["start"])
+                and min(ax1, bx1) - max(ax0, bx0) > 0.3 * min(ax1 - ax0, bx1 - bx0)
+                and max(ay0, by0) - min(ay1, by1) <= 0.7 * min(ay1 - ay0, by1 - by0))
+
+    def chained(a, b):   # nối tiếp nhau (khe ≤ gap), cùng chỗ, cùng cỡ — so trên hộp của cả khối
+        ot = min(a["end"], b["end"]) - max(a["start"], b["start"])
+        (ax0, ay0, ax1, ay1), (bx0, by0, bx1, by1) = a["box"], b["box"]
+        ha, hb = ay1 - ay0, by1 - by0
+        return (ot < 0.35 and -ot <= gap and min(ay1, by1) - max(ay0, by0) >= 0.6 * min(ha, hb)
+                and 0.65 <= ha / max(1, hb) <= 1.55 and abs((ax0 + ax1) - (bx0 + bx1)) / 2 <= 0.2 * W)
+
+    units = [unit([m for m, _ in grp], "block" if len(grp) > 1 else "single") for grp in merge(rs, stacked)]
     near = round(0.35 * fps)
     out = []
-    for root, ms in sorted(by.items(), key=lambda kv: min(m["_t"][0] for m in kv[1])):
-        k = set()
-        for key, v in kinds.items():
-            if find(key) == root:
-                k |= v
+    for grp in sorted(merge(units, chained), key=lambda g: min(u["start"] for u, _ in g)):
+        us = [u for u, _ in grp]
+        ms = sorted((m for u in us for m in u["ms"]), key=lambda m: m["start"])
         a, b = min(min(m["on"]) for m in ms), max(max(m["on"]) for m in ms)
         cin = max((c for c in cuts if a - near <= c <= a + GROW), default=None)
         cout = min((c for c in cuts if b - GROW <= c <= b + near), default=None)
-        t0 = cin / fps if cin is not None else a / fps
-        t1 = cout / fps if cout is not None else (b + 1) / fps
-        g = {"id": f"G{len(out) + 1}", "kind": "bar" if "bar" in k else "block" if "block" in k else "single",
-             "members": [m["id"] for m in sorted(ms, key=lambda m: m["_t"][0])],
-             "box": [max(0, min(m["hug"][0] for m in ms) - 4), max(0, min(m["hug"][1] for m in ms) - 4),
-                     min(W, max(m["hug"][2] for m in ms) + 4), min(H, max(m["hug"][3] for m in ms) + 4)],
-             "t0": round(t0, 3), "t1": round(t1, 3),
-             "hard_in": bool(cin is not None or a <= 1), "hard_out": cout is not None,
-             "area_pct": 0.0}
+        box = unit(ms, "")["box"]
+        g = {"id": f"G{len(out) + 1}", "kind": "bar" if len(us) > 1 else us[0]["kind"],
+             "members": [m["id"] for m in ms],
+             "box": [max(0, box[0] - 4), max(0, box[1] - 4), min(W, box[2] + 4), min(H, box[3] + 4)],
+             "t0": round(cin / fps if cin is not None else a / fps, 3),
+             "t1": round(cout / fps if cout is not None else (b + 1) / fps, 3),
+             "hard_in": bool(cin is not None or a <= 1), "hard_out": cout is not None}
         g["area_pct"] = round((g["box"][2] - g["box"][0]) * (g["box"][3] - g["box"][1]) / (W * H), 4)
         for m in ms:
             m["group"] = g["id"]
