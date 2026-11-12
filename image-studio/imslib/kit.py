@@ -53,8 +53,10 @@ IMAGE_DEFAULTS = {
     "watermark_opacity": None, # ghi đè độ đục watermark (0–1)
     # Sếp 12/11: watermark MỜ hơn + nét MẢNH hơn ở mọi shop.
     "watermark_fade": 0.6,     # nhân thêm vào độ đục watermark của kit / shop (1 = giữ nguyên)
-    # ẢNH BÌA (Sếp 12/11): Shopee đè khung chiến dịch (11.11, Voucher Xtra, Shopee Home, nút video) lên ĐÁY ảnh bìa.
-    "cover_frame_pct": 13,     # dải đáy ảnh bìa (% chiều cao) bị khung che — chữ + logo không được nằm trong
+    # ẢNH BÌA (Sếp 12/11): Shopee đè khung chiến dịch (11.11, Voucher Xtra, Shopee Home) lên GÓC DƯỚI-TRÁI ảnh bìa.
+    # Sếp 12/11 (chiều): vùng cấm CHỈ là đúng khung 11.11 + Voucher Xtra ở góc dưới-trái — phần còn lại của dải đáy đặt chữ được.
+    "cover_frame_pct": 12,     # chiều cao vùng khung che (% chiều cao, tính từ đáy; khung mẫu đo được y ≥ 88,4%)
+    "cover_frame_w_pct": 42,   # bề ngang vùng khung che (% bề rộng, từ mép trái; khung 11.11 + Voucher Xtra đo được x ≤ 41,2%)
     "watermark_thin": 0.012,   # bào mảnh nét ẢNH watermark: bán kính = tỉ lệ × chiều cao ảnh watermark (0 = giữ nguyên)
     "edge": 0.045,             # viền NHẸ quanh tiêu đề giúp chữ nổi khỏi ảnh (em; 0 = tắt)
     "bolder": 0.012,           # làm tiêu đề đậm thêm (em; 0 = tắt)

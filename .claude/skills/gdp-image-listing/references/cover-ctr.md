@@ -29,8 +29,10 @@ Shopee tự dán khung chiến dịch lên ảnh bìa trong lưới tìm kiếm 
 ở đáy-trái và nút ▶ video ở đáy-phải. Khung mẫu Sếp đưa (`image-studio/ui/shopee-frame.png`, 320×320) chiếm x 0–41%,
 y 88–100%; trên trang shop dải này kéo tới ~62% bề ngang. Chiến dịch đổi thì nhãn đổi, chỗ không đổi.
 
-**Luật: không đặt chữ, nhãn, logo trong 13% đáy ảnh bìa (y ≥ 87%), trên TOÀN bề ngang.** Bộ kiểm báo LỖI nếu vi phạm
-(`image.cover_frame_pct` trong `shop.json` nếu cần đổi mức). Watermark được nằm trong vùng này.
+**Luật: không đặt chữ, nhãn, logo ở GÓC DƯỚI-TRÁI ảnh bìa (x ≤ 42%, y ≥ 88%).** Sếp 12/11 (chiều) chốt: chỉ đúng khung 11.11 + Voucher
+Xtra là vùng cấm — phía phải của dải đáy vẫn đặt chữ được (nút ▶ video chỉ hiện với listing có video, nhỏ, sát góc phải — đừng đặt
+chữ nhỏ quan trọng sát góc dưới-phải). Bộ kiểm báo LỖI nếu vi phạm (`image.cover_frame_pct` = cao, `image.cover_frame_w_pct` =
+ngang trong `shop.json` nếu cần đổi mức). Watermark được nằm trong vùng này.
 
 Vì sao nghiêm: trong 16 bìa CTR thấp nhất có **7** bìa để chữ trong dải đáy (3–4 bìa bị khung che thẳng vào chữ), trong 16
 bìa cao nhất chỉ **3**. Thử nghiệm CX-0007 (LTENG VN, kệ 0744, 03–08/11 — đúng đợt 11.11): bìa mới đặt cả hai dòng hook
@@ -75,7 +77,7 @@ Góc trên-trái đôi khi cũng bị Shopee dán nhãn nhỏ (vd "Try-On") — 
 ## 6. Ý tưởng tăng CTR — xếp theo độ chắc
 
 **Làm ngay (có số đỡ lưng)**
-1. Dời mọi chữ ra khỏi 13% đáy; hook lên nửa trên. Bìa đang chạy có chữ ở đáy = ứng viên sửa đầu tiên.
+1. Dời mọi chữ ra khỏi góc khung dưới-trái (x ≤ 42%, y ≥ 88%); hook lên nửa trên. Bìa đang chạy có chữ ở đáy = ứng viên sửa đầu tiên.
 2. Hook = cam kết khử rủi ro hoặc con số trả lời câu khách tự hỏi trước khi bấm (chịu mấy kg, mấy lít, bảo hành ra sao). Bỏ
    tên sản phẩm khỏi vị trí hook; tên sản phẩm (nếu cần) thành nhãn nhỏ.
 3. Phóng con số: số là phần to nhất bìa (tách riêng thành nhãn hoặc dòng riêng cỡ lớn hơn chữ còn lại).

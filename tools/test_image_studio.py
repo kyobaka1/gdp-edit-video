@@ -57,6 +57,8 @@ CASES = {  # tên → (layout, chuỗi phải có trong thông báo LỖI; None 
     "de-nhau": (bad(add={"id": "d", "type": "sub", "text": "Dòng phụ nằm trùng nhãn", "x": 50, "y": 32, "size": 30}), "đè lên khối"),
     "chim-nen": (bad(color="dark"), "khó đọc"),
     "bia-chu-day": (bad(y=93), "vùng khung Shopee"),
+    # Sếp 12/11: chỉ GÓC DƯỚI-TRÁI bị khung che — dải đáy bên phải đặt chữ được
+    "bia-chu-day-phai": (bad(add={"id": "r", "type": "badge", "text": "DÁN TƯỜNG", "x": 96.5, "y": 96, "anchor": "bottom-right", "size": 40}), None),
     "qua-dong": (bad(text="BẢO HÀNH BỂ VỠ MỘT ĐỔI MỘT TRONG VÒNG MỘT TRĂM TÁM MƯƠI NGÀY KỂ TỪ NGÀY NHẬN HÀNG", lines=1, w=60, nowrap=False), None),
 }
 

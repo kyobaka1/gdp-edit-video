@@ -34,8 +34,8 @@ Cỡ chữ `size` là **pt**: 1pt = bề rộng ảnh / 1000 (ảnh rộng 1440p
 | `logo` | `true` / `false` / `{"x", "y", "w", "placement", "file"}`. `w` = bề rộng phần logo nhìn thấy (%). `file`: tên trong `ims.py kit show` (`kit`, `kit-ink`, `primary`, `on_dark`, `on_light`). Không khai = bộ dựng tự chọn bản rõ nhất trên nền thật. **Logo linh hoạt:** không khai `x` / `placement` thì logo vướng chữ ở chỗ mặc định sẽ TỰ DỜI (giữa → trên-trái → trên-phải, tránh chữ rồi tránh `keep`); khai `x` hoặc `placement` = ghim, tắt tự dời |
 | `watermark` | (shop dùng dải CHỮ như GDP: `{"y", "opacity", "size"}`, `y` = tâm dải, mặc định giữa `keep`) · `true` / `false` / dải ngang `{"y", "w", "opacity"}` (`y` = mép TRÊN của dải, mặc định 79; `w` 105) / biểu tượng `{"x", "y", "w", "opacity"}` (`x`, `y` = TÂM; mặc định tâm hộp `keep` đầu tiên — cố ý nằm trên sản phẩm; `w` mặc định theo shop, thường 24). `opacity` 0–1, số NHỎ = mờ hơn; mặc định xem `ims.py kit show` → "độ đục mặc định" (đã nhân hệ số làm mờ 0,6 của Sếp — vd LTENG 0.12, GDP ≈ 0.22, dải PHALEDO 0.6). Chỉ khai `opacity` khi cần MỜ HƠN nữa (sản phẩm trắng bị ám màu), không khai để làm rõ lên. Watermark sáng trên nền sáng tự chuyển bản đậm mờ |
 
-**Ảnh bìa (`kind: cover`):** 13% đáy ảnh (y ≥ 87%) là vùng khung Shopee che — mọi khối chữ và logo phải có đáy ≤ y 87%
-(`anchor: "bottom-…"` thì `y` ≤ 86.5). Hook lớn nhất nên có tâm trên y 62%. Lý do + số liệu: `references/cover-ctr.md`.
+**Ảnh bìa (`kind: cover`):** GÓC DƯỚI-TRÁI (x ≤ 42%, y ≥ 88%) là vùng khung Shopee che — khối chữ và logo không được chạm
+góc này: đáy khối ≤ y 88% (`anchor: "bottom-…"` thì `y` ≤ 87.5), hoặc mép trái khối ≥ x 42%. Phía phải của dải đáy đặt chữ được. Hook lớn nhất nên có tâm trên y 62%. Lý do + số liệu: `references/cover-ctr.md`.
 
 ## Trường chung của mọi khối
 
@@ -126,7 +126,7 @@ Hai khối xếp chồng: chừa khe ≥ 1,5% chiều cao — dải nền (`plat
 ## Ví dụ: ảnh bìa đối đầu đối thủ (LTENG VN, kệ nhôm 0744 — ảnh nền kín sản phẩm)
 
 Đối thủ ghi "KỆ NHÔM · DÁN TƯỜNG 20KG" rất to ở đáy-trái. Bìa mình: keyword 2 dòng trên tấm navy ở khoảng trống trên-phải, con
-số 30KG phóng to nhất bìa ở khoảng trống dưới-trái, đáy thẻ số dừng TRÊN vùng khung Shopee (y ≤ 87%).
+số 30KG phóng to nhất bìa ở khoảng trống dưới-trái, đáy thẻ số dừng TRÊN vùng khung Shopee (thẻ nằm bên trái nên đáy ≤ y 88%).
 
 ```json
 {"kind": "cover", "base": "clean/0744-lteng-vn.jpg",

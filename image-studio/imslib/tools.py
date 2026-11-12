@@ -39,7 +39,7 @@ def grid_zoom(image: Path, dst: Path, box: tuple) -> Path:
     return dst
 
 
-def grid(image: Path, dst: Path, cover_frame_pct: float = 0) -> tuple[Path, str]:
+def grid(image: Path, dst: Path, cover_frame_pct: float = 0, cover_frame_w_pct: float = 100) -> tuple[Path, str]:
     """Ảnh + lưới 10% có số + tô đỏ các ô 'bận' (nhiều chi tiết = sản phẩm / vật thể). Trả (ảnh, bảng chữ).
 
     Bảng chữ: mỗi ô 5% — '#' bận, '.' trống tối, ':' trống sáng → biết chỗ đặt chữ và nên dùng chữ sáng hay đậm."""
@@ -70,10 +70,10 @@ def grid(image: Path, dst: Path, cover_frame_pct: float = 0) -> tuple[Path, str]
                 d.rectangle([c * vw / cols, r * vh / rows, (c + 1) * vw / cols, (r + 1) * vh / rows], fill=(255, 40, 40, 50))
         lines.append(f"  y{round(r * 100 / rows):>3}% {row}")
     f = _font(max(14, vw // 60))
-    if cover_frame_pct:                                      # ảnh bìa: dải đáy bị khung Shopee che — không đặt chữ / logo
+    if cover_frame_pct:                                      # ảnh bìa: góc dưới-trái bị khung Shopee che — không đặt chữ / logo
         fy = vh * (1 - cover_frame_pct / 100)
-        d.rectangle([0, fy, vw, vh], fill=(255, 40, 40, 90), outline=(255, 40, 40, 255), width=3)
-        d.text((10, fy + 6), f"KHUNG SHOPEE CHE (y ≥ {100 - cover_frame_pct:g}%) — KHÔNG đặt chữ / logo", font=f,
+        d.rectangle([0, fy, vw * cover_frame_w_pct / 100, vh], fill=(255, 40, 40, 90), outline=(255, 40, 40, 255), width=3)
+        d.text((10, fy + 6), f"KHUNG SHOPEE (x ≤ {cover_frame_w_pct:g}%, y ≥ {100 - cover_frame_pct:g}%)", font=f,
                fill=(255, 255, 255, 255), stroke_width=2, stroke_fill=(0, 0, 0, 255))
     for k in range(1, 20, 2):                                # vạch phụ 5% (mảnh)
         d.line([k * vw / 20, 0, k * vw / 20, vh], fill=(255, 255, 255, 70), width=1)

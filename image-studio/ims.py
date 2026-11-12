@@ -26,7 +26,7 @@ for _s in (sys.stdout, sys.stderr):
         pass
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from imslib import JOBS, KINDS, SHOPS, app, kit, tools  # noqa: E402
+from imslib import JOBS, KINDS, SHOPS, app, kit, qa, tools  # noqa: E402
 
 IMG_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 SCHEMA = "gdp_image_layout@1"
@@ -267,7 +267,7 @@ def _keys(layout: dict, wanted: list[str]) -> list[str]:
 
 def cmd_grid(a):
     job = job_dir(a.job)
-    _, layout = load(job)
+    meta, layout = load(job)
     for key in _keys(layout, a.keys):
         base = job / layout["images"][key]["base"]
         if a.zoom:
@@ -277,11 +277,13 @@ def cmd_grid(a):
             print(f"[{key}] vùng {a.zoom} phóng to, vạch mỗi 2%: {tools.grid_zoom(base, job / 'qa' / f'{key}.zoom.jpg', box)}")
             continue
         is_cover = layout["images"][key].get("kind") == "cover"
-        out, text = tools.grid(base, job / "qa" / f"{key}.grid.jpg", cover_frame_pct=13 if is_cover else 0)
+        fh, fw = qa.cover_frame(kit.load(layout.get("shop") or meta["shop"])) if is_cover else (0, 100)
+        out, text = tools.grid(base, job / "qa" / f"{key}.grid.jpg", cover_frame_pct=fh, cover_frame_w_pct=fw)
         print(f"[{key}] {out}")
         print(text)
         if is_cover:
-            print("  ẢNH BÌA: 13% đáy (y ≥ 87%) là vùng khung Shopee che — chữ + logo nằm phía trên; hook ở NỬA TRÊN ảnh.")
+            print(f"  ẢNH BÌA: góc dưới-trái (x ≤ {fw:g}%, y ≥ {100 - fh:g}%) là vùng khung Shopee che — không đặt chữ / logo ở đó; "
+                  "phía phải của dải đáy vẫn đặt chữ được. Hook ở NỬA TRÊN ảnh.")
 
 
 def cmd_render(a):

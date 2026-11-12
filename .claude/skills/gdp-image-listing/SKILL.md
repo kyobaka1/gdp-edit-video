@@ -143,7 +143,7 @@ Kết nối app dùng chung token của `plusor.py` (`PLUSOR_BASE_URL` / `PLUSOR
 
 | Loại (`kind`) | Mục tiêu | Chữ | Gợi ý bố cục |
 |---|---|---|---|
-| `cover` ảnh đại diện (1:1) | CTR — hút mắt, hút click, 2 giây hiểu ngay | 1 hook RẤT lớn (≤ 5 từ / dòng, ≤ 2 dòng) + tối đa 2 nhãn cam kết / số liệu thật. Không nhồi | **Xem mục "Ảnh đại diện" ngay dưới.** Hook ở NỬA TRÊN; KHÔNG có chữ / logo trong 13% đáy (khung Shopee che); sản phẩm to, không bị chữ lấn |
+| `cover` ảnh đại diện (1:1) | CTR — hút mắt, hút click, 2 giây hiểu ngay | 1 hook RẤT lớn (≤ 5 từ / dòng, ≤ 2 dòng) + tối đa 2 nhãn cam kết / số liệu thật. Không nhồi | **Xem mục "Ảnh đại diện" ngay dưới.** Hook ở NỬA TRÊN; KHÔNG có chữ / logo ở GÓC DƯỚI-TRÁI (x ≤ 42%, y ≥ 88% — khung Shopee che); sản phẩm to, không bị chữ lấn |
 | `product_image` | Chuyển đổi — mỗi ảnh MỘT ý | 1 tiêu đề (48–64pt) + 1 dòng phụ (≥ 32pt, dài thì 2 dòng); có chi tiết cần chỉ → 1–3 `callout` có đường chỉ | Chữ về một phía, sản phẩm phía còn lại; chú thích đặt cạnh đúng chi tiết |
 | `description_image` (3:4 / dọc dài) | Thông tin — bám sát bản Trung | Tiêu đề khối + dòng phụ + đủ nhãn / bước / bảng / số đo | Soi lại vị trí từng nhóm chữ của bản Trung; ô icon → `text` đặt trong ô (`over: true` nếu ô nằm trong `keep`); bảng → `spec`; các bước → `list` kiểu `number`; số đo → `dim` |
 | `variant_image` | Chọn đúng phân loại | 1 nhãn tên / dung tích phân loại (lấy từ `job.json → variant`). Không tiêu đề | Nhãn ở góc trống, cỡ lớn dễ đọc ở ảnh thu nhỏ |
@@ -156,16 +156,19 @@ của từng luật: `references/cover-ctr.md` (điều tra prod 12/11 — ĐỌ
 
 **5 luật bìa (bộ kiểm canh 3 luật đầu)**
 
-1. **Né khung Shopee.** Shopee dán khung chiến dịch (11.11, Voucher Xtra, Shopee Home, nút video) lên ĐÁY ảnh bìa. Không
-   đặt chữ, nhãn, logo trong **13% đáy ảnh (y ≥ 87%)** trên toàn bề ngang → QA báo LỖI `nằm trong vùng khung Shopee che`.
-   Watermark được nằm đó. Ảnh soát `qa/<key>.jpg` tô đỏ vùng này.
+1. **Né khung Shopee.** Shopee dán khung chiến dịch (11.11 + Voucher Xtra màu vàng) lên GÓC DƯỚI-TRÁI ảnh bìa. Không
+   đặt chữ, nhãn, logo trong **góc dưới-trái x ≤ 42%, y ≥ 88%** → QA báo LỖI `nằm trong vùng khung Shopee che`.
+   Vùng cấm CHỈ là đúng khung 11.11 + Voucher Xtra (Sếp 12/11 chiều — đo trên khung mẫu: x 0–41,2%, y 88,4–100%);
+   **phần còn lại của dải đáy (x > 42%) đặt chữ được.**
+   Watermark được nằm đó. Ảnh soát `qa/<key>.jpg` tô đỏ vùng này. Đổi mức: `shop.json → image.cover_frame_pct` (cao) /
+   `cover_frame_w_pct` (ngang).
 2. **Hook ở nửa trên, chữ TO.** Tiêu đề lớn nhất 56–84pt (font nén như HelvetIns 70–84), tâm nằm trên 62% chiều cao (dưới
    mức đó QA CẢNH BÁO `hook bìa nằm nửa dưới`). Nhãn ≥ 40pt. Chữ thẳng hàng ngang — không nghiêng, không uốn.
 3. **Ít chữ:** 1 hook + tối đa 2 nhãn (+ logo). Chữ phủ quá 28% ảnh → QA cảnh báo. Con số là phần TO NHẤT: dùng khối
    **`stat`** (nhãn nhỏ + số rất lớn trong một tấm: `{"type": "stat", "label": "CHỊU LỰC", "value": "30KG", "size": 114}`).
    **Đối đầu đối thủ** (Sếp đưa bìa đối thủ): so ở CỠ TEM — chữ mình không được nhỏ hơn chữ họ; nêu đúng con số mình hơn
    (30KG vs 20KG); đặt chữ ở chỗ khác họ để không lẫn. Chữ chưa đủ to → tách keyword 2 dòng, dùng cả hai khoảng trống
-   (trên + dưới, vẫn trên vùng khung) thay vì dồn một góc.
+   (trên + dưới-phải, né góc khung) thay vì dồn một góc.
    ⛔ **Kiểu bìa Sếp cấm (12/11):** keyword MỘT DÒNG chữ nhỏ nằm ngang trên cùng cạnh logo + thẻ số nhỏ ở góc — chữ lí nhí
    ở cỡ tem, không đối đầu được ai. Keyword luôn tách 2 dòng chữ to trong một tấm, **căn giữa** (`"align": "center"`), hoặc
    tách thành 2 nhãn xếp chồng (màu shop + bản đảo).
@@ -191,7 +194,7 @@ của từng luật: `references/cover-ctr.md` (điều tra prod 12/11 — ĐỌ
 - Bước 3: ngoài bản Trung, xem bìa ĐANG CHẠY của mã đó và CTR hiện tại so với mốc p75 của shop (`references/cover-ctr.md`
   mục 1; số mới nhất: MCP `cover_listing_get` / `cover_opportunities`). CTR thấp mà thêm giỏ cao = bìa là nút thắt.
 - Bước 4: `ims.py grid` — tìm khoảng trống ở NỬA TRÊN. Ảnh nền kín sản phẩm, không còn chỗ trên → vẫn làm (chữ nằm ngay
-  trên vùng khung, y ≤ 87%), nhưng GHI vào báo cáo: "ảnh nền không có chỗ cho hook ở nửa trên — đề nghị chọn ảnh khác".
+  trên vùng khung y ≤ 88%, hoặc ở dải đáy bên phải x > 42%), nhưng GHI vào báo cáo: "ảnh nền không có chỗ cho hook ở nửa trên — đề nghị chọn ảnh khác".
 - Bước 7: `ims.py render` in thêm đường dẫn `qa/<key>.tem.jpg` = bìa **như khách thấy** (đã đè khung Shopee mẫu + bản cỡ
   tem 190px). PHẢI đọc ảnh này và tự hỏi 4 câu: (1) ở cỡ tem còn đọc được hook không? (2) còn nhận ra món gì không?
   (3) khung có che chữ / logo / phần quan trọng của sản phẩm không? (4) đặt cạnh 3 bìa khác trong lưới, mắt có dừng ở bìa
@@ -320,7 +323,7 @@ không lấy font khác thay.
 | `GHI CHÚ logo: … tự dời sang …` | bình thường — logo đã tự nhường chỗ cho chữ; soát mắt logo ở chỗ mới có đẹp không (không đè chi tiết đắt giá, không quá to trên ảnh ngang thấp → `"logo": {"w": …}`) |
 | `chữ sát logo` / `đè lên khối 'logo'` | chỉ còn khi cả 3 chỗ trên mép trên đều vướng (hoặc logo bị ghim): hạ `y` của khối (khe ≥ 2% bề rộng), thu `logo.w`, hoặc ghim logo sang chỗ khác; logo cao bao nhiêu xem `qa/<key>.json → blocks` (id `logo`) |
 | `logo mờ trên nền này` | `"logo": {"file": "<tên file>"}` (bản sáng / đậm khác), hoặc dời logo sang góc nền đều màu |
-| `… nằm trong vùng khung Shopee che` (ảnh bìa) | dời khối lên: đáy khối ≤ y 87%. Không còn chỗ → thu chữ / bỏ bớt nhãn, không lấn vùng khung |
+| `… nằm trong vùng khung Shopee che` (ảnh bìa) | dời khối lên (đáy khối ≤ y 88%) hoặc sang phải (mép trái khối ≥ x 42%). Không còn chỗ → thu chữ / bỏ bớt nhãn, không lấn vùng khung |
 | `hook bìa nằm nửa dưới` | đưa hook lên khoảng trống nửa trên; ảnh nền kín thì giữ và báo Sếp đề nghị đổi ảnh nền |
 | `tiêu đề bìa …pt` | tiêu đề bìa đang < 48pt: rút chữ để to lên. Khoảng đẹp 56–72pt; font nén (HelvetIns của GDP) 70–80pt — không có cảnh báo cận trên, tự nhìn |
 

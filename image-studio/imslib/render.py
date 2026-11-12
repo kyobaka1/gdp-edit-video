@@ -226,7 +226,7 @@ class Studio:
         if logo_moved:
             issues.append({"level": "GHI CHÚ", "id": "logo", "msg": f"logo vướng chữ ở chỗ mặc định → tự dời sang {logo_moved} "
                            "(muốn ghim: khai `logo.placement` / `logo.x`)"})
-        qa.annotate(final, spec, ms, issues, job / "qa" / f"{key}.jpg")
+        qa.annotate(final, spec, ms, issues, job / "qa" / f"{key}.jpg", theme)
         tem = self._shopee_preview(final, job / "qa" / f"{key}.tem.jpg") if kind == "cover" else None
         report = {"key": key, "kind": kind, "size": [W, H], "out": str(out.relative_to(job)), "tones": tones,
                   "logo": logo_note, "issues": issues, "tem": str(tem.relative_to(job)) if tem else None,
