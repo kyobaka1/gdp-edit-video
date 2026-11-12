@@ -101,6 +101,11 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 .stat .card.rule .lb { padding-bottom: .16em; margin-bottom: .2em; border-bottom: calc(var(--u) * 3.5) solid currentColor; align-self: stretch;
      text-align: center; }
 
+/* hai dòng CÙNG CỠ có gạch ngăn ("even": true + "rule": true) — vd "DÁN TƯỜNG / KHOAN VÍT" (Sếp 12/11) */
+.stat .card.even { padding: .2em .4em .16em; }
+.stat .card.even .lb { font-size: 1em; letter-spacing: .01em; }
+.stat .card.even.rule .lb { padding-bottom: .14em; margin-bottom: .16em; border-bottom-width: calc(var(--u) * 3); }
+
 /* ---------- chú thích có đường chỉ / kích thước ---------- */
 .callout, .dim { font-weight: 700; line-height: 1.2; }
 .callout .tx small, .text .tx small, .list small { font-weight: 400; font-size: .78em; display: block; opacity: .92; }

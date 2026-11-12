@@ -219,7 +219,7 @@ def _block(b: dict, i: int, theme: dict, kind: str, default_font: str) -> tuple[
         if v not in ("solid", "invert", "dark"):
             raise SystemExit(f"Khối '{bid}': variant '{v}' không có — stat dùng solid · invert · dark.")
         label = f'<span class="tx lb">{rich(b["label"], caps)}</span>' if b.get("label") else ""
-        rule = " rule" if b.get("rule") else ""
+        rule = (" rule" if b.get("rule") else "") + (" even" if b.get("even") else "")   # even: 2 dòng cùng cỡ (vd DÁN TƯỜNG / KHOAN VÍT)
         foot = ""
         if b.get("foot"):                                # dải chân MÀU KHÁC gắn liền thẻ: thông số phụ (vd "NHÔM DÀY 1.2MM")
             note = f"<small>{rich(b['foot_note'])}</small>" if b.get("foot_note") else ""
