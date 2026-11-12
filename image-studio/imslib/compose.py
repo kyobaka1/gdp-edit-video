@@ -8,7 +8,7 @@ import json
 import re
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageFilter
 
 from . import UI
 from .kit import luminance, rgb, tint_of
@@ -16,9 +16,9 @@ from .kit import luminance, rgb, tint_of
 ANCHORS = {"top-left": (0, 0), "top-center": (.5, 0), "top-right": (1, 0), "center-left": (0, .5), "center": (.5, .5),
            "center-right": (1, .5), "bottom-left": (0, 1), "bottom-center": (.5, 1), "bottom-right": (1, 1),
            "top": (.5, 0), "bottom": (.5, 1), "left": (0, .5), "right": (1, .5)}
-TEXT_TYPES = {"headline", "sub", "text", "pills", "badge", "callout", "dim", "spec", "list", "html"}
+TEXT_TYPES = {"headline", "sub", "text", "pills", "badge", "stat", "callout", "dim", "spec", "list", "html"}
 COLOR_TOKENS = {"heading", "sub", "on_dark", "on_light", "primary", "accent", "dark", "ink"}
-DEFAULT_SIZE = {"headline": 60, "sub": 34, "text": 28, "pills": 40, "badge": 40, "callout": 28, "dim": 26, "spec": 26,
+DEFAULT_SIZE = {"headline": 60, "sub": 34, "text": 28, "pills": 40, "badge": 40, "stat": 90, "callout": 28, "dim": 26, "spec": 26,
                 "list": 26, "html": 28}
 
 
@@ -100,6 +100,20 @@ def logo_variants(theme: dict, tmp: Path, ink: str = "#161616") -> list[dict]:
     return out
 
 
+def thin_watermark(file: Path, tmp: Path, ratio: float) -> Path:
+    """Bào mảnh nét của ảnh watermark (giữ nguyên kiểu chữ logo): co kênh alpha vào trong `ratio` × chiều cao ảnh."""
+    if not ratio:
+        return file
+    im = Image.open(file).convert("RGBA")
+    big = im.resize((im.width * 3, im.height * 3), Image.LANCZOS)          # phóng 3 lần cho mép mịn
+    r = max(1, round(ratio * im.height * 3))
+    alpha = big.getchannel("A").filter(ImageFilter.MinFilter(2 * r + 1)).filter(ImageFilter.GaussianBlur(0.8))
+    big.putalpha(alpha)
+    dst = tmp / f"wm-thin-{Path(file).stem}.png"
+    big.resize((im.width * 2, im.height * 2), Image.LANCZOS).save(dst)
+    return dst
+
+
 def _block(b: dict, i: int, theme: dict, kind: str, default_font: str) -> tuple[str, str]:
     """1 khối → (html, css thêm)."""
     t = b.get("type")
@@ -120,6 +134,8 @@ def _block(b: dict, i: int, theme: dict, kind: str, default_font: str) -> tuple[
              f"text-align:{align}", f"--fs:{size}"]
     if b.get("w"):
         style.append(f"width:{b['w']}%")
+    else:
+        style.append("width:max-content")            # khối sát mép phải không bị trình duyệt bó hẹp rồi tự co chữ
     col = _color(theme, b.get("color"))
     if col:
         style.append(f"--c:{col}")
@@ -198,6 +214,17 @@ def _block(b: dict, i: int, theme: dict, kind: str, default_font: str) -> tuple[
                 raise SystemExit(f"Khối '{bid}': variant '{v}' không có — dùng glass · solid · invert · dark · line.")
             parts.append(f'<span class="pill {v}{sq}"><span class="tx">{rich(str(x.get("text", "")), caps)}</span></span>')
         inner = "".join(parts)
+    elif t == "stat":                                    # CON SỐ TO: nhãn nhỏ phía trên + số rất lớn, chung một tấm nền
+        v = b.get("variant") or "solid"
+        if v not in ("solid", "invert", "dark"):
+            raise SystemExit(f"Khối '{bid}': variant '{v}' không có — stat dùng solid · invert · dark.")
+        label = f'<span class="tx lb">{rich(b["label"], caps)}</span>' if b.get("label") else ""
+        rule = " rule" if b.get("rule") else ""
+        foot = ""
+        if b.get("foot"):                                # dải chân MÀU KHÁC gắn liền thẻ: thông số phụ (vd "NHÔM DÀY 1.2MM")
+            note = f"<small>{rich(b['foot_note'])}</small>" if b.get("foot_note") else ""
+            foot = f'<span class="ft"><span class="tx">{rich(b["foot"], caps)}{note}</span></span>'
+        inner = f'<span class="card {v}{rule}">{label}<span class="tx val">{rich(str(b.get("value", "")))}</span>{foot}</span>'
     elif t == "callout":
         note = f"<small>{rich(b['note'])}</small>" if b.get("note") else ""
         inner = f'<span class="tx">{rich(b.get("text", ""), caps)}{note}</span>'
@@ -215,7 +242,7 @@ def _block(b: dict, i: int, theme: dict, kind: str, default_font: str) -> tuple[
         marker = b.get("marker", "check")
         cls.append(marker)
         parts = []
-        for n, it in enumerate(b.get("items", []), 1):
+        for n, it in enumerate(b.get("items", []), int(b.get("start", 1))):
             it = {"text": it} if isinstance(it, str) else it
             mk = f"{n:02d}" if marker == "number" else "✓" if marker == "check" else ""
             note = f"<small>{rich(it['note'])}</small>" if it.get("note") else ""
@@ -254,7 +281,10 @@ def page(spec: dict, theme: dict, base: Path, size: tuple[int, int], probe, tmp:
         # màu nhấn `*cụm*`: màu accent của shop, tự làm sáng / đậm thêm nếu chìm vào nền
         "--hl-light": c.get("hl_on_dark") or (c["accent"] if luminance(c["accent"]) >= .22 else _mix(c["accent"], "#ffffff", .5)),
         # nhãn đảo màu (nền = màu chữ nhãn, chữ = màu nền nhãn) và nhãn đen
-        "--badge-inv-bg": bd["text"], "--badge-inv-fg": bd["bg"], "--badge-dark-bg": "#141414", "--badge-dark-fg": "#ffffff",
+        "--badge-inv-bg": bd["text"], "--badge-inv-fg": bd["bg"], "--badge-dark-bg": "#141414",
+        # màu NHẤN PHỤ (dải chân thẻ số…): layout / shop khai `pop: {"bg", "text"}`; không khai = bản đảo của nhãn
+        "--pop-bg": (spec.get("pop") or img.get("pop") or {}).get("bg", bd["text"]),
+        "--pop-fg": (spec.get("pop") or img.get("pop") or {}).get("text", bd["bg"]), "--badge-dark-fg": "#ffffff",
         "--hl-dark": c["accent"] if luminance(c["accent"]) <= .2 else _mix(c["accent"], ink, .58),
     }
     css = [f'@font-face{{font-family:D_{n};font-weight:800;src:url("{_uri(s["display"])}")}}'
@@ -300,13 +330,14 @@ def page(spec: dict, theme: dict, base: Path, size: tuple[int, int], probe, tmp:
         strip = im.width / im.height >= 5
         keep = (spec.get("keep") or [[30, 35, 70, 85]])[0]
         if strip:
-            x, y, w, op = 50, wm.get("y", 79), wm.get("w", 105), wm.get("opacity", 1)
+            x, y, w, op = 50, wm.get("y", 79), wm.get("w", 105), wm.get("opacity", theme["watermark"]["opacity"])
             st = f"left:{x}%;top:{y}%;width:{w}%;transform:translateX(-50%)"
         else:
             x, y = wm.get("x", (keep[0] + keep[2]) / 2), wm.get("y", (keep[1] + keep[3]) / 2)
             w, op = wm.get("w", img["watermark_width_pct"]), wm.get("opacity", theme["watermark"]["opacity"])
             st = f"left:{x}%;top:{y}%;width:{w}%;transform:translate(-50%,-50%)"
-        body.append(f'<img id="wm" class="wm" data-type="watermark" src="{_uri(wfile)}" style="{st};opacity:{op}">')
+        body.append(f'<img id="wm" class="wm" data-type="watermark" src="{_uri(thin_watermark(wfile, tmp, img["watermark_thin"]))}" '
+                    f'style="{st};opacity:{op}">')
         px = [q for q in im.convert("RGBA").resize((96, max(1, round(96 * im.height / im.width)))).getdata() if q[3] > 40]
         info["wm"] = {"strip": strip, "opacity": op, "fixed": "opacity" in wm,
                       "lum": sum(.2126 * q[0] + .7152 * q[1] + .0722 * q[2] for q in px) / (255 * len(px)) if px else .5}

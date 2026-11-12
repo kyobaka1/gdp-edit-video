@@ -18,6 +18,8 @@ PHONE_PX_PER_PT = 0.39
 MIN_PT = {"LỖI": 20, "CẢNH BÁO": 26}          # < 20pt (≈ 8px) không đọc nổi · < 26pt (≈ 10px) phải căng mắt
 MIN_SUB_PT = 32                                 # dòng phụ dưới tiêu đề: ≥ 32pt (≈ 12px) — dài thì tách 2 dòng / rút gọn
 SAFE_PCT = 2.5                                  # lề an toàn quanh mép ảnh (% chiều rộng)
+COVER_FRAME_PCT = 13                            # dải đáy ảnh bìa bị khung Shopee che (mặc định; shop.json → image.cover_frame_pct)
+COVER_HOOK_MAX_Y = 62                           # tâm tiêu đề lớn nhất của bìa nên nằm trên mức này (% chiều cao)
 
 
 @lru_cache(maxsize=8)
@@ -66,7 +68,8 @@ def check(spec: dict, theme: dict, kind: str, measures: list, bg: Image.Image, s
     keep = [(k[0] / 100 * W, k[1] / 100 * H, (k[2] - k[0]) / 100 * W, (k[3] - k[1]) / 100 * H) for k in spec.get("keep") or []]
     by_id = {b.get("id") or f"{b['type']}{i}": b for i, b in enumerate(spec.get("blocks") or [], 1)}
     rows_all = []                                   # (id, khung dòng) — để dò chồng nhau
-    cover_heads = []                                # cỡ các tiêu đề trên ảnh bìa
+    cover_heads = []                                # (cỡ, id, tâm y %) các tiêu đề trên ảnh bìa
+    frame_top = H * (1 - float(theme["image"].get("cover_frame_pct", COVER_FRAME_PCT)) / 100) if kind == "cover" else None
     text_area = 0.0
 
     for m in measures:
@@ -90,8 +93,9 @@ def check(spec: dict, theme: dict, kind: str, measures: list, bg: Image.Image, s
                 continue
             if tx.get("part"):                              # cụm nhấn `*…*`: chỉ đo tương phản, phần khác đã đo ở khối cha
                 worst = min((_bg_contrast(bg, row, _rgb(tx["color"])) for row in tx["rows"]), default=21.0)
-                if worst < 3.0 and not tx["outlined"]:
-                    add("LỖI" if worst < 2.1 else "CẢNH BÁO", bid, f"cụm nhấn “{txt[:24]}” (màu accent) chìm vào nền: tương phản "
+                big = tx["px"] / u >= 40                     # chữ nhấn lớn + đậm đọc được ở tương phản thấp hơn
+                if worst < (2.2 if big else 3.0) and not tx["outlined"]:
+                    add("LỖI" if worst < (1.6 if big else 2.1) else "CẢNH BÁO", bid, f"cụm nhấn “{txt[:24]}” (màu accent) chìm vào nền: tương phản "
                         f"{worst:.1f} — bỏ dấu *…*, hoặc tiêu đề `style: outline` / `plate`")
                 continue
             if CJK.search(txt):
@@ -114,7 +118,8 @@ def check(spec: dict, theme: dict, kind: str, measures: list, bg: Image.Image, s
             elif t == "sub" and pt < MIN_SUB_PT:
                 add("CẢNH BÁO", bid, f"dòng phụ {pt:.0f}pt nhỏ ({phone}) — nên ≥ {MIN_SUB_PT}pt: {fix}")
             if kind == "cover" and t == "headline":
-                cover_heads.append((pt, bid))
+                ys = [r[1] + r[3] / 2 for r in tx["rows"]]
+                cover_heads.append((pt, bid, sum(ys) / len(ys) / H * 100))
             fg = _rgb(tx["color"])
             need = 3.0 if (pt >= 30 and tx["weight"] >= 600) or pt >= 38 else 4.5
             worst = 21.0
@@ -143,8 +148,19 @@ def check(spec: dict, theme: dict, kind: str, measures: list, bg: Image.Image, s
             add("GHI CHÚ", bid, f"màu {src['color']} ghi tay — ngoài bảng màu shop")
 
     if cover_heads and max(cover_heads)[0] < 48:
-        pt, bid = max(cover_heads)
+        pt, bid, _ = max(cover_heads)
         add("CẢNH BÁO", bid, f"tiêu đề bìa {pt:.0f}pt — bìa cần chữ rất lớn (56–72pt)")
+    if cover_heads and max(cover_heads)[2] > COVER_HOOK_MAX_Y:
+        pt, bid, cy = max(cover_heads)
+        add("CẢNH BÁO", bid, f"hook bìa nằm nửa dưới (tâm y {cy:.0f}%) — bìa CTR cao của shop đặt hook ở NỬA TRÊN; "
+            f"ảnh nền không có chỗ trống phía trên thì đề nghị đổi ảnh nền")
+    if frame_top is not None:                        # khung Shopee (11.11 / voucher / nút video) đè lên đáy ảnh bìa
+        hit = set()
+        for b_id, r in rows_all:
+            if b_id not in hit and r[1] + r[3] > frame_top + 2:
+                hit.add(b_id)
+                add("LỖI", b_id, f"{'logo' if b_id == 'logo' else 'chữ'} nằm trong vùng khung Shopee che "
+                    f"({100 - frame_top / H * 100:.0f}% đáy ảnh bìa) — dời lên: đáy khối ≤ y {frame_top / H * 100:.0f}%")
     logo = next((m["rect"] for m in measures if m.get("type") == "logo"), None)
     if logo:
         near = set()
@@ -181,6 +197,11 @@ def annotate(final: Image.Image, spec: dict, measures: list, issues: list, dst: 
     d.rectangle([m, m, W - m, H - m], outline=(255, 255, 255, 110), width=1)
     for k in spec.get("keep") or []:
         d.rectangle([k[0] / 100 * W, k[1] / 100 * H, k[2] / 100 * W, k[3] / 100 * H], outline=(255, 220, 0, 230), width=lw)
+    if spec.get("kind") == "cover":                  # dải đáy bị khung Shopee che
+        fy = H * (1 - COVER_FRAME_PCT / 100)
+        d.rectangle([0, fy, W, H], fill=(255, 40, 40, 70), outline=(255, 40, 40, 230), width=lw)
+        d.text((8, fy + 6), "KHUNG SHOPEE CHE — không đặt chữ / logo", fill=(255, 255, 255, 255), font=font,
+               stroke_width=2, stroke_fill=(0, 0, 0, 255))
     for b in measures:
         col = {"LỖI": (255, 40, 40, 255), "CẢNH BÁO": (255, 150, 0, 255)}.get(bad.get(b["id"]), (40, 220, 120, 255))
         x, y, w, h = b["rect"]

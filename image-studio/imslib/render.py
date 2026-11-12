@@ -41,6 +41,67 @@ class Studio:
     def _shot(self) -> Image.Image:
         return Image.open(io.BytesIO(self._page.screenshot(type="png"))).convert("RGB")
 
+    @staticmethod
+    def _shopee_preview(final: Image.Image, dst: Path) -> Path | None:
+        """Ảnh bìa như khách thấy trên Shopee: đè khung chiến dịch mẫu lên, đặt cạnh bản CỠ TEM (≈ ô lưới trên điện thoại)."""
+        frame_file = Path(__file__).resolve().parent.parent / "ui" / "shopee-frame.png"
+        if not frame_file.is_file():
+            return None
+        big = final.convert("RGB").resize((640, 640), Image.LANCZOS)
+        fr = Image.open(frame_file).convert("RGBA").resize((640, 640), Image.LANCZOS)
+        big.paste(fr, (0, 0), fr)
+        small = big.resize((190, 190), Image.LANCZOS)
+        out = Image.new("RGB", (640 + 190 + 30, 640), (245, 245, 245))
+        out.paste(big, (0, 0))
+        out.paste(small, (640 + 20, 0))
+        out.save(dst, quality=90)
+        return dst
+
+    def _place_logo(self, spec: dict, info: dict, ms: list, W: int, H: int) -> str | None:
+        """Logo vướng chữ ở chỗ mặc định → tự dời sang chỗ trống khác trên mép trên (giữa → trái → phải).
+
+        Sếp 12/11: chữ đặt theo bố cục bản gốc, LOGO linh hoạt theo chữ. Chỉ chạy khi layout không tự ghim logo
+        (`logo` có `x` / `placement`). Chấm từng chỗ: đè chữ (nặng nhất) → đè sản phẩm `keep` → ưu tiên chỗ mặc định.
+        Trả tên chỗ mới (top-left / top-center / top-right) hoặc None nếu giữ nguyên."""
+        lg = spec.get("logo")
+        if not info.get("logo") or (isinstance(lg, dict) and ("x" in lg or "placement" in lg)):
+            return None
+        logo = next((m for m in ms if m.get("type") == "logo"), None)
+        if not logo:
+            return None
+        lx, ly, lw, lh = logo["rect"]
+        gap_x, gap_y = 0.015 * W, 0.022 * W                 # khe tối thiểu quanh logo (QA cảnh báo "sát logo" khi < 2%)
+        boxed = ("pills", "badge", "spec", "html")
+        rects = []
+        for m in ms:
+            if m.get("type") in ("logo", "watermark"):
+                continue
+            b = next((x for x in spec.get("blocks") or [] if x.get("id") == m["id"]), {})
+            rows = [r for t in m["texts"] for r in t["rows"]]
+            if m.get("type") in boxed or b.get("bg") or b.get("style", "").startswith("plate") or not rows:
+                rows = [m["rect"]]
+            rects += rows
+        keep = [(k[0] / 100 * W, k[1] / 100 * H, (k[2] - k[0]) / 100 * W, (k[3] - k[1]) / 100 * H) for k in spec.get("keep") or []]
+
+        def hit(a, b):
+            w = min(a[0] + a[2], b[0] + b[2]) - max(a[0], b[0])
+            h = min(a[1] + a[3], b[1] + b[3]) - max(a[1], b[1])
+            return w * h if w > 0 and h > 0 else 0.0
+
+        mx = 0.025 * W                                      # lề an toàn mép ảnh
+        here = lx + lw / 2
+        spots = [("hiện tại", here), ("top-center", W / 2), ("top-left", mx + lw / 2), ("top-right", W - mx - lw / 2)]
+        best = None
+        for order, (name, cx) in enumerate(spots):
+            r = (cx - lw / 2 - gap_x, ly, lw + 2 * gap_x, lh + gap_y)
+            score = (sum(hit(r, t) for t in rects), sum(hit((cx - lw / 2, ly, lw, lh), k) for k in keep), order)
+            if best is None or score < best[0]:
+                best = (score, name, cx)
+        if best[1] == "hiện tại" or abs(best[2] - here) < 1:
+            return None
+        self._page.evaluate("([x]) => { document.getElementById('logo').style.left = x + '%'; }", [best[2] / W * 100])
+        return best[1]
+
     def render(self, job: Path, key: str, spec: dict, theme: dict) -> dict:
         base = job / spec["base"]
         if not base.is_file():
@@ -81,6 +142,9 @@ class Studio:
         bare = self._shot()
         pg.evaluate("document.body.classList.remove('bare')")
         ms = pg.evaluate("IMS.measure()")
+        logo_moved = self._place_logo(spec, info, ms, W, H)
+        if logo_moved:
+            ms = pg.evaluate("IMS.measure()")
         blocks = {b.get("id") or f"{b['type']}{i}": b for i, b in enumerate(spec.get("blocks") or [], 1)}
         light, dark = theme["color"]["heading"], info["ink"]
         tones = {}
@@ -129,11 +193,13 @@ class Studio:
             pg.evaluate("([s]) => IMS.setSrc('logo', s)", [pick["file"].resolve().as_uri()])
             c = 21.0 if pick["solid"] else contrast(pick["rgb"], under)
             logo_note = {"file": pick["name"], "contrast": round(c, 1)}
+            if logo_moved:
+                logo_note["moved"] = logo_moved
         wm = next((m for m in ms if m.get("type") == "watermark"), None)
         if wm and info["wm"] and info["wm"]["lum"] > 0.6 and luminance(_mean(bare, wm["rect"])) > 0.45:
             pg.evaluate("document.getElementById('wm').classList.add('to-dark')")     # watermark sáng trên nền sáng → bản đậm
             if not info["wm"]["fixed"]:
-                pg.evaluate("document.getElementById('wm').style.opacity = 0.16")
+                pg.evaluate("document.getElementById('wm').style.opacity = 0.10")
         pg.evaluate("IMS.fit(); IMS.drawLines()")
         pg.evaluate("document.images.logo ? document.images.logo.decode().catch(() => null) : null")
 
@@ -157,9 +223,13 @@ class Studio:
         if logo_note and logo_note["contrast"] < 2.0:
             issues.append({"level": "CẢNH BÁO", "id": "logo", "msg": f"logo mờ trên nền này (tương phản {logo_note['contrast']}) "
                            "— chỉ định file logo khác (khai `logo.file`) hoặc dời logo"})
+        if logo_moved:
+            issues.append({"level": "GHI CHÚ", "id": "logo", "msg": f"logo vướng chữ ở chỗ mặc định → tự dời sang {logo_moved} "
+                           "(muốn ghim: khai `logo.placement` / `logo.x`)"})
         qa.annotate(final, spec, ms, issues, job / "qa" / f"{key}.jpg")
+        tem = self._shopee_preview(final, job / "qa" / f"{key}.tem.jpg") if kind == "cover" else None
         report = {"key": key, "kind": kind, "size": [W, H], "out": str(out.relative_to(job)), "tones": tones,
-                  "logo": logo_note, "issues": issues,
+                  "logo": logo_note, "issues": issues, "tem": str(tem.relative_to(job)) if tem else None,
                   "blocks": [{"id": m["id"], "type": m.get("type"), "rect_pct": [round(m["rect"][0] / W * 100, 1),
                               round(m["rect"][1] / H * 100, 1), round(m["rect"][2] / W * 100, 1), round(m["rect"][3] / H * 100, 1)],
                               **({"size_pt": m["got"]} if m.get("got") else {})} for m in ms]}

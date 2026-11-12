@@ -1,0 +1,577 @@
+{
+  "schema": "gdp_image_layout@1",
+  "shop": "giadungplus_official",
+  "images": {
+    "7655": {
+      "kind": "description_image",
+      "base": "clean/7655.png",
+      "keep": [
+        [
+          6,
+          19,
+          92,
+          80
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "KỆ MÀU SỮA DỊU MẮT\n*NÂNG TẦM PHÒNG TẮM*",
+          "x": 5.5,
+          "y": 5.2,
+          "anchor": "top-left",
+          "size": 56,
+          "lines": 2
+        },
+        {
+          "id": "sub",
+          "type": "sub",
+          "text": "Cất gọn mọi đồ lặt vặt",
+          "x": 94.5,
+          "y": 15.2,
+          "anchor": "top-right",
+          "size": 34,
+          "lines": 1
+        },
+        {
+          "id": "panel",
+          "type": "text",
+          "text": "THIẾT KẾ BO TRÒN\nPHÒNG TẮM THÊM TƯƠI MỚI",
+          "x": 27,
+          "y": 91.2,
+          "anchor": "center-left",
+          "w": 52,
+          "size": 38,
+          "display": true,
+          "lines": 2,
+          "over": true,
+          "tone": "light"
+        }
+      ]
+    },
+    "7656": {
+      "kind": "description_image",
+      "base": "clean/7656.png",
+      "keep": [
+        [
+          20,
+          33,
+          95,
+          80
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "THIẾT KẾ TỪ NHU CẦU\n*ĐẸP MÀ VẪN TIỆN*",
+          "x": 15,
+          "y": 6.5,
+          "anchor": "top-left",
+          "size": 56,
+          "lines": 2
+        },
+        {
+          "id": "sub",
+          "type": "sub",
+          "text": "Tận dụng góc tường, đủ chỗ đựng đồ\nChăm chút chất liệu và từng chi tiết",
+          "x": 15,
+          "y": 19,
+          "anchor": "top-left",
+          "size": 32,
+          "lines": 2
+        }
+      ]
+    },
+    "7657": {
+      "kind": "description_image",
+      "base": "clean/7657.png",
+      "keep": [
+        [
+          28,
+          8,
+          46,
+          20
+        ],
+        [
+          3,
+          19,
+          72,
+          75
+        ],
+        [
+          24,
+          55,
+          97,
+          96
+        ],
+        [
+          94.5,
+          14,
+          100,
+          55
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "nhan-trai",
+          "type": "text",
+          "text": "Dịu nhẹ )\ntinh tế",
+          "x": 5.5,
+          "y": 10,
+          "anchor": "top-left",
+          "size": 32,
+          "lines": 2
+        },
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "MÀU KEM DỊU NHẸ\n*BỀ MẶT MỊN MÀNG*",
+          "x": 93,
+          "y": 9,
+          "anchor": "top-right",
+          "size": 56,
+          "lines": 2
+        }
+      ],
+      "watermark": {
+        "y": 50
+      }
+    },
+    "7658": {
+      "kind": "description_image",
+      "base": "clean/7658.png",
+      "keep": [
+        [
+          52,
+          8,
+          96,
+          30
+        ],
+        [
+          42,
+          32,
+          97,
+          78
+        ],
+        [
+          81,
+          78,
+          97,
+          87
+        ],
+        [
+          15,
+          44,
+          60,
+          72
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "LỚP PHỦ NÂNG CẤP\n*CHỐNG GỈ, CHỐNG MÒN*",
+          "x": 5.5,
+          "y": 13.5,
+          "anchor": "top-left",
+          "w": 46.5,
+          "size": 54,
+          "lines": 2
+        },
+        {
+          "id": "lop-1",
+          "type": "list",
+          "marker": "number",
+          "items": [
+            "Chống bám dầu, chống gỉ",
+            "Lớp đánh bóng",
+            "Lớp kín chống nước"
+          ],
+          "x": 6,
+          "y": 81.5,
+          "anchor": "top-left",
+          "size": 30
+        },
+        {
+          "id": "lop-2",
+          "type": "list",
+          "marker": "number",
+          "start": 4,
+          "items": [
+            "Lớp sơn nướng",
+            "Lõi thép carbon"
+          ],
+          "x": 54,
+          "y": 85.3,
+          "anchor": "top-left",
+          "size": 30
+        }
+      ]
+    },
+    "7659": {
+      "kind": "description_image",
+      "base": "clean/7659.png",
+      "keep": [
+        [
+          3,
+          32,
+          45,
+          56
+        ],
+        [
+          68,
+          36,
+          92,
+          51
+        ],
+        [
+          18,
+          52,
+          97,
+          86
+        ],
+        [
+          38,
+          73,
+          72,
+          96
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "nhan-trai",
+          "type": "text",
+          "text": "Dời chỗ )\ntuỳ ý",
+          "x": 5.5,
+          "y": 12,
+          "anchor": "top-left",
+          "size": 32,
+          "lines": 2
+        },
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "HÚT CHÂN KHÔNG KÉP\n*BÁM CHẮC, KHÔNG RƠI*",
+          "x": 95,
+          "y": 11,
+          "anchor": "top-right",
+          "size": 56,
+          "lines": 2
+        },
+        {
+          "id": "nut-note",
+          "type": "text",
+          "text": "Hỗ trợ hút nhanh",
+          "x": 47,
+          "y": 34.6,
+          "anchor": "center-left",
+          "size": 28,
+          "lines": 1
+        },
+        {
+          "id": "nut",
+          "type": "badge",
+          "text": "NÚT XẢ KHÍ",
+          "x": 47,
+          "y": 38.8,
+          "anchor": "center-left",
+          "size": 30
+        },
+        {
+          "id": "tpe",
+          "type": "badge",
+          "text": "LỚP TPE MỚI",
+          "x": 19,
+          "y": 61.3,
+          "anchor": "center-left",
+          "size": 30,
+          "over": true
+        },
+        {
+          "id": "tpe-note",
+          "type": "text",
+          "text": "Dán càng lâu càng chặt",
+          "x": 17.5,
+          "y": 65.6,
+          "anchor": "center-left",
+          "size": 30,
+          "bold": true,
+          "lines": 1,
+          "over": true
+        },
+        {
+          "id": "coc-lon",
+          "type": "text",
+          "text": "CỐC HÚT CỠ LỚN",
+          "x": 55.3,
+          "y": 92,
+          "size": 30,
+          "display": true,
+          "tone": "light",
+          "lines": 1,
+          "over": true
+        }
+      ]
+    },
+    "7660": {
+      "kind": "description_image",
+      "base": "clean/7660.png",
+      "keep": [
+        [
+          10,
+          32,
+          97,
+          97
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "nhan-trai",
+          "type": "text",
+          "text": "Thoáng khí )\nhạn chế vi khuẩn",
+          "x": 5.5,
+          "y": 12,
+          "anchor": "top-left",
+          "size": 30,
+          "lines": 2
+        },
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "MÓC TREO DI ĐỘNG\n*TUỲ CHỈNH KHOẢNG CÁCH*",
+          "x": 95,
+          "y": 11.5,
+          "anchor": "top-right",
+          "size": 56,
+          "lines": 2
+        }
+      ]
+    },
+    "7661": {
+      "kind": "description_image",
+      "base": "clean/7661.png",
+      "keep": [
+        [
+          3,
+          15,
+          49,
+          85
+        ],
+        [
+          51,
+          15,
+          98,
+          85
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "tieu-de",
+          "type": "text",
+          "text": "DÙNG ĐƯỢC NHIỀU NƠI",
+          "x": 51,
+          "y": 5.4,
+          "size": 42,
+          "display": true,
+          "tone": "light",
+          "lines": 1,
+          "over": true
+        },
+        {
+          "id": "bep",
+          "type": "text",
+          "text": "DÙNG TRONG BẾP",
+          "x": 25.5,
+          "y": 90.5,
+          "size": 36,
+          "display": true,
+          "tone": "light",
+          "lines": 1,
+          "over": true
+        },
+        {
+          "id": "ban-cong",
+          "type": "text",
+          "text": "DÙNG Ở BAN CÔNG",
+          "x": 75,
+          "y": 90.5,
+          "size": 36,
+          "display": true,
+          "tone": "light",
+          "lines": 1,
+          "over": true
+        }
+      ],
+      "logo": {
+        "w": 13
+      }
+    },
+    "7662": {
+      "kind": "description_image",
+      "base": "clean/7662.png",
+      "keep": [
+        [
+          8,
+          23,
+          90,
+          57
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "don-vi",
+          "type": "text",
+          "text": "Đơn vị: cm",
+          "x": 6,
+          "y": 10.5,
+          "anchor": "top-left",
+          "size": 30,
+          "lines": 1
+        },
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "THÔNG SỐ *KÍCH THƯỚC*",
+          "x": 95,
+          "y": 9.5,
+          "anchor": "top-right",
+          "size": 60,
+          "lines": 1
+        },
+        {
+          "id": "spec",
+          "type": "spec",
+          "rows": [
+            [
+              "Tên sản phẩm",
+              "Kệ nhà tắm cốc hút"
+            ],
+            [
+              "Màu sắc",
+              "Sữa / Xám"
+            ],
+            [
+              "Chất liệu",
+              "Thép carbon / ABS"
+            ],
+            [
+              "Đặc điểm",
+              "Dễ lau, bền, không gỉ"
+            ],
+            [
+              "Dùng ở",
+              "Nhà tắm, ban công"
+            ],
+            [
+              "Lắp đặt",
+              "Cốc hút chân không"
+            ]
+          ],
+          "x": 50,
+          "y": 73,
+          "w": 88,
+          "size": 38
+        },
+        {
+          "id": "luu-y",
+          "type": "text",
+          "text": "Lưu ý: đo thủ công nên có thể lệch đôi chút",
+          "x": 50,
+          "y": 95.7,
+          "size": 28,
+          "tone": "light",
+          "lines": 1,
+          "over": true
+        }
+      ]
+    },
+    "7663": {
+      "kind": "description_image",
+      "base": "clean/7663.png",
+      "keep": [
+        [
+          5,
+          29,
+          95,
+          96
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "nhan-trai",
+          "type": "text",
+          "text": "Lắp )\nđơn giản",
+          "x": 6,
+          "y": 9,
+          "anchor": "top-left",
+          "size": 32,
+          "lines": 2
+        },
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "CHỈ 4 BƯỚC\n*LẮP ĐẶT DỄ DÀNG*",
+          "x": 95,
+          "y": 8,
+          "anchor": "top-right",
+          "size": 64,
+          "lines": 2
+        },
+        {
+          "id": "b1",
+          "type": "text",
+          "text": "LAU SẠCH MẶT TƯỜNG",
+          "x": 27.5,
+          "y": 58.8,
+          "w": 40,
+          "size": 32,
+          "display": true,
+          "tone": "light",
+          "lines": 1,
+          "over": true
+        },
+        {
+          "id": "b2",
+          "type": "text",
+          "text": "BÓC MÀNG BẢO VỆ",
+          "x": 72.8,
+          "y": 58.8,
+          "w": 40,
+          "size": 32,
+          "display": true,
+          "tone": "light",
+          "lines": 1,
+          "over": true
+        },
+        {
+          "id": "b3",
+          "type": "text",
+          "text": "ẤN LÊN TƯỜNG, VẶN KHOÁ",
+          "x": 27.5,
+          "y": 92.2,
+          "w": 40,
+          "size": 32,
+          "display": true,
+          "tone": "light",
+          "lines": 1,
+          "over": true
+        },
+        {
+          "id": "b4",
+          "type": "text",
+          "text": "LẮP XONG, DÙNG NGAY",
+          "x": 72.8,
+          "y": 92.2,
+          "w": 40,
+          "size": 32,
+          "display": true,
+          "tone": "light",
+          "lines": 1,
+          "over": true
+        }
+      ]
+    }
+  }
+}

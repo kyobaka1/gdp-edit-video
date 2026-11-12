@@ -1,0 +1,518 @@
+{
+ "schema": "gdp_image_layout@1",
+ "shop": "giadungplus_official",
+ "images": {
+  "7589": {
+   "kind": "description_image",
+   "base": "clean/7589.png",
+   "keep": [
+    [
+     8,
+     29,
+     97,
+     55
+    ]
+   ],
+   "blocks": [
+    {
+     "id": "headline",
+     "type": "headline",
+     "text": "MÓC CỐC HÚT SAU CỬA\nBO TRÒN, *KHÔNG XƯỚC ÁO*",
+     "x": 5.5,
+     "y": 8.5,
+     "anchor": "top-left",
+     "size": 56,
+     "lines": 2
+    },
+    {
+     "id": "sub",
+     "type": "sub",
+     "text": "Bám chắc, không cần khoan, treo vững không rơi",
+     "x": 5.5,
+     "y": 20.4,
+     "anchor": "top-left",
+     "size": 34,
+     "lines": 1
+    },
+    {
+     "id": "nhan",
+     "type": "badge",
+     "text": "BẢN NÂNG CẤP",
+     "x": 94.5,
+     "y": 11.2,
+     "anchor": "center-right",
+     "size": 34
+    }
+   ]
+  },
+  "7590": {
+   "kind": "description_image",
+   "base": "clean/7590.png",
+   "watermark": {
+    "y": 41
+   },
+   "blocks": [
+    {
+     "id": "headline",
+     "type": "headline",
+     "text": "CHẤT LƯỢNG NÂNG CẤP\n*KHÁC HẲN* LOẠI THƯỜNG",
+     "x": 5.5,
+     "y": 8.1,
+     "anchor": "top-left",
+     "size": 56,
+     "lines": 2
+    },
+    {
+     "id": "phe-minh",
+     "type": "text",
+     "text": "LTENG",
+     "x": 24,
+     "y": 23.6,
+     "size": 40,
+     "display": true,
+     "lines": 1,
+     "tone": "light"
+    },
+    {
+     "id": "phe-kia",
+     "type": "text",
+     "text": "LOẠI THƯỜNG",
+     "x": 75.6,
+     "y": 23.6,
+     "size": 40,
+     "display": true,
+     "lines": 1,
+     "tone": "light"
+    },
+    {
+     "id": "uu-1",
+     "type": "text",
+     "text": "KHÔNG CẦN KHOAN TƯỜNG",
+     "x": 26.9,
+     "y": 60.3,
+     "w": 40,
+     "size": 32,
+     "display": true,
+     "lines": 1,
+     "tone": "light"
+    },
+    {
+     "id": "nhuoc-1",
+     "type": "text",
+     "text": "PHẢI KHOAN, HỎNG TƯỜNG",
+     "x": 73.2,
+     "y": 60.3,
+     "w": 40,
+     "size": 32,
+     "display": true,
+     "lines": 1,
+     "tone": "light"
+    },
+    {
+     "id": "uu-2",
+     "type": "text",
+     "text": "LẮP XONG DÙNG NGAY",
+     "x": 26.9,
+     "y": 94.0,
+     "w": 40,
+     "size": 32,
+     "display": true,
+     "lines": 1,
+     "tone": "light"
+    },
+    {
+     "id": "nhuoc-2",
+     "type": "text",
+     "text": "PHẢI CHỜ 72 GIỜ",
+     "x": 73.2,
+     "y": 94.0,
+     "w": 40,
+     "size": 32,
+     "display": true,
+     "lines": 1,
+     "tone": "light"
+    }
+   ]
+  },
+  "7591": {
+   "kind": "description_image",
+   "base": "clean/7591.png",
+   "keep": [
+    [
+     37,
+     33,
+     72,
+     68
+    ]
+   ],
+   "blocks": [
+    {
+     "id": "headline",
+     "type": "headline",
+     "text": "BÍ QUYẾT\n*BÁM SIÊU CHẮC*",
+     "x": 6.5,
+     "y": 8.9,
+     "anchor": "top-left",
+     "size": 56,
+     "lines": 2
+    },
+    {
+     "id": "nut-xa-khi",
+     "type": "text",
+     "text": "NÚT XẢ KHÍ",
+     "x": 80.0,
+     "y": 26.3,
+     "w": 25,
+     "size": 36,
+     "display": true,
+     "lines": 1,
+     "tone": "dark"
+    },
+    {
+     "id": "nut-xa-khi-y",
+     "type": "text",
+     "text": "Ép hết khí,\nbám nhanh hơn",
+     "x": 83.0,
+     "y": 31.3,
+     "size": 31,
+     "bold": true,
+     "lines": 2
+    },
+    {
+     "id": "tpe",
+     "type": "text",
+     "text": "LỚP TPE MỚI",
+     "x": 24.2,
+     "y": 66.7,
+     "w": 21.5,
+     "size": 36,
+     "display": true,
+     "lines": 1,
+     "tone": "dark"
+    },
+    {
+     "id": "tpe-y",
+     "type": "text",
+     "text": "Dán càng lâu\ncàng chặt",
+     "x": 24.2,
+     "y": 72.2,
+     "size": 31,
+     "bold": true,
+     "lines": 2
+    }
+   ]
+  },
+  "7592": {
+   "kind": "description_image",
+   "base": "clean/7592.png",
+   "keep": [
+    [
+     6,
+     28,
+     95,
+     52
+    ]
+   ],
+   "blocks": [
+    {
+     "id": "headline",
+     "type": "headline",
+     "text": "LẮP XONG DÙNG NGAY\n*KHÔNG CẦN KHOAN*",
+     "x": 5.5,
+     "y": 8.1,
+     "anchor": "top-left",
+     "size": 56,
+     "lines": 2
+    }
+   ]
+  },
+  "7593": {
+   "kind": "description_image",
+   "base": "clean/7593.png",
+   "keep": [
+    [
+     28,
+     36,
+     80,
+     70
+    ]
+   ],
+   "blocks": [
+    {
+     "id": "headline",
+     "type": "headline",
+     "text": "DÁN LÀ DÙNG\n*XOAY NHẸ LÀ CHẶT*",
+     "x": 5.5,
+     "y": 7.7,
+     "anchor": "top-left",
+     "size": 56,
+     "lines": 2
+    }
+   ]
+  },
+  "7594": {
+   "kind": "description_image",
+   "base": "clean/7594.png",
+   "keep": [
+    [
+     8,
+     22,
+     96,
+     60
+    ]
+   ],
+   "blocks": [
+    {
+     "id": "headline",
+     "type": "headline",
+     "text": "THỬ TẢI THỰC TẾ\n*CHỊU TẢI ĐẾN 30KG*",
+     "x": 5.5,
+     "y": 7.7,
+     "anchor": "top-left",
+     "size": 56,
+     "lines": 2
+    }
+   ]
+  },
+  "7595": {
+   "kind": "description_image",
+   "base": "clean/7595.png",
+   "keep": [
+    [
+     20,
+     24,
+     84,
+     75
+    ]
+   ],
+   "blocks": [
+    {
+     "id": "headline",
+     "type": "headline",
+     "text": "DÙNG ĐƯỢC CHO\n*HẦU HẾT CÁC LOẠI CỬA*",
+     "x": 5.5,
+     "y": 7.7,
+     "anchor": "top-left",
+     "size": 56,
+     "lines": 2
+    }
+   ]
+  },
+  "7596": {
+   "kind": "description_image",
+   "base": "clean/7596.png",
+   "keep": [
+    [
+     4,
+     32,
+     44,
+     48
+    ]
+   ],
+   "blocks": [
+    {
+     "id": "headline",
+     "type": "headline",
+     "text": "CỬA RA VÀO, SẢNH NHÀ\n*TREO ĐÂU CŨNG TIỆN*",
+     "x": 5.5,
+     "y": 8.1,
+     "anchor": "top-left",
+     "size": 56,
+     "lines": 2
+    }
+   ]
+  },
+  "7597": {
+   "kind": "description_image",
+   "base": "clean/7597.png",
+   "keep": [
+    [
+     8,
+     40,
+     95,
+     70
+    ]
+   ],
+   "blocks": [
+    {
+     "id": "headline",
+     "type": "headline",
+     "text": "KHÔNG SỢ HƠI NƯỚC\n*CHỐNG ẨM, CHỐNG GỈ*",
+     "x": 5.5,
+     "y": 7.7,
+     "anchor": "top-left",
+     "size": 56,
+     "lines": 2
+    }
+   ]
+  },
+  "7598": {
+   "kind": "description_image",
+   "base": "clean/7598.png",
+   "keep": [
+    [
+     6,
+     28,
+     96,
+     88
+    ]
+   ],
+   "blocks": [
+    {
+     "id": "headline",
+     "type": "headline",
+     "text": "CHẤT LIỆU DÀY DẶN\n*CHỐNG GỈ, CHỐNG ĂN MÒN*",
+     "x": 7,
+     "y": 9.5,
+     "anchor": "top-left",
+     "size": 56,
+     "lines": 2
+    }
+   ]
+  },
+  "7599": {
+   "kind": "description_image",
+   "base": "clean/7599.png",
+   "keep": [
+    [
+     8,
+     16,
+     90,
+     50
+    ]
+   ],
+   "blocks": [
+    {
+     "id": "headline",
+     "type": "headline",
+     "text": "THÔNG TIN SẢN PHẨM",
+     "x": 5.5,
+     "y": 7.8,
+     "anchor": "top-left",
+     "size": 46,
+     "lines": 1
+    },
+    {
+     "id": "bang",
+     "type": "spec",
+     "x": 8,
+     "y": 53.5,
+     "anchor": "top-left",
+     "w": 84,
+     "size": 30,
+     "rows": [
+      [
+       "Thương hiệu",
+       "LTENG"
+      ],
+      [
+       "Tên sản phẩm",
+       "Thanh móc treo cốc hút"
+      ],
+      [
+       "Chiều dài",
+       "21 / 29 / 37 / 45 / 53 / 61 cm"
+      ],
+      [
+       "Số móc",
+       "3 / 4 / 5 / 6 / 7 / 8 móc"
+      ],
+      [
+       "Chất liệu",
+       "ABS + hợp kim nhôm + thép carbon"
+      ],
+      [
+       "Đặc điểm",
+       "Chống gỉ, chống ăn mòn"
+      ],
+      [
+       "Dùng cho",
+       "Nhà bếp, nhà tắm"
+      ],
+      [
+       "Lắp đặt",
+       "Dán cốc hút, không khoan"
+      ]
+     ]
+    },
+    {
+     "id": "ghi-chu",
+     "type": "text",
+     "text": "Kích thước có thể chênh lệch nhỏ do cách đo,\nvui lòng lấy sản phẩm thực tế làm chuẩn.",
+     "x": 8,
+     "y": 97,
+     "anchor": "bottom-left",
+     "size": 27,
+     "lines": 2
+    }
+   ]
+  },
+  "7600": {
+   "kind": "description_image",
+   "base": "clean/7600.png",
+   "watermark": {
+    "y": 36
+   },
+   "blocks": [
+    {
+     "id": "headline",
+     "type": "headline",
+     "text": "KHÔNG CẦN CHỜ ĐỢI\n*4 BƯỚC LÀ XONG*",
+     "x": 5.5,
+     "y": 7.7,
+     "anchor": "top-left",
+     "size": 56,
+     "lines": 2
+    },
+    {
+     "id": "b1",
+     "type": "text",
+     "text": "1. LAU SẠCH MẶT TƯỜNG",
+     "x": 24.5,
+     "y": 54.6,
+     "w": 42,
+     "size": 34,
+     "display": true,
+     "lines": 1,
+     "tone": "light"
+    },
+    {
+     "id": "b2",
+     "type": "text",
+     "text": "2. BÓC LỚP MÀNG PHÍA SAU",
+     "x": 75.5,
+     "y": 54.6,
+     "w": 42,
+     "size": 34,
+     "display": true,
+     "lines": 1,
+     "tone": "light"
+    },
+    {
+     "id": "b3",
+     "type": "text",
+     "text": "3. XOAY CHẶT NÚM VẶN",
+     "x": 24.5,
+     "y": 94.6,
+     "w": 42,
+     "size": 34,
+     "display": true,
+     "lines": 1,
+     "tone": "light"
+    },
+    {
+     "id": "b4",
+     "type": "text",
+     "text": "4. TREO ĐỒ DÙNG NGAY",
+     "x": 75.5,
+     "y": 94.6,
+     "w": 42,
+     "size": 34,
+     "display": true,
+     "lines": 1,
+     "tone": "light"
+    }
+   ]
+  }
+ }
+}

@@ -31,8 +31,11 @@ Cỡ chữ `size` là **pt**: 1pt = bề rộng ảnh / 1000 (ảnh rộng 1440p
 | `keep` | Danh sách hộp `[x0, y0, x1, y1]` bao sản phẩm / chi tiết phải thấy. Chữ đè vào → QA báo LỖI. Watermark dạng biểu tượng tự đặt giữa hộp đầu tiên |
 | ~~`scrims`~~ | ĐÃ BỎ (Sếp 12/11: không chỉnh màu ảnh — chỉ thêm chữ, logo). Khai `scrims` là bộ dựng từ chối |
 | `panels` | Tấm nền tự do: `{"x", "y", "w", "h", "fill": "dark", "opacity": 0.55, "radius": 18, "glass": true}` (x, y = góc trên-trái; `"fill": "brand"` = màu nhãn của shop). Chỉ làm nền cho chữ — tấm phủ > 25% ảnh bị từ chối (không chỉnh màu ảnh). Muốn tấm ôm vừa chữ thì dùng `bg` của khối thay vì tự đo |
-| `logo` | `true` / `false` / `{"x", "y", "w", "placement", "file"}`. `w` = bề rộng phần logo nhìn thấy (%). `file`: tên trong `ims.py kit show` (`kit`, `kit-ink`, `primary`, `on_dark`, `on_light`). Không khai = bộ dựng tự chọn bản rõ nhất trên nền thật |
-| `watermark` | (shop dùng dải CHỮ như GDP: `{"y", "opacity", "size"}`, `y` = tâm dải, mặc định giữa `keep`) · `true` / `false` / dải ngang `{"y", "w", "opacity"}` (`y` = mép TRÊN của dải, mặc định 79; `w` 105) / biểu tượng `{"x", "y", "w", "opacity"}` (`x`, `y` = TÂM; mặc định tâm hộp `keep` đầu tiên — cố ý nằm trên sản phẩm; `w` mặc định theo shop, thường 24). `opacity` 0–1, số NHỎ = mờ hơn; mặc định xem `ims.py kit show` → "độ đục mặc định" (vd GDP 0.2, dải PHALEDO 1 vì file đã mờ sẵn). Watermark sáng trên nền sáng tự chuyển bản đậm mờ |
+| `logo` | `true` / `false` / `{"x", "y", "w", "placement", "file"}`. `w` = bề rộng phần logo nhìn thấy (%). `file`: tên trong `ims.py kit show` (`kit`, `kit-ink`, `primary`, `on_dark`, `on_light`). Không khai = bộ dựng tự chọn bản rõ nhất trên nền thật. **Logo linh hoạt:** không khai `x` / `placement` thì logo vướng chữ ở chỗ mặc định sẽ TỰ DỜI (giữa → trên-trái → trên-phải, tránh chữ rồi tránh `keep`); khai `x` hoặc `placement` = ghim, tắt tự dời |
+| `watermark` | (shop dùng dải CHỮ như GDP: `{"y", "opacity", "size"}`, `y` = tâm dải, mặc định giữa `keep`) · `true` / `false` / dải ngang `{"y", "w", "opacity"}` (`y` = mép TRÊN của dải, mặc định 79; `w` 105) / biểu tượng `{"x", "y", "w", "opacity"}` (`x`, `y` = TÂM; mặc định tâm hộp `keep` đầu tiên — cố ý nằm trên sản phẩm; `w` mặc định theo shop, thường 24). `opacity` 0–1, số NHỎ = mờ hơn; mặc định xem `ims.py kit show` → "độ đục mặc định" (đã nhân hệ số làm mờ 0,6 của Sếp — vd LTENG 0.12, GDP ≈ 0.22, dải PHALEDO 0.6). Chỉ khai `opacity` khi cần MỜ HƠN nữa (sản phẩm trắng bị ám màu), không khai để làm rõ lên. Watermark sáng trên nền sáng tự chuyển bản đậm mờ |
+
+**Ảnh bìa (`kind: cover`):** 13% đáy ảnh (y ≥ 87%) là vùng khung Shopee che — mọi khối chữ và logo phải có đáy ≤ y 87%
+(`anchor: "bottom-…"` thì `y` ≤ 86.5). Hook lớn nhất nên có tâm trên y 62%. Lý do + số liệu: `references/cover-ctr.md`.
 
 ## Trường chung của mọi khối
 
@@ -68,11 +71,12 @@ Trong `text`: `\n` = xuống dòng · `*cụm từ*` = nhấn màu accent của 
 | `sub` | dòng phụ dưới tiêu đề | `text` | 32–40 (dài → 2 dòng) |
 | `text` | nhãn / chú thích tự do, chữ trong ô icon | `text`, `note` (dòng nhỏ bên dưới), `bold` | 26–32 |
 | `pills` | hàng nhãn (cam kết, số liệu) | `items: ["…", {"text": "…", "variant": "invert"}]` (từng nhãn tự chọn kiểu), `gap` (pt), `dir: "col"` (xếp dọc), `variant`: `solid` (màu nhãn của shop) · `invert` (đảo: nền = màu chữ nhãn, chữ = màu nền nhãn) · `dark` (đen chữ trắng) · `glass` (kính mờ) · `line` (chỉ viền); `shape`: `round` · `square` (mặc định theo shop) | 40–50 (bìa) · 28–38 |
+| `stat` | **CON SỐ TO** — nhãn nhỏ phía trên + số rất lớn, chung một tấm màu shop (bìa: "CHỊU LỰC / 30KG", "DUNG TÍCH / 9L") | `label`, `value`, `variant`: `solid` · `invert` · `dark`; `rule: true` = gạch mảnh ngăn nhãn với số; `foot` = dải chân MÀU KHÁC gắn liền đáy thẻ cho thông số phụ ("NHÔM DÀY 1.2MM"), `foot_note` = dòng nhỏ dưới nó; màu dải = `pop: {"bg", "text"}` khai ở cấp ảnh hoặc `shop.json → image.pop` (không khai = bản đảo của nhãn); `size` = cỡ của SỐ (nhãn tự bằng 0,4 lần) | 80–120 (bìa) |
 | `badge` | một nhãn đơn | `text` (còn lại như `pills`) | 28–40 |
 | `callout` | chú thích có đường chỉ tới chi tiết sản phẩm | `text`, `note`, `to: [x, y]` (điểm được chỉ — thường nằm trong `keep`, chữ thì nằm ngoài) | 26–32 |
 | `dim` | đường kích thước hai đầu chặn + con số ở giữa | `text: "12 cm"`, `from: [x, y]`, `to: [x, y]` (không cần x / y) | 26–30 |
 | `spec` | bảng thông số | `title`, `rows: [["Chất liệu", "Thuỷ tinh borosilicate"], …]`, nên kèm `w` + `bg` | 26–30 |
-| `list` | danh sách lợi ích / các bước | `items: ["…", {"text": "…", "note": "…"}]`, `marker`: `check` · `number` · `dot` | 26–30 |
+| `list` | danh sách lợi ích / các bước | `items: ["…", {"text": "…", "note": "…"}]`, `marker`: `check` · `number` · `dot`, `start` (số đầu tiên khi `number` — chia 2 cột vẫn đánh số liền) | 26–30 |
 
 **Mobile first:** cỡ trên là cho ảnh xem trên điện thoại (1pt ≈ 0,39px màn hình). QA báo LỖI khi chữ < 20pt, CẢNH BÁO khi
 < 26pt (dòng phụ < 32pt). Không đủ chỗ cho cỡ đó → tách 2 dòng hoặc rút gọn chữ, đừng hạ cỡ.
@@ -119,13 +123,33 @@ Mobile first: dòng phụ tách 2 dòng cỡ 37pt (bản một dòng chỉ vừa
 
 Hai khối xếp chồng: chừa khe ≥ 1,5% chiều cao — dải nền (`plate`) và tấm `bg` cao hơn khung chữ, sát quá QA báo "đè lên khối".
 
+## Ví dụ: ảnh bìa đối đầu đối thủ (LTENG VN, kệ nhôm 0744 — ảnh nền kín sản phẩm)
+
+Đối thủ ghi "KỆ NHÔM · DÁN TƯỜNG 20KG" rất to ở đáy-trái. Bìa mình: keyword 2 dòng trên tấm navy ở khoảng trống trên-phải, con
+số 30KG phóng to nhất bìa ở khoảng trống dưới-trái, đáy thẻ số dừng TRÊN vùng khung Shopee (y ≤ 87%).
+
+```json
+{"kind": "cover", "base": "clean/0744-lteng-vn.jpg",
+ "keep": [[5, 12, 30, 53], [30, 13, 42, 64], [42, 17, 52, 73], [52, 22, 66, 85], [66, 29.5, 82, 86], [82, 34, 100, 88]],
+ "blocks": [
+  {"id": "tu-khoa", "type": "headline", "text": "KỆ NHÔM\nDÁN TƯỜNG", "x": 96.5, "y": 2.7, "anchor": "top-right", "align": "center",
+   "size": 72, "lines": 2, "bg": {"fill": "brand", "pad": 12, "radius": 14}},
+  {"id": "so", "type": "stat", "label": "CHỊU LỰC", "value": "30KG", "rule": true, "font": "poppins",
+   "x": 3.2, "y": 84.6, "anchor": "bottom-left", "size": 110}]}
+```
+
+Sản phẩm nằm CHÉO → khai `keep` bằng nhiều hộp bậc thang bám theo mép sản phẩm (một hộp bao trọn sẽ phủ cả khoảng trống).
+Chữ nhiều dòng trong một tấm → `"align": "center"` (khối neo phải mặc định căn phải, hai dòng lệch nhau trông vụng — Sếp 12/11).
+Mẫu đầy đủ: `image-studio/examples/layout-lteng-vn-bia-0744.json` (bản đề xuất + các biến thể đã so: 2 nhãn, có / không gạch, phối font).
+
 ## Mẹo bố cục
 
 - Căn theo trục: tiêu đề, dòng phụ, hàng nhãn cùng `x` (thường 50) → gọn. Khoảng cách dọc giữa các khối ≈ 0,6–1 lần chiều cao chữ.
 - Tiêu đề 1 dòng rộng khoảng 55–75% ảnh là đẹp; rộng hơn 90% là quá to, hẹp hơn 40% là quá nhỏ.
-- Logo nằm trên cùng; chiều cao khác nhau theo shop và tỉ lệ ảnh (PHALEDO ≈ 7%, thẻ đỏ GDP ≈ 11% trên ảnh 1:1). Render một
-  lần rồi đọc `qa/<key>.json → blocks` (id `logo`) để biết đáy logo; đỉnh tiêu đề cách đáy logo ≥ 2% bề rộng (QA cảnh báo
-  "chữ sát logo"). Khung chữ QA đo không tính hết dấu thanh và viền chữ — chừa dư ~1%.
+- Logo nằm trên cùng; chiều cao khác nhau theo shop và tỉ lệ ảnh (PHALEDO ≈ 7%, thẻ đỏ GDP ≈ 11% trên ảnh 1:1). Đặt chữ
+  theo bố cục bản Trung trước — logo tự nhường chỗ (Sếp 12/11: logo linh hoạt theo chữ, không bóp chữ cho né logo). Chỉ khi
+  QA còn báo "chữ sát logo" (cả 3 chỗ trên mép trên đều vướng) mới đọc `qa/<key>.json → blocks` (id `logo`) để biết đáy logo
+  rồi hạ chữ: đỉnh tiêu đề cách đáy logo ≥ 2% bề rộng. Khung chữ QA đo không tính hết dấu thanh và viền chữ — chừa dư ~1%.
 - Thứ bậc: hàng nhãn KHÔNG rộng hơn tiêu đề. Font nén (HelvetIns) làm tiêu đề hẹp lại → tăng cỡ tiêu đề (70–80) / giảm cỡ nhãn.
 - Chữ tự co khi dài hơn `w` (QA chỉ cảnh báo khi co > 14%); cỡ thật sau co: `qa/<key>.json → blocks[].size_pt`.
 - Nền vùng chữ loang (kệ bếp, cây, cửa sổ) → cho chữ nền riêng (dải `plate`, nhãn, `bg` ôm chữ) hoặc `style: outline`. Không phủ màu lên ảnh.

@@ -1,83 +1,78 @@
 {
-  "schema": "gdp_image_layout@1",
-  "shop": "lteng_hcm",
-  "images": {
-    "5750": {
-      "kind": "cover",
-      "base": "clean/5750.jpg",
-      "keep": [
-        [
-          9,
-          5,
-          90,
-          78.5
-        ]
-      ],
-      "watermark": {
-        "x": 50,
-        "y": 62
+ "schema": "gdp_image_layout@1",
+ "shop": "lteng_hcm",
+ "images": {
+  "5750": {
+   "kind": "cover",
+   "base": "clean/5750.jpg",
+   "keep": [
+    [
+     9,
+     5,
+     90,
+     78.5
+    ]
+   ],
+   "watermark": {
+    "x": 50,
+    "y": 62
+   },
+   "blocks": [
+    {
+     "id": "hook",
+     "type": "pills",
+     "items": [
+      {
+       "text": "DÁN TƯỜNG",
+       "variant": "dark"
       },
-      "blocks": [
-        {
-          "id": "ten",
-          "type": "headline",
-          "text": "KỆ DÁN TƯỜNG",
-          "x": 96,
-          "y": 86.0,
-          "anchor": "bottom-right",
-          "size": 50,
-          "lines": 1,
-          "style": "outline"
-        },
-        {
-          "id": "hook",
-          "type": "headline",
-          "text": "THÁO RỜI",
-          "x": 96,
-          "y": 97.6,
-          "anchor": "bottom-right",
-          "size": 60,
-          "lines": 1
-        }
-      ]
-    },
-    "5755": {
-      "kind": "product_image",
-      "base": "clean/5755.jpg",
-      "keep": [
-        [
-          6,
-          27,
-          96,
-          73
-        ]
-      ],
-      "blocks": [
-        {
-          "id": "headline",
-          "type": "headline",
-          "text": "NHÔM KHÔNG GIAN",
-          "x": 50,
-          "y": 15.5,
-          "size": 64,
-          "lines": 1
-        },
-        {
-          "id": "nhan",
-          "type": "pills",
-          "items": [
-            "KÈM MÓC TREO",
-            {
-              "text": "KHÔNG KHOAN",
-              "variant": "invert"
-            }
-          ],
-          "x": 50,
-          "y": 87,
-          "size": 44,
-          "gap": 26
-        }
-      ]
+      "THÁO RỜI"
+     ],
+     "x": 96,
+     "y": 86.4,
+     "anchor": "bottom-right",
+     "size": 52,
+     "gap": 18
     }
+   ]
+  },
+  "5755": {
+   "kind": "product_image",
+   "base": "clean/5755.jpg",
+   "keep": [
+    [
+     6,
+     27,
+     96,
+     73
+    ]
+   ],
+   "blocks": [
+    {
+     "id": "headline",
+     "type": "headline",
+     "text": "NHÔM KHÔNG GIAN",
+     "x": 50,
+     "y": 15.5,
+     "size": 64,
+     "lines": 1
+    },
+    {
+     "id": "nhan",
+     "type": "pills",
+     "items": [
+      "KÈM MÓC TREO",
+      {
+       "text": "KHÔNG KHOAN",
+       "variant": "dark"
+      }
+     ],
+     "x": 50,
+     "y": 87,
+     "size": 44,
+     "gap": 26
+    }
+   ]
   }
+ }
 }

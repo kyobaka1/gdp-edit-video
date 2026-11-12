@@ -1,0 +1,515 @@
+{
+  "schema": "gdp_image_layout@1",
+  "shop": "giadungplus_official",
+  "images": {
+    "7701": {
+      "kind": "description_image",
+      "base": "clean/7701.png",
+      "keep": [
+        [
+          3,
+          15,
+          96,
+          96
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "KỆ CỐC HÚT MÀU XÁM\n*KHÔNG CẦN KHOAN TƯỜNG*",
+          "x": 4.5,
+          "y": 3.5,
+          "anchor": "top-left",
+          "size": 58,
+          "lines": 2
+        }
+      ]
+    },
+    "7702": {
+      "kind": "description_image",
+      "base": "clean/7702.png",
+      "keep": [
+        [
+          43,
+          22,
+          98,
+          62
+        ],
+        [
+          1,
+          70,
+          33,
+          99
+        ],
+        [
+          34,
+          72,
+          66,
+          99
+        ],
+        [
+          67,
+          73,
+          99,
+          99
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "4 ĐIỂM NÂNG CẤP *VƯỢT TRỘI*",
+          "x": 50,
+          "y": 13,
+          "size": 66,
+          "lines": 1
+        },
+        {
+          "id": "u1",
+          "type": "text",
+          "text": "LẮP CỐC HÚT\nDÙNG NGAY",
+          "x": 16.5,
+          "y": 38.3,
+          "anchor": "center-left",
+          "w": 26,
+          "size": 56,
+          "display": true,
+          "tone": "light",
+          "lines": 2
+        },
+        {
+          "id": "u2",
+          "type": "text",
+          "text": "CHẤT LIỆU CHẮC\nBỀN, AN TOÀN",
+          "x": 9.3,
+          "y": 69.2,
+          "anchor": "center-left",
+          "w": 23,
+          "size": 34,
+          "display": true,
+          "tone": "light",
+          "lines": 2,
+          "over": true
+        },
+        {
+          "id": "u3",
+          "type": "text",
+          "text": "THỬ BẰNG TẠ\nCHỊU LỰC TỐT",
+          "x": 42.2,
+          "y": 69.2,
+          "anchor": "center-left",
+          "w": 23,
+          "size": 34,
+          "display": true,
+          "tone": "light",
+          "lines": 2,
+          "over": true
+        },
+        {
+          "id": "u4",
+          "type": "text",
+          "text": "ĐÁY RỖNG\nRÁO NƯỚC",
+          "x": 75.3,
+          "y": 69.2,
+          "anchor": "center-left",
+          "w": 21.5,
+          "size": 34,
+          "display": true,
+          "tone": "light",
+          "lines": 2,
+          "over": true
+        }
+      ],
+      "watermark": {
+        "y": 52
+      }
+    },
+    "7703": {
+      "kind": "description_image",
+      "base": "clean/7703.png",
+      "keep": [
+        [
+          3,
+          11,
+          41,
+          40
+        ],
+        [
+          3,
+          22,
+          95,
+          98
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "XẾP ĐƯỢC 2 HÀNG\n*CHAI CAO KHÔNG ĐỔ*",
+          "x": 95,
+          "y": 5,
+          "anchor": "top-right",
+          "size": 66,
+          "lines": 2
+        }
+      ]
+    },
+    "7704": {
+      "kind": "description_image",
+      "base": "clean/7704.png",
+      "keep": [
+        [
+          7,
+          27,
+          97,
+          85
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "ĐÁY RỖNG RÁO NƯỚC\n*KHÔNG LO GỈ SÉT*",
+          "x": 5,
+          "y": 5,
+          "anchor": "top-left",
+          "w": 52,
+          "size": 64,
+          "lines": 2
+        }
+      ]
+    },
+    "7705": {
+      "kind": "description_image",
+      "base": "clean/7705.png",
+      "keep": [
+        [
+          4,
+          16,
+          92,
+          100
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "CHỊU LỰC KHOẺ, BÁM CHẮC KHÔNG RƠI",
+          "x": 50,
+          "y": 12.3,
+          "size": 56,
+          "lines": 1
+        },
+        {
+          "id": "cam-ket",
+          "type": "text",
+          "text": "CHỊU TẢI ĐẾN *20KG*",
+          "x": 50,
+          "y": 90.2,
+          "size": 60,
+          "display": true,
+          "tone": "light",
+          "lines": 1,
+          "over": true
+        }
+      ]
+    },
+    "7706": {
+      "kind": "description_image",
+      "base": "clean/7706.png",
+      "keep": [
+        [
+          9,
+          16.5,
+          90,
+          82
+        ],
+        [
+          59,
+          12.8,
+          71,
+          20
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "KỆ MÀU XÁM KHÓI\n*NÂNG TẦM PHÒNG TẮM*",
+          "x": 95,
+          "y": 3,
+          "anchor": "top-right",
+          "size": 54,
+          "lines": 2
+        },
+        {
+          "id": "sub",
+          "type": "sub",
+          "text": "Cất gọn mọi đồ lặt vặt",
+          "x": 5,
+          "y": 13,
+          "anchor": "top-left",
+          "size": 34,
+          "lines": 1
+        },
+        {
+          "id": "panel",
+          "type": "text",
+          "text": "THIẾT KẾ BO TRÒN\nPHÒNG TẮM THÊM TƯƠI MỚI",
+          "x": 25,
+          "y": 90.3,
+          "anchor": "center-left",
+          "w": 52,
+          "size": 38,
+          "display": true,
+          "tone": "light",
+          "lines": 2,
+          "over": true
+        }
+      ]
+    },
+    "7707": {
+      "kind": "description_image",
+      "base": "clean/7707.png",
+      "keep": [
+        [
+          3,
+          30,
+          97,
+          90
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "CÔNG NGHỆ OXY HOÁ MỚI\n*SƠN NƯỚNG BÓNG NHƯ PIANO*",
+          "x": 6,
+          "y": 8,
+          "anchor": "top-left",
+          "size": 58,
+          "lines": 2,
+          "w": 64
+        },
+        {
+          "id": "nhan-phai",
+          "type": "text",
+          "text": "( Chất liệu\nthép carbon",
+          "x": 95,
+          "y": 8.5,
+          "anchor": "top-right",
+          "size": 34,
+          "align": "left",
+          "lines": 2
+        }
+      ]
+    },
+    "7708": {
+      "kind": "description_image",
+      "base": "clean/7708.png",
+      "keep": [
+        [
+          4,
+          17,
+          97,
+          82
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "CHỐNG GỈ, CHỐNG MÒN\n*DÙNG LÂU VẪN MỚI*",
+          "x": 5,
+          "y": 3.6,
+          "anchor": "top-left",
+          "w": 45,
+          "size": 50,
+          "lines": 2
+        },
+        {
+          "id": "nhan",
+          "type": "text",
+          "text": "CHỐNG XƯỚC",
+          "x": 82.5,
+          "y": 72.3,
+          "w": 26,
+          "size": 44,
+          "display": true,
+          "tone": "light",
+          "lines": 1,
+          "over": true
+        }
+      ],
+      "logo": {
+        "x": 62,
+        "w": 17
+      }
+    },
+    "7709": {
+      "kind": "description_image",
+      "base": "clean/7709.png",
+      "keep": [
+        [
+          3,
+          6,
+          49,
+          46
+        ],
+        [
+          51,
+          6,
+          97,
+          46
+        ],
+        [
+          3,
+          53,
+          49,
+          94
+        ],
+        [
+          51,
+          53,
+          97,
+          94
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "pill-1",
+          "type": "text",
+          "text": "MẶT KỆ RỘNG, ĐỰNG NHIỀU",
+          "x": 50.2,
+          "y": 4.4,
+          "w": 46,
+          "size": 44,
+          "display": true,
+          "tone": "light",
+          "lines": 1,
+          "over": true
+        },
+        {
+          "id": "rong",
+          "type": "text",
+          "text": "MẶT KỆ RỘNG 14,5CM",
+          "x": 25,
+          "y": 43.2,
+          "w": 27,
+          "size": 34,
+          "display": true,
+          "tone": "dark",
+          "lines": 1,
+          "over": true
+        },
+        {
+          "id": "pill-2",
+          "type": "text",
+          "text": "THÀNH KỆ CAO, ĐỂ VỮNG",
+          "x": 50.5,
+          "y": 52.1,
+          "w": 46,
+          "size": 44,
+          "display": true,
+          "tone": "light",
+          "lines": 1,
+          "over": true
+        },
+        {
+          "id": "thanh-cao",
+          "type": "text",
+          "text": "THÀNH CAO HƠN",
+          "x": 25,
+          "y": 89.5,
+          "size": 40,
+          "display": true,
+          "lines": 1,
+          "over": true
+        }
+      ],
+      "logo": {
+        "w": 16
+      }
+    },
+    "7710": {
+      "kind": "description_image",
+      "base": "clean/7710.png",
+      "keep": [
+        [
+          5,
+          13,
+          95,
+          62
+        ]
+      ],
+      "blocks": [
+        {
+          "id": "headline",
+          "type": "headline",
+          "text": "THÔNG SỐ *KÍCH THƯỚC*",
+          "x": 5,
+          "y": 5.6,
+          "anchor": "top-left",
+          "size": 64,
+          "lines": 1
+        },
+        {
+          "id": "don-vi",
+          "type": "text",
+          "text": "Đơn vị: cm",
+          "x": 95,
+          "y": 6.1,
+          "anchor": "top-right",
+          "size": 34,
+          "lines": 1
+        },
+        {
+          "id": "spec",
+          "type": "spec",
+          "rows": [
+            [
+              "Tên sản phẩm",
+              "Kệ nhà tắm cốc hút"
+            ],
+            [
+              "Màu sắc",
+              "Xám"
+            ],
+            [
+              "Chất liệu",
+              "Thép carbon + ABS"
+            ],
+            [
+              "Đặc điểm",
+              "Dễ lau, bền, không gỉ"
+            ],
+            [
+              "Dùng ở",
+              "Nhà tắm, ban công"
+            ],
+            [
+              "Lắp đặt",
+              "Cốc hút chân không"
+            ]
+          ],
+          "x": 50,
+          "y": 78.5,
+          "w": 88,
+          "size": 44
+        },
+        {
+          "id": "luu-y",
+          "type": "text",
+          "text": "Lưu ý: đo thủ công nên có thể lệch đôi chút",
+          "x": 50,
+          "y": 97,
+          "size": 30,
+          "tone": "light",
+          "lines": 1,
+          "over": true
+        }
+      ]
+    }
+  }
+}

@@ -76,8 +76,8 @@ window.IMS = (() => {
         if (!rows.length) continue;
         item.texts.push({ text: tx.innerText, rows, color: tx.dataset.color || cs.color, px: parseFloat(cs.fontSize),
           gradColor: (b.classList.contains('grad') && b.classList.contains('tone-dark') && tx.dataset.colorDark) || null,
-          weight: parseInt(cs.fontWeight, 10), lines: lineCount(tx), boxed: !!tx.closest('.pill, .st-plate'),
-          font: tx.closest('.headline, .pill, .title, .disp') ? b.dataset.fd : b.dataset.fb, part: tx.classList.contains('hl') ? 'hl' : (tx.tagName === 'SMALL' ? 'note' : null),
+          weight: parseInt(cs.fontWeight, 10), lines: lineCount(tx), boxed: !!tx.closest('.pill, .st-plate, .card'),
+          font: tx.closest('.headline, .pill, .title, .disp, .stat') ? b.dataset.fd : b.dataset.fb, part: tx.classList.contains('hl') ? 'hl' : (tx.tagName === 'SMALL' ? 'note' : null),
           outlined: !!tx.closest('.st-outline') || (b.classList.contains('headline') && !b.classList.contains('st-plate')
             && parseFloat(getComputedStyle(b).getPropertyValue('--edge')) >= 0.08),
           edged: b.classList.contains('headline') && !b.classList.contains('st-plate')

@@ -56,6 +56,7 @@ CASES = {  # tên → (layout, chuỗi phải có trong thông báo LỖI; None 
     "qua-nho": (bad(add={"id": "n", "type": "text", "text": "chữ li ti", "x": 50, "y": 40, "size": 11}), "quá nhỏ"),
     "de-nhau": (bad(add={"id": "d", "type": "sub", "text": "Dòng phụ nằm trùng nhãn", "x": 50, "y": 32, "size": 30}), "đè lên khối"),
     "chim-nen": (bad(color="dark"), "khó đọc"),
+    "bia-chu-day": (bad(y=93), "vùng khung Shopee"),
     "qua-dong": (bad(text="BẢO HÀNH BỂ VỠ MỘT ĐỔI MỘT TRONG VÒNG MỘT TRĂM TÁM MƯƠI NGÀY KỂ TỪ NGÀY NHẬN HÀNG", lines=1, w=60, nowrap=False), None),
 }
 

@@ -11,11 +11,21 @@ Giao tiếp với Sếp bằng tiếng Việt. Công cụ: `image-studio/ims.py`
 
 | Ai | Làm gì |
 |---|---|
-| **Nhân sự** | Xoá chữ Trung trên ảnh cho sạch, gọn → upload ảnh sạch lên app PluSor (ảnh kết quả của item trên trang `/marketing/listing/<id>/edit/`). Hết. |
+| **Sếp** | Chỉ GIAO việc trên app (chọn phần cần làm của listing) và DUYỆT ảnh. |
+| **Nhân sự** | Xoá chữ Trung trên ảnh cho sạch, gọn → upload ảnh sạch lên trang `/marketing/listing/<id>/work/` (mỗi ảnh thành một ô "kết quả"). Hết. |
 | **Claude (skill này)** | Tải ảnh sạch + ảnh Trung gốc về → viết chữ Việt + chọn bố cục theo mục đích ảnh → phủ lớp HTML đúng nhận diện shop → QA → Sếp duyệt → nộp final lên app. |
 
-Nguyên lý: **ảnh là nền cuối cùng, không bị sửa**. Mọi thứ thêm vào (chữ, nhãn, lớp tối dần, logo, watermark) là một lớp
+Nguyên lý: **ảnh là nền cuối cùng, không bị sửa**. Mọi thứ thêm vào (chữ, nhãn, logo, watermark) là một lớp
 HTML chụp bằng Chrome. Muốn đổi → sửa `layout.json` rồi render lại, vài giây một ảnh.
+
+### Hiểu việc được giao (ĐỌC TRƯỚC — chi tiết: `references/app-flow.md`)
+
+- Listing **mới**: làm mọi phần ảnh. Listing **Cải tiến** (`listing_type: update`): Sếp chỉ giao MỘT SỐ phần (vd chỉ "Ảnh
+  mô tả"); phần **Giữ nguyên** (bìa / ảnh sản phẩm / phân loại / tên / mô tả) dùng ảnh đang chạy trên Shopee — KHÔNG làm,
+  KHÔNG đụng, KHÔNG push. `ims.py pull` tự đọc phạm vi giao và chỉ kéo phần được giao (in dòng "được giao / GIỮ NGUYÊN").
+- Ảnh phần "Giữ nguyên" đã duyệt là CHUẨN THAM CHIẾU: xem trên trang work để biết số liệu shop đang công bố (kích thước,
+  tải trọng, chất liệu) và cách shop đang nói — chữ mới không được mâu thuẫn với chúng.
+- Thông tin sản phẩm phải CÓ NGUỒN. Chưa chắc → ghi vào danh sách "cần Sếp xác nhận" khi trình duyệt (bước 8), không tự bịa.
 
 ## Lệnh
 
@@ -24,6 +34,7 @@ Set-Location C:\Users\Admin\gdp-video-studio\image-studio; $env:PYTHONIOENCODING
 ..\.venv\Scripts\python.exe ims.py pull <listing_id>              # tải ảnh sạch + Trung gốc + ngữ cảnh → jobs\listing-<id>\
 ..\.venv\Scripts\python.exe ims.py new <job> --shop <shop> <ảnh…> --kind cover [--src <ảnh Trung gốc…>]   # ảnh có sẵn trên máy
 ..\.venv\Scripts\python.exe ims.py sheet <job>                    # ảnh so: Trung gốc | đã xoá chữ | FINAL
+..\.venv\Scripts\python.exe ims.py board <job>                    # tấm TRÌNH DUYỆT: cả bộ ảnh final xếp hàng ngang → gửi Sếp
 ..\.venv\Scripts\python.exe ims.py grid <job> [key…]              # lưới toạ độ % + vùng trống / vùng bận của từng ảnh
 ..\.venv\Scripts\python.exe ims.py grid <job> <key> --zoom 20,84,80,100   # phóng to một vùng, vạch mỗi 2% — đo ô icon / chi tiết nhỏ
 ..\.venv\Scripts\python.exe ims.py render <job> [key…]            # layout.json → out\<key>.jpg + QA (qa\<key>.jpg, qa\<key>.json)
@@ -44,19 +55,31 @@ Kết nối app dùng chung token của `plusor.py` (`PLUSOR_BASE_URL` / `PLUSOR
 
 1. **Tải việc** — `ims.py pull <listing_id>`. Được: `clean/` (ảnh sạch), `src/` (ảnh Trung gốc đã ghép cặp), `brief.json`
    (tên, mô tả, phân loại, ghi chú Sếp), `job.json`, `layout.json` (mỗi ảnh một khung; nếu app đã có design plan thì có sẵn
-   khối NHÁP `_nhap_tu_plan`). Đọc các dòng cảnh báo của lệnh:
+   khối NHÁP `_nhap_tu_plan`). Ảnh sạch là các ô "kết quả" nhân sự upload; lệnh tự ghép với ảnh Trung gốc cùng loại, cùng
+   vị trí (kiểm lại cặp ở bước 2). Đọc các dòng lệnh in ra:
+   - `listing CẢI TIẾN — được giao: … / GIỮ NGUYÊN: …` = phạm vi việc. Chỉ làm phần được giao.
    - `⚠ đã qua Editor trên app` = ảnh kết quả có thể ĐÃ có chữ (làm theo kiểu cũ), không phải ảnh sạch → soát ở bước 2.
    - `⏳ chưa có bản sạch` = nhân sự chưa xoá chữ / chưa upload → báo Sếp, KHÔNG tự lấy ảnh Trung làm nền. Ảnh gốc vốn
      không có chữ thì `pull --allow-source`.
 2. **Soát đầu vào bằng mắt** — `ims.py sheet <job>` rồi ĐỌC ảnh sheet. Với từng ảnh: nền đã sạch chưa (còn chữ Hán, vết
    xoá loang, khung / biển chữ sót)? Cặp gốc ↔ sạch có đúng ảnh không? Ảnh chưa sạch → ghi lại số item báo Sếp trả nhân sự;
    **không tự vá nền, không lấy chữ che vết bẩn** (trừ khi một khối chữ đằng nào cũng nằm đúng chỗ đó).
-   Ngưỡng: còn chữ Hán / mảng loang / khung chữ sót → DỪNG ảnh đó, trả nhân sự. Vết li ti (vài điểm ảnh) → làm tiếp, ghi
+   Ngưỡng: còn chữ Hán / mảng loang / khung chữ sót → DỪNG ảnh đó, trả nhân sự. Soi thêm WATERMARK CHÉO MỜ của shop Trung
+   (vd "蓝藤版权 盗版必究" rải khắp ảnh — chỉ phóng to `grid --zoom` mới thấy): nhân sự hay bỏ sót; nền trắng thì lộ rõ →
+   báo Sếp (toạ độ + ảnh nào) để Sếp quyết trả nhân sự hay chấp nhận. Chữ in trên phụ kiện trong cảnh (màng bảo vệ cốc hút…)
+   là chữ trong cảnh — giữ, nhưng nêu trong báo cáo. Vết li ti (vài điểm ảnh) → làm tiếp, ghi
    vào báo cáo cho Sếp (toạ độ %), và kiểm vết KHÔNG rơi sát chữ (một chấm cạnh chữ đọc thành dấu câu) — dời chữ tránh nó.
-3. **Đọc "plan" của bản Trung** — mở ảnh trong `src/`: ảnh này nói gì, mấy nhóm chữ, nhóm nào to, nằm đâu, gắn với chi tiết
-   nào của sản phẩm. Đó là bản thiết kế gốc: giữ **thứ bậc + vị trí tương đối**, thay chữ bằng tiếng Việt bán hàng.
-   Kèm `brief.json` + `job.json → images.<key>.plan` (chữ đã soạn trên app). Chưa có nội dung → viết theo mục
-   "Nội dung chữ" bên dưới.
+3. **Đọc "plan" của bản Trung + CHỨNG THỰC** — mở ảnh trong `src/`: ảnh này nói gì, mấy nhóm chữ, nhóm nào to, nằm đâu,
+   gắn với chi tiết nào của sản phẩm. Đó là bản thiết kế gốc: giữ **thứ bậc + vị trí tương đối**, thay chữ bằng tiếng Việt
+   bán hàng. Kèm `brief.json` + `job.json → images.<key>.plan` (chữ đã soạn trên app). Chưa có nội dung → viết theo mục
+   "Nội dung chữ" bên dưới. Mỗi con số / chất liệu / cam kết đưa lên ảnh phải khớp ÍT NHẤT một nguồn: chữ trên ảnh Trung
+   gốc · tên + mô tả listing (`brief.json`) · ảnh phần "giữ nguyên" đã duyệt · Kiến thức sản phẩm trên app (tra bằng MCP
+   `db_read`, câu mẫu trong `references/app-flow.md`). Các nguồn LỆCH nhau (vd bảng Trung ghi 21cm, ảnh phân loại của shop
+   ghi 20,5cm) → dùng số đang nằm sẵn trên ảnh nền, ghi vào danh sách "cần Sếp xác nhận".
+   Ảnh sạch có thể bị nhân sự CẮT bớt (cao khác ảnh Trung — listing 142 cắt hẳn vùng tiêu đề) → mọi toạ độ ĐO TRÊN ẢNH SẠCH,
+   không chép % từ ảnh Trung; chữ vẫn giữ vị trí TƯƠNG ĐỐI (trên-trái, cạnh cốc hút…) như bản Trung.
+   Ảnh sạch có sẵn Ô / THANH / NHÃN rỗng (nhân sự xoá chữ, giữ khung) → ĐO bằng `grid --zoom` rồi đặt chữ vào đúng tâm ô;
+   ước lượng từ lưới 10% sẽ lệch (bài học listing 141).
 4. **Đo ảnh** — `ims.py grid <job> <key>`: in bảng ô 5% (`#` bận = sản phẩm / vật thể, `.` trống nền tối, `:` trống nền
    sáng) + ảnh `qa/<key>.grid.jpg` có lưới x / y (vạch đậm 10%, vạch mảnh 5%). `#` gồm cả hậu cảnh (kệ, cây, chai lọ) —
    `keep` do bạn ƯỚC BẰNG MẮT trên ảnh lưới: chỉ bao SẢN PHẨM CHÍNH (kèm phần đang bán: nắp, thìa…), không bao khay / đạo
@@ -67,9 +90,14 @@ Kết nối app dùng chung token của `plusor.py` (`PLUSOR_BASE_URL` / `PLUSOR
 6. **Render + QA** — `ims.py render <job>`. Phải **ĐẠT (0 lỗi)**. Sửa theo bảng "QA báo gì → sửa gì".
 7. **Soát mắt final** — ĐỌC từng `out/<key>.jpg` (và `qa/<key>.jpg` khi cần xem khung). QA đạt chưa chắc đẹp: xem cân
    đối, chữ có "thở" không, có che chi tiết đắt giá của sản phẩm không, logo / watermark có vô duyên không, cả bộ ảnh có
-   cùng một giọng không. Sửa → render lại. Dựng `ims.py sheet <job>` lần cuối để gửi Sếp ảnh so trước / sau.
-8. **Sếp duyệt → nộp** — gửi Sếp ảnh final (hoặc sheet). Sếp OK mới `ims.py push <job> --yes` (ghi đè ảnh kết quả của item
-   trên app; `--review` = xin duyệt mục bìa / sản phẩm / mô tả). Chưa có lời duyệt của Sếp trong phiên → KHÔNG push.
+   cùng một giọng không. Sửa → render lại.
+8. **Trình Sếp duyệt → nộp** — `ims.py board <job>` (cả bộ ảnh final) gửi Sếp, kèm: (a) danh sách "cần Sếp xác nhận" (số
+   liệu / chất liệu / tên gọi còn lệch nguồn — nêu rõ đang dùng gì, nguồn nào nói khác), (b) ảnh nào nền chưa sạch.
+   Sếp OK mới `ims.py push <job> --yes`: GHI ĐÈ ảnh trong đúng các ô kết quả của nhân sự, ô chuyển "Chờ duyệt" (tương
+   đương xoá ảnh cũ + upload ảnh mới trên trang work); `--review` = xin duyệt cả mục. Sau đó Sếp duyệt và bấm đẩy lên
+   Shopee trên app — skill KHÔNG đẩy Shopee. Chưa có lời duyệt của Sếp trong phiên → KHÔNG push.
+   ⚠ Server XOÁ ảnh sạch cũ khi bị ghi đè → GIỮ thư mục `jobs/<job>/clean/` trên máy (đừng xoá job sau khi nộp) để còn
+   sửa chữ / render lại về sau.
 
 ## 9 luật không được quên
 
@@ -84,13 +112,22 @@ Kết nối app dùng chung token của `plusor.py` (`PLUSOR_BASE_URL` / `PLUSOR
 3. **Nhận diện theo SHOP, không tự chế.** Font, màu chữ, kiểu nhãn, logo, watermark lấy từ `assets/shops/<shop>/`
    (`ims.py kit show`). Layout không ghi `#hex`; cần màu khác dùng tên trong bảng màu (`heading`, `ink`, `accent`,
    `primary`, `dark`, `on_dark`, `on_light`). Font chỉ chọn trong các BỘ FONT shop được dùng (mục "Bộ font").
-4. **Logo + watermark do bộ dựng tự đặt** theo kit (logo đúng file nhân sự dùng trên app, tự đổi bản đậm khi nền sáng).
-   Chỉ can thiệp khi vướng: `"logo": false`, `"logo": {"y": …}`, `"watermark": {"y": …}`. Đặt chữ phải NÉ logo.
+4. **Watermark MỜ + NÉT MẢNH ở mọi shop (Sếp 12/11).** Bộ dựng tự nhân độ đục watermark với 0,6 (`image.watermark_fade`) và
+   bào mảnh nét ảnh watermark (`image.watermark_thin`); dải chữ dùng font chữ thường. Đừng tăng `opacity` trong layout để
+   "cho rõ" — watermark chỉ cần soi kỹ mới thấy. **Logo + watermark do bộ dựng tự đặt** theo kit (logo đúng file nhân sự dùng trên app, tự đổi bản đậm khi nền sáng).
+   **LOGO LINH HOẠT THEO CHỮ (Sếp 12/11):** chữ đặt theo bố cục bản Trung (tiêu đề góc trên-trái thì để góc trên-trái), KHÔNG
+   hạ / bóp chữ cho né logo. Logo ở chỗ mặc định của shop mà vướng chữ (kể cả khe < 2%) → bộ dựng TỰ dời logo sang chỗ trống
+   khác trên mép trên (giữa → trên-trái → trên-phải; tránh chữ trước, rồi tránh `keep`), QA in `GHI CHÚ logo: … tự dời sang …`.
+   Cả ba chỗ đều vướng → logo giữ chỗ cũ, QA báo `đè lên khối` / `chữ sát logo` → lúc đó mới dời chữ hoặc thu logo.
+   Ghim tay khi cần: `"logo": {"placement": "top-left"}` / `{"x": 80}` (ghim là tắt tự dời); `"logo": {"w": 13}` thu logo
+   (ảnh ngang thấp, vd ảnh 2 khung 790×593, logo mặc định to quá); `"logo": false` chỉ khi không còn chỗ nào hợp.
+   Watermark: `"watermark": {"y": …}` khi dải chữ cắt ngang tiêu đề.
 5. **Chữ bám nội dung thật của TỪNG ảnh** (bản Trung nói gì thì Việt hoá đúng ý đó, gọn hơn) — không quay vòng một danh
    sách lợi ích, không thêm tuyên bố / khuyến mãi / số liệu không có trong nguồn. Bìa được dựng hook mới nhưng phải là
    cam kết / số liệu CÓ THẬT.
 6. **Việt hoá ĐỦ nhóm chữ có nghĩa** của bản Trung (tiêu đề, dòng phụ, nhãn, từng bước, từng dòng bảng, số đo). Rút gọn
    là câu ngắn hơn, không phải bớt nhóm. Bỏ: watermark / tên shop gốc, khuyến mãi sàn Trung, QR / SĐT.
+   Riêng ẢNH ĐẠI DIỆN còn 5 luật bìa (né khung Shopee, hook nửa trên…) — mục "Ảnh đại diện (bìa)".
 7. **MOBILE FIRST (Sếp 11/11).** Khách xem ảnh trên điện thoại (ảnh rộng cỡ 390px màn hình → 1pt ≈ 0,39px). Chữ nhỏ là
    chữ chết: **nâng cỡ rồi tách 2 dòng, hoặc rút gọn chữ** — không giữ một dòng dài cỡ bé. Tối thiểu: mọi chữ ≥ 26pt
    (dưới 20pt là LỖI), dòng phụ ≥ 32pt, tiêu đề ảnh mô tả / sản phẩm 48–68pt, tiêu đề bìa 56–72pt, nhãn bìa ≥ 40pt.
@@ -106,12 +143,76 @@ Kết nối app dùng chung token của `plusor.py` (`PLUSOR_BASE_URL` / `PLUSOR
 
 | Loại (`kind`) | Mục tiêu | Chữ | Gợi ý bố cục |
 |---|---|---|---|
-| `cover` ảnh bìa (1:1) | CTR — 2 giây hiểu ngay | 1 tiêu đề RẤT lớn (≤ 5 từ / dòng, ≤ 2 dòng) + 1–2 nhãn cam kết / số liệu thật. Không nhồi | Tiêu đề + nhãn ở khoảng trống phía trên (hoặc dưới) sản phẩm; nền loang → tiêu đề dạng dải / viền, KHÔNG phủ màu lên ảnh. Sản phẩm chiếm ≥ 50% ảnh, không bị chữ lấn |
+| `cover` ảnh đại diện (1:1) | CTR — hút mắt, hút click, 2 giây hiểu ngay | 1 hook RẤT lớn (≤ 5 từ / dòng, ≤ 2 dòng) + tối đa 2 nhãn cam kết / số liệu thật. Không nhồi | **Xem mục "Ảnh đại diện" ngay dưới.** Hook ở NỬA TRÊN; KHÔNG có chữ / logo trong 13% đáy (khung Shopee che); sản phẩm to, không bị chữ lấn |
 | `product_image` | Chuyển đổi — mỗi ảnh MỘT ý | 1 tiêu đề (48–64pt) + 1 dòng phụ (≥ 32pt, dài thì 2 dòng); có chi tiết cần chỉ → 1–3 `callout` có đường chỉ | Chữ về một phía, sản phẩm phía còn lại; chú thích đặt cạnh đúng chi tiết |
 | `description_image` (3:4 / dọc dài) | Thông tin — bám sát bản Trung | Tiêu đề khối + dòng phụ + đủ nhãn / bước / bảng / số đo | Soi lại vị trí từng nhóm chữ của bản Trung; ô icon → `text` đặt trong ô (`over: true` nếu ô nằm trong `keep`); bảng → `spec`; các bước → `list` kiểu `number`; số đo → `dim` |
 | `variant_image` | Chọn đúng phân loại | 1 nhãn tên / dung tích phân loại (lấy từ `job.json → variant`). Không tiêu đề | Nhãn ở góc trống, cỡ lớn dễ đọc ở ảnh thu nhỏ |
 
-Cả bộ ảnh một listing: cùng một cách gọi tính năng, cùng cỡ tiêu đề cho ảnh cùng loại, cùng vị trí logo.
+## Ảnh đại diện (bìa) — làm để TĂNG CTR (Sếp 12/11)
+
+Ảnh đại diện là thứ duy nhất khách thấy trong lưới tìm kiếm, ở cỡ con tem. Mục tiêu duy nhất: **khách bấm**. Số liệu + lý do
+của từng luật: `references/cover-ctr.md` (điều tra prod 12/11 — ĐỌC trước khi làm bìa). Nội dung hook: playbook ở skill
+`gdp-listing-plan` → `prompts/ctr-playbook.md`.
+
+**5 luật bìa (bộ kiểm canh 3 luật đầu)**
+
+1. **Né khung Shopee.** Shopee dán khung chiến dịch (11.11, Voucher Xtra, Shopee Home, nút video) lên ĐÁY ảnh bìa. Không
+   đặt chữ, nhãn, logo trong **13% đáy ảnh (y ≥ 87%)** trên toàn bề ngang → QA báo LỖI `nằm trong vùng khung Shopee che`.
+   Watermark được nằm đó. Ảnh soát `qa/<key>.jpg` tô đỏ vùng này.
+2. **Hook ở nửa trên, chữ TO.** Tiêu đề lớn nhất 56–84pt (font nén như HelvetIns 70–84), tâm nằm trên 62% chiều cao (dưới
+   mức đó QA CẢNH BÁO `hook bìa nằm nửa dưới`). Nhãn ≥ 40pt. Chữ thẳng hàng ngang — không nghiêng, không uốn.
+3. **Ít chữ:** 1 hook + tối đa 2 nhãn (+ logo). Chữ phủ quá 28% ảnh → QA cảnh báo. Con số là phần TO NHẤT: dùng khối
+   **`stat`** (nhãn nhỏ + số rất lớn trong một tấm: `{"type": "stat", "label": "CHỊU LỰC", "value": "30KG", "size": 114}`).
+   **Đối đầu đối thủ** (Sếp đưa bìa đối thủ): so ở CỠ TEM — chữ mình không được nhỏ hơn chữ họ; nêu đúng con số mình hơn
+   (30KG vs 20KG); đặt chữ ở chỗ khác họ để không lẫn. Chữ chưa đủ to → tách keyword 2 dòng, dùng cả hai khoảng trống
+   (trên + dưới, vẫn trên vùng khung) thay vì dồn một góc.
+   ⛔ **Kiểu bìa Sếp cấm (12/11):** keyword MỘT DÒNG chữ nhỏ nằm ngang trên cùng cạnh logo + thẻ số nhỏ ở góc — chữ lí nhí
+   ở cỡ tem, không đối đầu được ai. Keyword luôn tách 2 dòng chữ to trong một tấm, **căn giữa** (`"align": "center"`), hoặc
+   tách thành 2 nhãn xếp chồng (màu shop + bản đảo).
+   **Phối font trên bìa (tự so rồi chọn, đừng mặc định):** dựng 3–4 biến thể cùng bố cục, ghép ảnh `.tem.jpg` cạnh nhau, chọn
+   bản mà ở cỡ tem con số đậm nhất và keyword vẫn đọc trọn. Kết quả đã so cho LTENG VN: keyword UTM Avo (hợp chất chữ logo)
+   + con số Poppins ExtraBold (dày nét hơn ở cùng bề rộng); font nén HelvetIns bị loại (lệch chất logo, không to hơn ở cỡ tem).
+   **Thêm thông số thứ ba (vd độ dày "NHÔM DÀY 1.2MM"):** không mở khối mới — gắn làm DẢI CHÂN màu khác của thẻ số
+   (`"foot": "NHÔM DÀY 1.2MM"`), bìa vẫn chỉ 2 cụm chữ. Màu dải = màu nhấn phụ của shop (`shop.json → image.pop`;
+   LTENG VN = vàng `#fec617` chữ navy, Sếp duyệt 12/11); shop chưa khai thì dải là bản đảo của nhãn — muốn màu khác phải
+   được Sếp duyệt rồi khai vào shop, không ghi mã màu trong layout. So sánh với hàng khác ("kệ thường 0.8mm")
+   KHÔNG đưa lên bìa: ở cỡ tem không đọc được, lại là tuyên bố về hàng người khác — làm thành ảnh sản phẩm thứ 2 (hai thanh
+   dày / mỏng + số), gọi chung "kệ thường", không nêu tên hãng, và chỉ khi Sếp có căn cứ cho con số của họ.
+   Gạch mảnh dưới nhãn của thẻ số (`"rule": true`): tách "CHỊU LỰC" khỏi con số gọn hơn ở bản to, không hại ở cỡ tem → nên dùng.
+4. **Hook là lý do để bấm, không phải tên sản phẩm.** Chọn theo bậc: cam kết khử rủi ro thật ("BẢO HÀNH BỂ VỠ · 1 ĐỔI 1") →
+   con số trả lời đúng câu khách tự hỏi ("CHỊU LỰC 50KG") → bằng chứng xã hội thật ("Đã bán 300.000") → tình huống dùng cụ
+   thể ("TREO TỦ BẾP") → không chữ (sản phẩm tự là bằng chứng). Tên sản phẩm, tính từ rỗng ("CAO CẤP"), tên tính năng khó
+   hiểu KHÔNG làm hook. Mọi cam kết / con số phải có nguồn (luật 5 chung).
+5. **Tương phản tuyệt đối ở cỡ tem.** Chữ đen trên nền sáng, trắng trên nền tối, hoặc nằm trên nhãn / dải nền đặc. Chữ
+   navy / xám trên tường xám, nhãn mờ chữ nhạt đều thua trong dữ liệu.
+
+**Quy trình riêng cho bìa** (thêm vào 8 bước chung)
+
+- Bước 3: ngoài bản Trung, xem bìa ĐANG CHẠY của mã đó và CTR hiện tại so với mốc p75 của shop (`references/cover-ctr.md`
+  mục 1; số mới nhất: MCP `cover_listing_get` / `cover_opportunities`). CTR thấp mà thêm giỏ cao = bìa là nút thắt.
+- Bước 4: `ims.py grid` — tìm khoảng trống ở NỬA TRÊN. Ảnh nền kín sản phẩm, không còn chỗ trên → vẫn làm (chữ nằm ngay
+  trên vùng khung, y ≤ 87%), nhưng GHI vào báo cáo: "ảnh nền không có chỗ cho hook ở nửa trên — đề nghị chọn ảnh khác".
+- Bước 7: `ims.py render` in thêm đường dẫn `qa/<key>.tem.jpg` = bìa **như khách thấy** (đã đè khung Shopee mẫu + bản cỡ
+  tem 190px). PHẢI đọc ảnh này và tự hỏi 4 câu: (1) ở cỡ tem còn đọc được hook không? (2) còn nhận ra món gì không?
+  (3) khung có che chữ / logo / phần quan trọng của sản phẩm không? (4) đặt cạnh 3 bìa khác trong lưới, mắt có dừng ở bìa
+  này không? Trượt câu nào thì sửa.
+- Bước 8: khi trình Sếp, gửi kèm ảnh `.tem.jpg` và nêu hook thuộc bậc nào, số liệu lấy từ đâu. Ảnh nền là nút thắt (sản phẩm
+  nhỏ, chìm nền, nhiều chủ thể) thì NÓI — skill không sửa nền.
+
+**Ý tưởng tăng CTR từ dữ liệu prod (chi tiết + số: `references/cover-ctr.md` mục 6)**
+
+- Làm ngay: dời chữ khỏi đáy · hook = cam kết / con số · phóng to con số · chữ thẳng, đậm, tương phản · ưu tiên mã CTR dưới
+  p25 mà thêm giỏ cao.
+- Đáng thử: nhãn công dụng dán trên chính sản phẩm (+24–28% ở 2 thử nghiệm PHALEDO — thuộc ảnh nền, đề xuất với Sếp) · nhãn
+  "Đã bán …" có thật · mũi tên chỉ đúng cơ chế khác biệt (`callout`) · bìa không chữ khi sản phẩm tự là bằng chứng.
+- Đừng làm: hook ở đáy (−41% ở thử nghiệm CX-0007) · chữ nghiêng (6,12% → 2,87% cùng thông điệp) · nhiều chủ thể / ghép ô ·
+  đổi nền / nhận diện mạnh tay · thêm đồ nhiều màu làm sản phẩm trong suốt hết nổi (−33% ở CX-0006).
+
+Mẫu bìa đúng luật: `image-studio/examples/layout-phaledo-bia-mo-ta.json`, `layout-gdp.json`, `layout-lteng-vn.json`,
+`layout-lteng-hcm.json` (ảnh `kind: cover` trong mỗi file).
+
+Cả bộ ảnh một listing: cùng một cách gọi tính năng, cùng cỡ tiêu đề cho ảnh cùng loại. Logo ưu tiên chỗ mặc định của shop;
+ảnh nào chữ chiếm chỗ đó thì logo tự dời (chấp nhận logo lệch chỗ giữa các ảnh — chữ đúng bố cục quan trọng hơn).
 
 ## Nội dung chữ (khi app chưa có design plan cho ảnh đó)
 
@@ -119,6 +220,9 @@ Nguồn theo thứ tự: `job.json → images.<key>.plan` (design plan của ski
 `brief.json` (tên, mô tả, phân loại, ghi chú Sếp). Luật viết đầy đủ ở skill `gdp-listing-plan`
 (`prompts/design-plan-schema.md`, `prompts/ctr-playbook.md`); tóm tắt:
 
+- **Gần gũi, dễ đọc, dễ hiểu với người Việt** (Sếp 12/11): câu ngắn như lời nói ("Dán là dùng", "Xoay nhẹ là chặt",
+  "Treo đâu cũng tiện"), không Hán-Việt nặng, không thuật ngữ ("TPE" thì kèm lợi ích: "dán càng lâu càng chặt").
+  Tiêu đề ảnh mô tả 2 dòng: dòng 1 nói CÁI GÌ, dòng 2 (nhấn màu) nói LỢI GÌ / SỐ NÀO.
 - Viết như người bán Việt nói với khách: ngắn, cụ thể, có số thật ("CHỊU LỰC 50KG", không "CHỊU LỰC TỐT"); tránh câu dịch
   từng chữ, tính từ rỗng ("CAO CẤP", "CỰC XỊN"), câu hai nghĩa.
 - Tiêu đề bìa: chọn theo bậc thang — cam kết khử rủi ro thật ("BỂ VỠ 1 ĐỔI 1") → số gắn đúng nỗi lo → bằng chứng xã hội
@@ -213,8 +317,11 @@ không lấy font khác thay.
 | `còn chữ Hán` | chưa Việt hoá hết → sửa `text` |
 | `font shop thiếu chữ cái …` | dùng ký tự khác; đừng để Chrome mượn font |
 | `cụm nhấn “…” chìm vào nền` | màu accent không đủ nổi ở chỗ đó: bỏ `*…*`, hoặc tiêu đề `style: outline` / `plate` |
-| `chữ sát logo` | hạ `y` của khối xuống (khe ≥ 2% bề rộng); logo cao bao nhiêu xem `qa/<key>.json → blocks` (id `logo`) |
+| `GHI CHÚ logo: … tự dời sang …` | bình thường — logo đã tự nhường chỗ cho chữ; soát mắt logo ở chỗ mới có đẹp không (không đè chi tiết đắt giá, không quá to trên ảnh ngang thấp → `"logo": {"w": …}`) |
+| `chữ sát logo` / `đè lên khối 'logo'` | chỉ còn khi cả 3 chỗ trên mép trên đều vướng (hoặc logo bị ghim): hạ `y` của khối (khe ≥ 2% bề rộng), thu `logo.w`, hoặc ghim logo sang chỗ khác; logo cao bao nhiêu xem `qa/<key>.json → blocks` (id `logo`) |
 | `logo mờ trên nền này` | `"logo": {"file": "<tên file>"}` (bản sáng / đậm khác), hoặc dời logo sang góc nền đều màu |
+| `… nằm trong vùng khung Shopee che` (ảnh bìa) | dời khối lên: đáy khối ≤ y 87%. Không còn chỗ → thu chữ / bỏ bớt nhãn, không lấn vùng khung |
+| `hook bìa nằm nửa dưới` | đưa hook lên khoảng trống nửa trên; ảnh nền kín thì giữ và báo Sếp đề nghị đổi ảnh nền |
 | `tiêu đề bìa …pt` | tiêu đề bìa đang < 48pt: rút chữ để to lên. Khoảng đẹp 56–72pt; font nén (HelvetIns của GDP) 70–80pt — không có cảnh báo cận trên, tự nhìn |
 
 Mức: **LỖI** = phải sửa (render trả mã lỗi, `push` từ chối) · **CẢNH BÁO** = nhìn bằng mắt rồi quyết · **GHI CHÚ** = thông tin.

@@ -213,7 +213,7 @@
     }
   },
   "image": {
-    "_note": "Ảnh listing (image-studio, 12/11) — đo trên ảnh nhân sự đã làm (listing 129): TẤM navy bo góc chữ trắng (tiêu đề + dòng phụ chung tấm), hoặc chữ navy #002850 viền trắng trên nền sáng; nhãn navy chữ trắng bo góc nhẹ; logo thẻ navy treo giữa mép trên; watermark chữ LTENG mờ giữa sản phẩm.",
+    "_note": "Ảnh listing (image-studio, 12/11) — đo trên ảnh nhân sự đã làm (listing 129): TẤM navy bo góc chữ trắng (tiêu đề + dòng phụ chung tấm), hoặc chữ navy #002850 viền trắng trên nền sáng; nhãn navy chữ trắng bo góc nhẹ; logo thẻ navy treo giữa mép trên; watermark chữ LTENG mờ giữa sản phẩm. Màu nhấn phụ (pop) = vàng #fec617 chữ navy — vàng của ô VN trên logo; Sếp duyệt 12/11 cho dải chân thẻ số trên ảnh bìa (vd \"NHÔM DÀY 1.2MM\").",
     "fonts": [
       "utm-avo",
       "poppins"
@@ -223,6 +223,10 @@
     "edge": 0.07,
     "bolder": 0.006,
     "pill_shape": "square",
-    "pill": "solid"
+    "pill": "solid",
+    "pop": {
+      "bg": "#fec617",
+      "text": "#062955"
+    }
   }
 }

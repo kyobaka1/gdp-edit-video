@@ -81,6 +81,26 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
         padding: .3em .8em; }
 .pill.sq { border-radius: calc(1em * var(--radius) / 100 * 1.5); padding: .3em .62em .28em; }
 
+/* ---------- con số to (stat): nhãn nhỏ + số rất lớn trong một tấm — "phóng to con số" cho ảnh bìa ---------- */
+.stat { text-shadow: none; }
+.stat .card { display: inline-flex; flex-direction: column; align-items: center; line-height: 1; white-space: nowrap;
+     font-family: var(--font-display), Fallback, sans-serif; font-weight: 800; padding: .16em .3em .12em;
+     border-radius: calc(1em * var(--radius) / 100 * 1.1); box-shadow: 0 calc(var(--u) * 6) calc(var(--u) * 20) rgba(0, 0, 0, .25);
+     background: var(--badge-solid); color: var(--badge-text); }
+.stat .card.invert { background: var(--badge-inv-bg); color: var(--badge-inv-fg); border: calc(var(--u) * 4) solid var(--badge-inv-fg); }
+.stat .card.dark { background: var(--badge-dark-bg); color: var(--badge-dark-fg); }
+.stat .lb { font-size: .4em; letter-spacing: .06em; margin-bottom: .1em; }
+.stat .val { letter-spacing: -.01em; }
+/* dải chân màu nhấn phụ, gắn liền đáy thẻ ("foot") — thông số phụ, kèm dòng so sánh nhỏ ("foot_note") */
+.stat .card { overflow: hidden; }
+.stat .ft { align-self: stretch; margin: .14em -.3em -.12em; padding: .2em .3em .18em; background: var(--pop-bg); color: var(--pop-fg);
+     font-size: .33em; line-height: 1.12; text-align: center; letter-spacing: .02em; }
+.stat .ft small { display: block; font-family: var(--font-body), Fallback, sans-serif; font-weight: 700; font-size: .76em; margin-top: .18em;
+     letter-spacing: 0; opacity: .82; }
+/* gạch mảnh ngăn nhãn với con số ("rule": true) */
+.stat .card.rule .lb { padding-bottom: .16em; margin-bottom: .2em; border-bottom: calc(var(--u) * 3.5) solid currentColor; align-self: stretch;
+     text-align: center; }
+
 /* ---------- chú thích có đường chỉ / kích thước ---------- */
 .callout, .dim { font-weight: 700; line-height: 1.2; }
 .callout .tx small, .text .tx small, .list small { font-weight: 400; font-size: .78em; display: block; opacity: .92; }
@@ -112,8 +132,8 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
 /* ---------- logo + watermark ---------- */
 .logo, .wm { position: absolute; display: block; }
 .wm.to-dark { filter: brightness(0); }
-.wm.text { left: 50%; transform: translate(-50%, -50%); white-space: nowrap; color: #fff; font-family: var(--font-display), Fallback, sans-serif;
-           font-weight: 800; font-size: calc(var(--u) * var(--fs)); letter-spacing: .06em; pointer-events: none; }
+.wm.text { left: 50%; transform: translate(-50%, -50%); white-space: nowrap; color: #fff; font-family: var(--font-body), Fallback, sans-serif;
+           font-weight: 400; font-size: calc(var(--u) * var(--fs)); letter-spacing: .1em; pointer-events: none; }
 
 /* lượt đo nền: ẩn chữ, giữ nguyên nền / nhãn / scrim */
 body.notext .tx, body.notext .tx *, body.notext .b::before, body.notext .mk, body.notext .k, body.notext .v, body.notext .title { color: transparent !important;

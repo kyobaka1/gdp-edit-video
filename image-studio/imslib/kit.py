@@ -45,11 +45,17 @@ IMAGE_DEFAULTS = {
     "fonts": None,             # danh sách bộ font shop được dùng (xem FONT_SETS); None = theo kit app + mặc định
     "colors": {},              # ghi đè bảng màu cho ẢNH khi kit app lệch thực tế: heading, sub, accent, primary, dark, on_light, hl_on_dark
     "badge": {},               # ghi đè nhãn: bg, text, bg_opacity (0–100), border (#hex | null), gradient (false = tắt dải màu)
+    "pop": None,               # màu nhấn phụ {"bg": "#…", "text": "#…"} cho dải chân thẻ số; None = bản đảo của nhãn
     "pill_shape": "round",     # round = nhãn bo tròn hết cỡ · square = chữ nhật bo góc nhẹ
     "heading_gradient": None,  # false = tắt dải màu chữ tiêu đề của kit app (chữ một màu phẳng)
     "watermark_mode": "image", # image = ảnh watermark của kit · text = dải chữ lặp tên shop (trắng mờ)
     "watermark_text": None,    # chữ của dải watermark (mặc định tên brand)
     "watermark_opacity": None, # ghi đè độ đục watermark (0–1)
+    # Sếp 12/11: watermark MỜ hơn + nét MẢNH hơn ở mọi shop.
+    "watermark_fade": 0.6,     # nhân thêm vào độ đục watermark của kit / shop (1 = giữ nguyên)
+    # ẢNH BÌA (Sếp 12/11): Shopee đè khung chiến dịch (11.11, Voucher Xtra, Shopee Home, nút video) lên ĐÁY ảnh bìa.
+    "cover_frame_pct": 13,     # dải đáy ảnh bìa (% chiều cao) bị khung che — chữ + logo không được nằm trong
+    "watermark_thin": 0.012,   # bào mảnh nét ẢNH watermark: bán kính = tỉ lệ × chiều cao ảnh watermark (0 = giữ nguyên)
     "edge": 0.045,             # viền NHẸ quanh tiêu đề giúp chữ nổi khỏi ảnh (em; 0 = tắt)
     "bolder": 0.012,           # làm tiêu đề đậm thêm (em; 0 = tắt)
     "shadow": 0.35,            # bóng mềm dưới chữ sáng (0 = tắt)
@@ -258,8 +264,8 @@ def load(shop: str) -> dict:
                  or "top-center", "width_pct": float(klogo.get("width_pct") or 26)},
         "watermark": {"file": wm_file, "text": img.get("watermark_text") or kwm.get("text") or kdoc.get("brand_name") or prof.get("brand") or "",
                       "mode": img.get("watermark_mode") or "image",
-                      "opacity": img["watermark_opacity"] if img.get("watermark_opacity") is not None
-                      else (kwm.get("image_opacity") or 100) / 100},
+                      "opacity": round((img["watermark_opacity"] if img.get("watermark_opacity") is not None
+                                        else (kwm.get("image_opacity") or 100) / 100) * float(img.get("watermark_fade", 1)), 3)},
         "rules": kit.get("typography") or bk.get("typography") or {},
         "image": img,
     }

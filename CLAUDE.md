@@ -91,6 +91,8 @@ Nhận diện dùng chung `assets/shops/<shop>/`: `shop.json` (+ mục `image`: 
 lấy từ app, không sửa tay). Bộ font: PHALEDO = Averta (ExtraBold / Regular) · GDP chữ lớn = UTM HelvetIns · UTM Avo ưu tiên cấp 1 ·
 Poppins / PS Young để đổi gió. Layout không ghi mã màu, không che sản phẩm (`keep`), không thêm tuyên bố ngoài nguồn.
 KHÔNG CHỈNH MÀU ẢNH (Sếp 12/11): chỉ thêm chữ + logo, không lớp tối dần / lớp phủ màu. MOBILE FIRST: chữ nhỏ → nâng cỡ rồi tách 2 dòng / rút gọn.
+ẢNH ĐẠI DIỆN (Sếp 12/11) làm để tăng CTR: hook TO ở nửa trên, KHÔNG chữ / logo trong 13% đáy (khung Shopee 11.11 / voucher che — QA báo lỗi),
+soát bằng `qa\<key>.tem.jpg` (bìa như khách thấy, cỡ tem). Luật + số liệu prod: skill → mục "Ảnh đại diện" + `references\cover-ctr.md`.
 LTENG HCM: đen / trắng / đỏ (dải đỏ + dải đen chữ trắng). LTENG VN: tấm navy chữ trắng / chữ navy viền trắng. GDP (Sếp 12/11): tông ĐEN / ĐỎ / TRẮNG theo nền (nền sáng chữ đen, nền
 tối chữ trắng), nhãn đỏ+trắng hoặc trắng+đỏ bo góc nhẹ, viền chữ mảnh — brand kit app lệch thì đo màu ảnh thật, ghi đè ở `shop.json → image`.
 

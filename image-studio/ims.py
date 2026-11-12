@@ -8,6 +8,7 @@
   python ims.py grid <job> [key…]                    # ảnh sạch + lưới toạ độ % + vùng trống (để chọn x, y, keep)
   python ims.py render <job> [key…]                  # layout.json → out/<key>.jpg + QA (qa/<key>.jpg, qa/<key>.json)
   python ims.py sheet <job>                          # ảnh so: Trung gốc | sạch | final
+  python ims.py board <job>                          # tấm trình duyệt: cả bộ ảnh FINAL xếp hàng ngang (gửi Sếp)
   python ims.py push <job> [key…] --yes [--review]   # nộp ảnh final lên app (GHI ĐÈ kết quả) — chỉ khi Sếp đã duyệt
 
 Quy trình + luật: skill `gdp-image-listing` (.claude/skills/gdp-image-listing/SKILL.md)."""
@@ -52,6 +53,8 @@ def seed_layout(job: Path, meta: dict) -> None:
     """Tạo / bổ sung layout.json: mỗi ảnh một khung rỗng để điền khối. Ảnh đã có layout thì giữ nguyên."""
     path = job / "layout.json"
     layout = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {"schema": SCHEMA, "shop": meta["shop"], "images": {}}
+    for key in [k for k in layout["images"] if k not in meta["images"] and not layout["images"][k].get("blocks")]:
+        layout["images"].pop(key)                         # ảnh không thuộc job nữa (vd phần "giữ nguyên") và chưa làm gì
     for key, im in meta["images"].items():
         if im.get("clean"):
             spec = layout["images"].setdefault(key, {"kind": im["kind"], "base": im["clean"], "keep": [], "blocks": []})
@@ -110,7 +113,8 @@ def cmd_kit(a):
     width = t["image"].get("logo_width_pct") or t["logo"]["width_pct"]
     print(f"  logo      : {place}, rộng {width:g}% (cả khoảng đệm của file) · file: " + ", ".join(f"{k}={v.name}" for k, v in t["logo"]["files"].items()))
     print(f"  watermark : {t['watermark']['file'].name if t['watermark']['file'] else 'không có ảnh'}"
-          f" · độ đục mặc định {t['watermark']['opacity']:g} (0–1; dải ngang luôn 1)")
+          f" · độ đục mặc định {t['watermark']['opacity']:g} (0–1, đã nhân hệ số làm mờ {t['image']['watermark_fade']:g})"
+          f" · bào mảnh nét {t['image']['watermark_thin']:g}")
     for k, v in (t["rules"] or {}).items():
         if v:
             print(f"  luật chữ {k}: {v}")
@@ -154,8 +158,19 @@ def cmd_pull(a):
     old = json.loads((job / "job.json").read_text(encoding="utf-8")) if (job / "job.json").is_file() else {"images": {}}
     plan = (app.design_plan(a.listing_id) or {}).get("items") or {}
     items = [it for kind in KINDS for it in (data.get("items") or {}).get(kind, [])]
-    kinds = set(a.kind or KINDS)
-    sources = [it for it in items if it.get("source_url") and not it.get("has_result")]
+    # PHẠM VI GIAO VIỆC: listing "Cải tiến" (update) chỉ giao một số phần — phần "Giữ nguyên" dùng ảnh đang có trên sàn,
+    # KHÔNG làm, KHÔNG đụng. Listing mới = làm mọi phần ảnh.
+    scope = data.get("scope") or {}
+    sections = {sec["kind"]: sec for sec in scope.get("sections") or []}
+    if scope.get("is_update") and sections:
+        assigned = [k for k, sec in sections.items() if sec.get("enabled")]
+        kept = [sec.get("label") or k for k, sec in sections.items() if not sec.get("enabled")]
+    else:
+        assigned, kept = list(KINDS) + ["name", "description"], []
+    kinds = set(a.kind or KINDS) & set(assigned)
+    if a.kind and set(a.kind) - set(assigned):
+        print(f"  ⚠ phần KHÔNG được giao (giữ nguyên) nên bỏ qua: {', '.join(KINDS[k] for k in set(a.kind) - set(assigned))}")
+    sources = [it for it in items if it.get("source_asset_id") and not it.get("has_result")]
     used, images, waiting = set(), {}, []
 
     for it in items:
@@ -210,10 +225,11 @@ def cmd_pull(a):
         if v:
             im["variant"] = {"sku": v.get("sku"), "name": v.get("custom_name") or v.get("option_label") or v.get("name")}
     meta = {"job": job.name, "shop": shop, "listing_id": a.listing_id, "name": data.get("name", ""), "images": images,
-            "waiting_clean": waiting}
+            "waiting_clean": waiting, "listing_type": data.get("listing_type"), "assigned": assigned, "kept": kept}
     save(job / "job.json", meta)
     seed_layout(job, meta)
-    brief = {"listing_id": a.listing_id, "shop": shop, "name": data.get("name", ""), "description": data.get("description", ""),
+    brief = {"listing_id": a.listing_id, "shop": shop, "listing_type": data.get("listing_type"), "assigned_sections": assigned,
+             "kept_sections": kept, "name": data.get("name", ""), "description": data.get("description", ""),
              "variants": [{"sku": v.get("sku"), "name": v.get("custom_name") or v.get("option_label") or v.get("name")}
                           for v in data.get("variants") or []],
              "section_notes": data.get("section_notes") or {}, "design_plan_overview": (app.design_plan(a.listing_id) or {}).get("overview"),
@@ -221,6 +237,9 @@ def cmd_pull(a):
     save(job / "brief.json", brief)
 
     print(f"✓ pull listing {a.listing_id} — {data.get('name', '')[:70]}")
+    if kept:
+        print(f"  listing CẢI TIẾN — được giao: {', '.join(sections[k].get('label') or k for k in assigned) or '(không phần nào)'}")
+        print(f"                    GIỮ NGUYÊN (không làm): {', '.join(kept)}")
     print(f"  shop {shop} · {len(images)} ảnh sạch ({n_new} mới tải) → {job}")
     for kind, label in KINDS.items():
         ks = [k for k, v in images.items() if v["kind"] == kind]
@@ -257,9 +276,12 @@ def cmd_grid(a):
                 raise SystemExit("--zoom cần x0,y0,x1,y1 theo % (vd --zoom 20,84,80,100)")
             print(f"[{key}] vùng {a.zoom} phóng to, vạch mỗi 2%: {tools.grid_zoom(base, job / 'qa' / f'{key}.zoom.jpg', box)}")
             continue
-        out, text = tools.grid(base, job / "qa" / f"{key}.grid.jpg")
+        is_cover = layout["images"][key].get("kind") == "cover"
+        out, text = tools.grid(base, job / "qa" / f"{key}.grid.jpg", cover_frame_pct=13 if is_cover else 0)
         print(f"[{key}] {out}")
         print(text)
+        if is_cover:
+            print("  ẢNH BÌA: 13% đáy (y ≥ 87%) là vùng khung Shopee che — chữ + logo nằm phía trên; hook ở NỬA TRÊN ảnh.")
 
 
 def cmd_render(a):
@@ -282,6 +304,8 @@ def cmd_render(a):
                   + (f" · logo {r['logo']['file']}" if r["logo"] else "") + (f" · tông {r['tones']}" if r["tones"] else ""))
             for i in r["issues"]:
                 print(f"    {i['level']:<8} {i['id']}: {i['msg']}")
+            if r.get("tem"):
+                print(f"    ảnh bìa như khách thấy (khung Shopee + cỡ tem): {job / r['tem']} — PHẢI nhìn ảnh này")
     if skipped:
         print(f"(bỏ qua {len(skipped)} ảnh chưa có khối nào: {', '.join(skipped)})")
     print(f"\n{'ĐẠT' if not n_err else 'CHƯA ĐẠT'} — {len(keys)} ảnh · {n_err} lỗi · {n_warn} cảnh báo · ảnh soát: {job / 'qa'}")
@@ -293,6 +317,16 @@ def cmd_sheet(a):
     job = job_dir(a.job)
     meta, layout = load(job)
     for p in tools.sheet(job, meta, layout):
+        print(p)
+
+
+def cmd_board(a):
+    job = job_dir(a.job)
+    _, layout = load(job)
+    out = tools.board(job, layout)
+    if not out:
+        raise SystemExit("Chưa có ảnh final nào — chạy `ims.py render` trước.")
+    for p in out:
         print(p)
 
 
@@ -335,7 +369,7 @@ def cmd_push(a):
             if kind in ("cover", "product_image", "description_image"):
                 app.request_review(meta["listing_id"], kind)
                 print(f"  ✓ xin duyệt mục {KINDS[kind]}")
-    print(f"✓ đã nộp {len(todo)} ảnh → {app.cfg()[0]}/marketing/listing/{meta['listing_id']}/edit/")
+    print(f"✓ đã nộp {len(todo)} ảnh → {app.cfg()[0]}/marketing/listing/{meta['listing_id']}/work/")
 
 
 def main():
@@ -354,6 +388,7 @@ def main():
     p.add_argument("--zoom", help="x0,y0,x1,y1 (%%): phóng to một vùng, vạch mỗi 2%% — đo ô icon / chi tiết nhỏ"); p.set_defaults(fn=cmd_grid)
     p = sub.add_parser("render"); p.add_argument("job"); p.add_argument("keys", nargs="*"); p.set_defaults(fn=cmd_render)
     p = sub.add_parser("sheet"); p.add_argument("job"); p.set_defaults(fn=cmd_sheet)
+    p = sub.add_parser("board"); p.add_argument("job"); p.set_defaults(fn=cmd_board)
     p = sub.add_parser("push"); p.add_argument("job"); p.add_argument("keys", nargs="*"); p.add_argument("--yes", action="store_true")
     p.add_argument("--review", action="store_true"); p.add_argument("--force", action="store_true"); p.add_argument("--note", default="")
     p.set_defaults(fn=cmd_push)

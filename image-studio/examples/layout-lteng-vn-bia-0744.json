@@ -1,0 +1,159 @@
+{
+ "schema": "gdp_image_layout@1",
+ "shop": "lteng_vn",
+ "images": {
+  "0744-bia": {
+   "kind": "cover",
+   "base": "clean/0744-lteng-vn.jpg",
+   "keep": [
+    [
+     5,
+     12,
+     30,
+     53
+    ],
+    [
+     30,
+     13,
+     42,
+     64
+    ],
+    [
+     42,
+     17,
+     52,
+     73
+    ],
+    [
+     52,
+     22,
+     66,
+     85
+    ],
+    [
+     66,
+     29.5,
+     82,
+     86
+    ],
+    [
+     82,
+     34,
+     100,
+     88
+    ]
+   ],
+   "watermark": {
+    "x": 55,
+    "y": 50
+   },
+   "blocks": [
+    {
+     "id": "tu-khoa",
+     "type": "headline",
+     "text": "KỆ NHÔM\nDÁN TƯỜNG",
+     "x": 96.5,
+     "y": 2.7,
+     "anchor": "top-right",
+     "align": "center",
+     "size": 72,
+     "lines": 2,
+     "bg": {
+      "fill": "brand",
+      "pad": 12,
+      "radius": 14
+     }
+    },
+    {
+     "id": "so",
+     "type": "stat",
+     "label": "CHỊU LỰC",
+     "value": "30KG",
+     "rule": true,
+     "font": "poppins",
+     "x": 3.2,
+     "y": 85.0,
+     "anchor": "bottom-left",
+     "size": 100,
+     "foot": "NHÔM DÀY 1.2MM"
+    }
+   ]
+  },
+  "0744-bia-khong-dai": {
+   "kind": "cover",
+   "base": "clean/0744-lteng-vn.jpg",
+   "keep": [
+    [
+     5,
+     12,
+     30,
+     53
+    ],
+    [
+     30,
+     13,
+     42,
+     64
+    ],
+    [
+     42,
+     17,
+     52,
+     73
+    ],
+    [
+     52,
+     22,
+     66,
+     85
+    ],
+    [
+     66,
+     29.5,
+     82,
+     86
+    ],
+    [
+     82,
+     34,
+     100,
+     88
+    ]
+   ],
+   "watermark": {
+    "x": 55,
+    "y": 50
+   },
+   "blocks": [
+    {
+     "id": "tu-khoa",
+     "type": "headline",
+     "text": "KỆ NHÔM\nDÁN TƯỜNG",
+     "x": 96.5,
+     "y": 2.7,
+     "anchor": "top-right",
+     "align": "center",
+     "size": 72,
+     "lines": 2,
+     "bg": {
+      "fill": "brand",
+      "pad": 12,
+      "radius": 14
+     }
+    },
+    {
+     "id": "so",
+     "type": "stat",
+     "label": "CHỊU LỰC",
+     "value": "30KG",
+     "x": 3.2,
+     "y": 84.6,
+     "anchor": "bottom-left",
+     "size": 110,
+     "font": "poppins",
+     "rule": true
+    }
+   ]
+  }
+ }
+}

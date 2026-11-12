@@ -39,7 +39,7 @@ def grid_zoom(image: Path, dst: Path, box: tuple) -> Path:
     return dst
 
 
-def grid(image: Path, dst: Path) -> tuple[Path, str]:
+def grid(image: Path, dst: Path, cover_frame_pct: float = 0) -> tuple[Path, str]:
     """Ảnh + lưới 10% có số + tô đỏ các ô 'bận' (nhiều chi tiết = sản phẩm / vật thể). Trả (ảnh, bảng chữ).
 
     Bảng chữ: mỗi ô 5% — '#' bận, '.' trống tối, ':' trống sáng → biết chỗ đặt chữ và nên dùng chữ sáng hay đậm."""
@@ -70,6 +70,11 @@ def grid(image: Path, dst: Path) -> tuple[Path, str]:
                 d.rectangle([c * vw / cols, r * vh / rows, (c + 1) * vw / cols, (r + 1) * vh / rows], fill=(255, 40, 40, 50))
         lines.append(f"  y{round(r * 100 / rows):>3}% {row}")
     f = _font(max(14, vw // 60))
+    if cover_frame_pct:                                      # ảnh bìa: dải đáy bị khung Shopee che — không đặt chữ / logo
+        fy = vh * (1 - cover_frame_pct / 100)
+        d.rectangle([0, fy, vw, vh], fill=(255, 40, 40, 90), outline=(255, 40, 40, 255), width=3)
+        d.text((10, fy + 6), f"KHUNG SHOPEE CHE (y ≥ {100 - cover_frame_pct:g}%) — KHÔNG đặt chữ / logo", font=f,
+               fill=(255, 255, 255, 255), stroke_width=2, stroke_fill=(0, 0, 0, 255))
     for k in range(1, 20, 2):                                # vạch phụ 5% (mảnh)
         d.line([k * vw / 20, 0, k * vw / 20, vh], fill=(255, 255, 255, 70), width=1)
         d.line([0, k * vh / 20, vw, k * vh / 20], fill=(255, 255, 255, 70), width=1)
@@ -85,6 +90,27 @@ def grid(image: Path, dst: Path) -> tuple[Path, str]:
     head = f"  {W}×{H} ({W / H:.2f}) · mỗi ký tự = ô 5% bề rộng · # bận (sản phẩm/vật thể) · '.' trống nền TỐI · ':' trống nền SÁNG\n" \
            f"        x0%{' ' * 7}x50%{' ' * 6}x100%"
     return dst, head + "\n" + "\n".join(lines)
+
+
+def board(job: Path, layout: dict, per_page: int = 6, height: int = 1000) -> list[Path]:
+    """Tấm TRÌNH DUYỆT: các ảnh FINAL của job xếp hàng ngang (6 ảnh / tấm), có số item — gửi Sếp xem cả bộ một lượt."""
+    keys = [k for k in layout["images"] if (job / "out" / f"{k}.jpg").is_file()]
+    out, f = [], _font(26)
+    for page in range(0, len(keys), per_page):
+        chunk = keys[page:page + per_page]
+        ims = [Image.open(job / "out" / f"{k}.jpg").convert("RGB") for k in chunk]
+        ims = [i.resize((round(i.width * height / i.height), height), Image.LANCZOS) for i in ims]
+        gap, head = 12, 44
+        bd = Image.new("RGB", (sum(i.width for i in ims) + gap * (len(ims) + 1), height + head + gap), (28, 28, 30))
+        d, x = ImageDraw.Draw(bd), gap
+        for k, im in zip(chunk, ims):
+            d.text((x + 4, 8), f"{k} · {KINDS.get(layout['images'][k].get('kind'), '')}", font=f, fill=(255, 220, 90))
+            bd.paste(im, (x, head))
+            x += im.width + gap
+        p = job / (f"duyet-{page // per_page + 1}.jpg" if len(keys) > per_page else "duyet.jpg")
+        bd.save(p, quality=90)
+        out.append(p)
+    return out
 
 
 def sheet(job: Path, meta: dict, layout: dict, per_page: int = 6) -> list[Path]:
