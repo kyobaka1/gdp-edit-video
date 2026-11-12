@@ -68,6 +68,9 @@ IMAGE_DEFAULTS = {
     "logo_placement": None,    # ghi đè vị trí logo của kit app (top-center | top-left | top-right)
     "logo_width_pct": None,    # ghi đè bề rộng logo của kit app
     "watermark_width_pct": 24, # watermark dạng biểu tượng / chữ (không phải dải ngang): bề rộng, đặt giữa sản phẩm
+    # ẢNH PHÂN LOẠI: mặc định của shop cho khung phân biệt (imslib/variant.py) — name_font, font, tone, sub_style.
+    # Chỉ ghi thứ Sếp ĐÃ CHỌN cho shop đó; `variant_set` của job vẫn ghi đè được.
+    "variant": {},
 }
 
 

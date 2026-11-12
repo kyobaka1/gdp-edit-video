@@ -227,6 +227,12 @@
     "pop": {
       "bg": "#fec617",
       "text": "#062955"
+    },
+    "variant": {
+      "_note": "Ảnh phân loại — Sếp chọn 12/11 trên tấm so font (biến thể A): tên phân loại + số bảo hành Poppins ExtraBold, phần còn lại UTM Avo, ô kiểu dạng hộp sáng, khung navy; vàng chỉ dành cho bảo hành.",
+      "name_font": "poppins",
+      "tone": "brand",
+      "sub_style": "box"
     }
   }
 }

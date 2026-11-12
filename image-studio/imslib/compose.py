@@ -256,8 +256,11 @@ def _block(b: dict, i: int, theme: dict, kind: str, default_font: str) -> tuple[
             b.get("css", "") if t == "html" else "")
 
 
-def page(spec: dict, theme: dict, base: Path, size: tuple[int, int], probe, tmp: Path) -> tuple[str, dict]:
-    """Dựng trang cho 1 ảnh. `probe(x0,y0,x1,y1)` → màu trung bình vùng ảnh (toạ độ %). Trả (html, thông tin phụ)."""
+def page(spec: dict, theme: dict, base: Path, size: tuple[int, int], probe, tmp: Path, card: dict | None = None) -> tuple[str, dict]:
+    """Dựng trang cho 1 ảnh. `probe(x0,y0,x1,y1)` → màu trung bình vùng ảnh (toạ độ %). Trả (html, thông tin phụ).
+
+    `card` (ảnh phân loại dựng khung — imslib/variant.py): ảnh nguồn nằm trong một vùng của khung vuông, phần còn lại là
+    KHUNG PHÂN BIỆT dùng chung cho cả bộ phân loại."""
     W, H = size
     kind = spec.get("kind", "product_image")
     c, bd, img = theme["color"], theme["badge"], theme["image"]
@@ -294,7 +297,7 @@ def page(spec: dict, theme: dict, base: Path, size: tuple[int, int], probe, tmp:
            f'@font-face{{font-family:Fallback;font-weight:400;src:url("{_uri(f["fallback_regular"])}")}}',
            ":root{" + ";".join(f"{k}:{v}" for k, v in root.items()) + "}",
            (UI / "base.css").read_text(encoding="utf-8")]
-    body = [f'<img id="base" src="{_uri(base)}">']
+    body = [card["base_html"].replace("{src}", _uri(base))] if card else [f'<img id="base" src="{_uri(base)}">']
 
     # KHÔNG CHỈNH MÀU ẢNH (Sếp 12/11): chỉ thêm chữ + logo lên ảnh đã cung cấp. Không có lớp tối dần / lớp phủ màu rộng.
     if spec.get("scrims"):
@@ -348,6 +351,8 @@ def page(spec: dict, theme: dict, base: Path, size: tuple[int, int], probe, tmp:
         body.append(h)
         if x:
             extra_css.append(x)
+    if card:
+        body.append(card["panel_html"])
     body.append('<svg id="lines" xmlns="http://www.w3.org/2000/svg"></svg>')
 
     lg = spec.get("logo", img["logo"].get(kind, True))

@@ -83,6 +83,7 @@ Set-Location C:\Users\Admin\gdp-video-studio\image-studio; $env:PYTHONIOENCODING
 #   → điền jobs\<job>\layout.json (mẫu: examples\layout-phaledo-bia-mo-ta.json; trường: skill → references\layout.md)
 ..\.venv\Scripts\python.exe ims.py render <job> [key…]        # → out\<key>.jpg + QA (phải ĐẠT) → soát MẮT từng ảnh
 ..\.venv\Scripts\python.exe ims.py push <job> --yes           # nộp lên app — CHỈ khi Sếp đã duyệt ảnh
+..\.venv\Scripts\python.exe ims.py vpull [--shop <shop>]       # ẢNH PHÂN LOẠI giao trên trang /marketing/variant-images/ → job theo (shop, sản phẩm)
 ..\.venv\Scripts\python.exe ims.py kit show <shop>            # nhận diện ảnh của shop; `kit demo` = ảnh mẫu khối + bộ font; `kit sync` = lấy lại từ app
 ..\.venv\Scripts\python.exe ..\tools\test_image_studio.py     # test bộ dựng + QA
 ```
@@ -93,6 +94,9 @@ Poppins / PS Young để đổi gió. Layout không ghi mã màu, không che s�
 KHÔNG CHỈNH MÀU ẢNH (Sếp 12/11): chỉ thêm chữ + logo, không lớp tối dần / lớp phủ màu. MOBILE FIRST: chữ nhỏ → nâng cỡ rồi tách 2 dòng / rút gọn.
 ẢNH ĐẠI DIỆN (Sếp 12/11) làm để tăng CTR: hook TO ở nửa trên, KHÔNG chữ / logo ở góc dưới-trái x ≤ 42%, y ≥ 88% (khung Shopee 11.11 / voucher che — QA báo lỗi; dải đáy bên phải vẫn đặt chữ được),
 soát bằng `qa\<key>.tem.jpg` (bìa như khách thấy, cỡ tem). Luật + số liệu prod: skill → mục "Ảnh đại diện" + `references\cover-ctr.md`.
+ẢNH PHÂN LOẠI (Sếp 12/11): cả bộ phân loại của một sản phẩm CHUNG một thiết kế (`layout.json → variant_set`), ảnh ra vuông; ảnh chưa có khung → dựng
+khung phân biệt `bottom` (sản phẩm ngang, khung ≤ 20% chiều cao) / `right` (sản phẩm dọc); ảnh đã có khung → `fill` điền chữ. Đồ LTENG ghi lắp đặt đã gồm
+(`included`: keo-dan · oc-vit · mieng-dan · coc-hut — PNG ở `image-studio/asset/`). Mẫu: `examples\layout-lteng-vn-phan-loai.json`; luật: skill → mục "Ảnh phân loại".
 LTENG HCM: đen / trắng / đỏ (dải đỏ + dải đen chữ trắng). LTENG VN: tấm navy chữ trắng / chữ navy viền trắng. GDP (Sếp 12/11): tông ĐEN / ĐỎ / TRẮNG theo nền (nền sáng chữ đen, nền
 tối chữ trắng), nhãn đỏ+trắng hoặc trắng+đỏ bo góc nhẹ, viền chữ mảnh — brand kit app lệch thì đo màu ảnh thật, ghi đè ở `shop.json → image`.
 

@@ -29,6 +29,26 @@ sự upload sẽ mất trên server → giữ bản trong `jobs/<job>/clean/`). 
 Quyền: token bot phải là admin hoặc người được giao listing.
 Đẩy lên Shopee (`push_service`) là nút của Sếp trên app: lấy ảnh `result` của các ô đã thực thi (ưu tiên đã duyệt).
 
+## Trang Ảnh phân loại `/marketing/variant-images/` (Variant Image Hub) — việc làm ảnh phân loại theo từng shop
+
+Module `marketing/variant_image_hub/` — KHÁC listing: mỗi **ô việc** = một cặp (shop × phân loại Sapo), gom theo **lần giao**
+(batch) cho một người; Sếp chọn ảnh nguồn lúc giao (luôn là một asset), nhân sự nộp ảnh → Sếp duyệt → ảnh vào bộ artwork của
+shop → Sếp đặt mặc định / áp lên sàn. Ô `variant_image` của một listing là luồng riêng (`ims.py pull`), chỉ chung bộ artwork.
+
+API bot (`variant_image_hub/bot_api.py`, cùng token `PLUSOR_TOKEN`; tài khoản bot cần quyền `variant_image_hub` và phải là
+NGƯỜI ĐƯỢC GIAO của batch — admin làm thay được):
+
+| Lệnh | Endpoint |
+|---|---|
+| `ims.py vpull [--shop S] [--q …] [--state …] [--all] [--list]` | `GET api/bot/queue/` — mặc định việc còn mở (cần làm / bản nháp / cần sửa) giao cho bot; `--all` = `scope=all` (chỉ admin) |
+| `ims.py push <job> --yes [--draft] [--note …]` | `POST api/bot/items/<id>/upload-result/` — nộp + gửi duyệt (`submit=0` = nháp). Ảnh phải rộng > 700px |
+| — | `GET api/bot/items/<id>/` (kèm trao đổi) · `POST api/bot/items/<id>/comment/` |
+
+`source_url` là link ký sẵn sống 12 giờ → `vpull` tải ngay về `clean/<item_id>.*`. Ô có `output_group` (artwork gộp: nhiều
+shop cùng brand dùng chung một ảnh) chỉ cần nộp một ô — `vpull` gom lại, ghi `peers` trong `job.json`. Ghi chú của Sếp:
+`request_note` (riêng ô) + `batch_note` (cả lần giao) + `review_note` (lý do "Cần sửa") — đọc trong `brief.json` trước khi làm.
+`vpull` báo `HTTP 404 … chưa có API bot` = bản app đang chạy chưa có `bot_api.py` → báo Sếp deploy.
+
 ## Tra Kiến thức sản phẩm để chứng thực (MCP `db_read`)
 
 ```sql

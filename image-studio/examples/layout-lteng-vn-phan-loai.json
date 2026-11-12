@@ -1,0 +1,31 @@
+{
+  "schema": "gdp_image_layout@1",
+  "shop": "lteng_vn",
+  "variant_set": {
+    "style": "bottom",
+    "panel": 20,
+    "chips": ["NHÔM KHÔNG GỈ", "BẢN DÀY 1.2MM"],
+    "included": {"items": ["keo-dan", "oc-vit", "mieng-dan"], "label": "KEO - ỐC VÍT\nĐI KÈM"},
+    "warranty": {"label": "BẢO HÀNH", "value": "10", "unit": "NĂM"}
+  },
+  "images": {
+    "30cm-basic": {
+      "kind": "variant_image",
+      "base": "clean/30cm-basic.jpg",
+      "keep": [[15, 20, 88, 66]],
+      "variant": {"name": "30CM", "sub": "BASIC"}
+    },
+    "50cm-basic": {
+      "kind": "variant_image",
+      "base": "clean/50cm-basic.jpg",
+      "keep": [[14, 22, 88, 66]],
+      "variant": {"name": "50CM", "sub": "BASIC"}
+    },
+    "50cm-thanh-treo-kem-moc": {
+      "kind": "variant_image",
+      "base": "clean/50cm-thanh-treo-kem-moc.jpg",
+      "keep": [[12, 15, 90, 62]],
+      "variant": {"name": "50CM", "sub": "THANH TREO + MÓC"}
+    }
+  }
+}

@@ -142,6 +142,59 @@ Sản phẩm nằm CHÉO → khai `keep` bằng nhiều hộp bậc thang bám t
 Chữ nhiều dòng trong một tấm → `"align": "center"` (khối neo phải mặc định căn phải, hai dòng lệch nhau trông vụng — Sếp 12/11).
 Mẫu đầy đủ: `image-studio/examples/layout-lteng-vn-bia-0744.json` (bản đề xuất + các biến thể đã so: 2 nhãn, có / không gạch, phối font).
 
+## Ảnh phân loại — `variant_set` (cấp job) + `variant` (từng ảnh)
+
+Luật + quy trình: SKILL.md mục "Ảnh phân loại". Một sản phẩm = một job = một `variant_set`.
+
+```jsonc
+{
+  "shop": "lteng_vn",
+  "variant_set": {                      // THIẾT KẾ CHUNG của cả bộ phân loại
+    "style": "bottom",                  // bottom = khung bên dưới · right / left = khung bên cạnh · fill = ảnh đã có khung (xem dưới)
+    "panel": 20,                        // % cạnh ảnh dành cho khung — bottom 14–20 (mặc định 20) · right / left 24–32 (mặc định 30)
+    // 3 dòng dưới KHÔNG cần khai khi shop đã chốt ở shop.json → image.variant (vd lteng_vn) — khai ở đây là ghi đè cho riêng job
+    "tone": "brand",                    // brand = tấm màu nhãn shop, chữ sáng · invert = tấm sáng chữ màu shop · dark = tấm đen
+    "name_font": "poppins",             // bộ font cho TÊN phân loại + con số bảo hành (trong danh sách của shop); `font` = phần còn lại
+    "sub_style": "box",                 // ô kiểu: box · plain · pop
+    "chips": ["NHÔM KHÔNG GỈ", "BẢN DÀY 1.2MM"],
+    "included": {"items": ["keo-dan", "oc-vit", "mieng-dan"], "label": "KEO - ỐC VÍT
+ĐI KÈM"},   // ≤ 2 món: nhãn tự ghép; từ 3 món BẮT BUỘC khai `label`; `title` = dòng trên ảnh
+    "warranty": {"label": "BẢO HÀNH", "value": "10", "unit": "NĂM"}
+  },
+  "images": {
+    "50cm-thanh-treo": {
+      "kind": "variant_image", "base": "clean/50cm-thanh-treo.jpg",
+      "keep": [[12, 15, 90, 62]],                                         // % của ẢNH NGUỒN — sản phẩm + số đo, không gồm đạo cụ
+      "variant": {"name": "50CM", "sub": "THANH TREO + MÓC"}             // điểm phân biệt; thêm "zoom" / "focus" nếu cần
+    }
+  }
+}
+```
+
+| Trường | Nghĩa |
+|---|---|
+| `size` | cạnh ảnh ra (px), mặc định 1000 (app cần > 700) |
+| `variant.name` | số + đơn vị ("50CM", "1.2L", "3 TẦNG") → tự dựng số to, đơn vị nhỏ; chữ thường ("XÁM", "TRẮNG KEM") giữ nguyên |
+| `variant.sub` | chữ trong ô kiểu; một dòng nếu vừa (≤ ~16 ký tự ở khung dưới, ~12 ở khung bên cạnh), dài hơn tự chia 2 dòng cân nhau (ưu tiên ngắt trước `+`); `\n` = tự ngắt. Bộ có một phân loại 2 dòng thì MỌI ô kiểu cao bằng nhau |
+| `sub_style` | `box` (mặc định — hộp sáng viền mảnh) · `plain` (chữ trơn, tên to thêm một chút) · `pop` (thẻ màu nhấn phụ — tranh chú ý với bảo hành, tránh dùng) |
+| `included.items` | 1–3 món. Mã `keo-dan` · `oc-vit` (vít nở) · `mieng-dan` · `coc-hut` (ảnh ở `image-studio/asset/` hoặc `assets/shops/<shop>/image/install/`), hoặc `{"img": "assets/phu-kien.png", "label": "5 MÓC"}` = ảnh riêng nằm trong job |
+| `sizes` | ghi đè cỡ chữ mong muốn (pt): `{"name", "sub", "chip", "inc", "war"}` — bộ dựng vẫn tự co cho vừa ô |
+| `variant.zoom` / `variant.focus` | phóng ảnh nguồn thêm (1–1.4) / điểm của ảnh nguồn (%) đặt vào giữa vùng ảnh — không khai = tự căn theo `keep` |
+| `logo`, `watermark` (ở ảnh) | như ảnh thường; khung bên cạnh thì logo tự treo giữa VÙNG ẢNH |
+
+Ảnh ra: khung vuông; ảnh nguồn chỉ được đặt / cắt vào vùng còn lại (không đổi màu). Ảnh nguồn vuông + `bottom`: phần đáy ảnh
+nằm dưới khung — sản phẩm phải nằm trong 80% phía trên (bộ dựng tự dịch ảnh lên nếu được).
+
+**Ảnh nguồn đã có khung mô tả → `style: "fill"`**: khai MỘT bộ khối mẫu cho cả bộ, chữ viết `{name}` / `{sub}` / `{khoá bất kỳ
+trong variant}`; toạ độ đo bằng `grid --zoom` trên ảnh nguồn (mọi phân loại cùng khung nên cùng toạ độ). Ảnh ra giữ kích thước nguồn.
+
+```json
+"variant_set": {"style": "fill", "blocks": [
+  {"id": "ten", "type": "text", "text": "{name}", "x": 15.6, "y": 9.5, "w": 26, "size": 62, "display": true, "lines": 1},
+  {"id": "kieu", "type": "text", "text": "{sub}", "x": 15.6, "y": 19, "w": 26, "size": 34, "bold": true, "lines": 1},
+  {"id": "o-1", "type": "text", "text": "Dán không khoan", "x": 15.6, "y": 41.5, "w": 24, "size": 28, "bold": true, "lines": 1}]}
+```
+
 ## Mẹo bố cục
 
 - Căn theo trục: tiêu đề, dòng phụ, hàng nhãn cùng `x` (thường 50) → gọn. Khoảng cách dọc giữa các khối ≈ 0,6–1 lần chiều cao chữ.

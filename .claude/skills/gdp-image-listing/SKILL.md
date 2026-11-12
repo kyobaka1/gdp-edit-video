@@ -1,6 +1,6 @@
 ---
 name: gdp-image-listing
-description: Hoàn thiện ẢNH LISTING Shopee cho các shop Gia Dụng Plus (PHALEDO, LTENG, GIADUNGPLUS…) bằng GDP Image Studio chạy local (repo gdp-video-studio, thư mục image-studio/, Windows / Mac) — nhân sự chỉ XOÁ CHỮ TRUNG rồi upload ảnh sạch lên app PluSor; Claude tải ảnh sạch về, phủ MỘT LỚP HTML lên ảnh (ảnh là nền cuối): chữ bán hàng tiếng Việt, nhãn, chú thích, bảng thông số, logo, watermark đúng NHẬN DIỆN SHOP (font, màu, kiểu nhãn — dùng chung assets/shops/ với video studio), bố cục theo mục đích từng ảnh (bìa / sản phẩm / mô tả / phân loại), QA tự động (chữ đè sản phẩm, chìm nền, tràn, quá nhỏ, sót chữ Hán) rồi nộp final lên app. Dùng khi Sếp nói "làm ảnh listing <id>", "gắn chữ / logo cho ảnh đã xoá text", "phủ chữ lên ảnh sạch", "dựng ảnh bìa / ảnh mô tả theo branding shop", "nhân sự xoá chữ xong rồi, làm tiếp", "làm ảnh listing nhiều shop song song", hoặc đưa ảnh đã xoá chữ + ảnh Trung gốc cần ra bản final. KHÔNG dùng để xoá chữ Trung / sửa nền ảnh (việc của nhân sự), viết tên + mô tả + plan nội dung (skill gdp-listing-plan), chấm điểm kết quả (skill gdp-listing-review), hay Việt hoá video (skill gdp-video-localize).
+description: Hoàn thiện ẢNH LISTING Shopee cho các shop Gia Dụng Plus (PHALEDO, LTENG, GIADUNGPLUS…) bằng GDP Image Studio chạy local (repo gdp-video-studio, thư mục image-studio/, Windows / Mac) — nhân sự chỉ XOÁ CHỮ TRUNG rồi upload ảnh sạch lên app PluSor; Claude tải ảnh sạch về, phủ MỘT LỚP HTML lên ảnh (ảnh là nền cuối): chữ bán hàng tiếng Việt, nhãn, chú thích, bảng thông số, logo, watermark đúng NHẬN DIỆN SHOP (font, màu, kiểu nhãn — dùng chung assets/shops/ với video studio), bố cục theo mục đích từng ảnh (bìa / sản phẩm / mô tả / phân loại), ẢNH PHÂN LOẠI (ảnh đại diện variant) một thiết kế chung cho cả bộ — dựng khung phân biệt bên dưới / bên phải hoặc điền khung có sẵn, lấy việc từ trang /marketing/variant-images/ (`ims.py vpull`), QA tự động (chữ đè sản phẩm, chìm nền, tràn, quá nhỏ, sót chữ Hán) rồi nộp final lên app. Dùng khi Sếp nói "làm ảnh listing <id>", "gắn chữ / logo cho ảnh đã xoá text", "phủ chữ lên ảnh sạch", "dựng ảnh bìa / ảnh mô tả theo branding shop", "nhân sự xoá chữ xong rồi, làm tiếp", "làm ảnh listing nhiều shop song song", "làm ảnh phân loại / ảnh variant", "ảnh đại diện phân loại cho shop X", "việc ở trang variant-images", hoặc đưa ảnh đã xoá chữ + ảnh Trung gốc cần ra bản final. KHÔNG dùng để xoá chữ Trung / sửa nền ảnh (việc của nhân sự), viết tên + mô tả + plan nội dung (skill gdp-listing-plan), chấm điểm kết quả (skill gdp-listing-review), hay Việt hoá video (skill gdp-video-localize).
 ---
 
 # GDP Image Listing — phủ chữ + nhận diện shop lên ảnh đã xoá chữ
@@ -39,6 +39,7 @@ Set-Location C:\Users\Admin\gdp-video-studio\image-studio; $env:PYTHONIOENCODING
 ..\.venv\Scripts\python.exe ims.py grid <job> <key> --zoom 20,84,80,100   # phóng to một vùng, vạch mỗi 2% — đo ô icon / chi tiết nhỏ
 ..\.venv\Scripts\python.exe ims.py render <job> [key…]            # layout.json → out\<key>.jpg + QA (qa\<key>.jpg, qa\<key>.json)
 ..\.venv\Scripts\python.exe ims.py push <job> [key…] --yes [--review]   # nộp final lên app — CHỈ khi Sếp đã duyệt
+..\.venv\Scripts\python.exe ims.py vpull [--shop <shop>] [--q <sku>] [--list]   # ẢNH PHÂN LOẠI giao trên trang /marketing/variant-images/ → job theo (shop, sản phẩm)
 ..\.venv\Scripts\python.exe ims.py kit show <shop>                # nhận diện ảnh của shop (màu, font, nhãn, logo, luật chữ)
 ..\.venv\Scripts\python.exe ims.py kit demo <shop>                # ảnh mẫu MỌI khối của shop trên nền tối + sáng
 ..\.venv\Scripts\python.exe ims.py kit sync <shop> --listing <id> # lấy lại brand kit từ app (khi Sếp đổi kit / shop mới)
@@ -146,7 +147,7 @@ Kết nối app dùng chung token của `plusor.py` (`PLUSOR_BASE_URL` / `PLUSOR
 | `cover` ảnh đại diện (1:1) | CTR — hút mắt, hút click, 2 giây hiểu ngay | 1 hook RẤT lớn (≤ 5 từ / dòng, ≤ 2 dòng) + tối đa 2 nhãn cam kết / số liệu thật. Không nhồi | **Xem mục "Ảnh đại diện" ngay dưới.** Hook ở NỬA TRÊN; KHÔNG có chữ / logo ở GÓC DƯỚI-TRÁI (x ≤ 42%, y ≥ 88% — khung Shopee che); sản phẩm to, không bị chữ lấn |
 | `product_image` | Chuyển đổi — mỗi ảnh MỘT ý | 1 tiêu đề (48–64pt) + 1 dòng phụ (≥ 32pt, dài thì 2 dòng); có chi tiết cần chỉ → 1–3 `callout` có đường chỉ | Chữ về một phía, sản phẩm phía còn lại; chú thích đặt cạnh đúng chi tiết |
 | `description_image` (3:4 / dọc dài) | Thông tin — bám sát bản Trung | Tiêu đề khối + dòng phụ + đủ nhãn / bước / bảng / số đo | Soi lại vị trí từng nhóm chữ của bản Trung; ô icon → `text` đặt trong ô (`over: true` nếu ô nằm trong `keep`); bảng → `spec`; các bước → `list` kiểu `number`; số đo → `dim` |
-| `variant_image` | Chọn đúng phân loại | 1 nhãn tên / dung tích phân loại (lấy từ `job.json → variant`). Không tiêu đề | Nhãn ở góc trống, cỡ lớn dễ đọc ở ảnh thu nhỏ |
+| `variant_image` (1:1) | Chọn đúng phân loại — nhìn là biết loại này khác loại kia ở đâu | Điểm phân biệt (tên phân loại + kiểu) TO NHẤT; 2 điểm chung; lắp đặt đã gồm; bảo hành. Không tiêu đề bán hàng | **Xem mục "Ảnh phân loại".** Cả bộ chung một thiết kế (`variant_set`); khung bên dưới ≤ 20% ảnh / bên phải ≤ 32% |
 
 ## Ảnh đại diện (bìa) — làm để TĂNG CTR (Sếp 12/11)
 
@@ -216,6 +217,68 @@ Mẫu bìa đúng luật: `image-studio/examples/layout-phaledo-bia-mo-ta.json`,
 
 Cả bộ ảnh một listing: cùng một cách gọi tính năng, cùng cỡ tiêu đề cho ảnh cùng loại. Logo ưu tiên chỗ mặc định của shop;
 ảnh nào chữ chiếm chỗ đó thì logo tự dời (chấp nhận logo lệch chỗ giữa các ảnh — chữ đúng bố cục quan trọng hơn).
+
+## Ảnh phân loại (ảnh đại diện từng variant) — MỘT thiết kế cho cả bộ (Sếp 12/11)
+
+Ảnh phân loại là ảnh khách bấm để chọn loại: nhìn là biết **loại này khác loại kia ở đâu**. Luật của Sếp:
+
+1. **Các phân loại của cùng một sản phẩm dùng CHUNG một thiết kế + màu** — khai một lần ở `layout.json → variant_set`, từng
+   ảnh chỉ khai phần khác (`variant: {"name", "sub"}`). Không ghi đè `style` / `panel` / `tone` ở từng ảnh (bộ kiểm báo LỖI
+   `bộ ảnh phân loại KHÔNG cùng thiết kế`). Cỡ chữ tên phân loại tự lấy theo chuỗi DÀI NHẤT của bộ → cả bộ bằng nhau;
+   vì vậy đổi tên một phân loại là **render lại cả bộ** (`ims.py render <job>` không kèm key).
+2. **Ảnh ra VUÔNG**, rộng > 700px (app từ chối ảnh hẹp hơn) — mặc định 1000×1000.
+3. **Hai kiểu đặt "sự phân biệt"**: `bottom` = khung bên DƯỚI (sản phẩm NGANG: kệ, thanh treo, khay) · `right` = khung bên
+   PHẢI (sản phẩm DỌC: hũ, chai, kệ góc nhiều tầng; `left` khi sản phẩm lệch phải). Chọn theo dáng sản phẩm, cả bộ một kiểu.
+4. **Ảnh nguồn ĐÃ CÓ khung mô tả** (nhân sự xoá chữ, giữ ô / dải) → `style: "fill"`: điền chữ vào đúng ô, không dựng khung
+   mới. **Chưa có khung** → dựng khung mới (`bottom` / `right`) — khung này dùng lại cho mọi phân loại khác của sản phẩm.
+5. **Khung KHÔNG lấn sản phẩm** (Sếp 12/11 chê bản 31%: "vùng chữ quá lớn so với sản phẩm"): khung bên dưới **tối đa 20%
+   chiều cao ảnh** (ảnh mẫu Sếp đưa: 17–24%), khung bên cạnh 24–32% bề rộng (mẫu ≈ 31%). Bộ dựng từ chối số lớn hơn. Chữ
+   không vừa → BỚT phần / rút chữ, không nới khung.
+6. **Đồ LTENG phải ghi PHƯƠNG THỨC LẮP ĐẶT đã gồm trong bộ**: miếng dán / keo dán / cốc hút / bắn vít (`included`). Ảnh phụ
+   kiện là PNG nền trong suốt Sếp cung cấp, đặt ở `image-studio/asset/<mã>.png` (dùng chung) hoặc
+   `assets/shops/<shop>/image/install/<mã>.png` (riêng shop); mã: `keo-dan` · `oc-vit` · `mieng-dan` · `coc-hut`. Chưa có PNG
+   → bộ dựng vẽ HÌNH TẠM và cảnh báo — **không nộp ảnh còn hình tạm**; xin Sếp file. Thiếu `included` ở shop LTENG → cảnh báo.
+
+**Khung phân biệt gồm tối đa 4 phần** (không khai thì không có — ít mà to hơn nhiều mà nhỏ):
+
+| Phần | Khai ở | Nội dung | Ví dụ |
+|---|---|---|---|
+| `name` + `sub` | từng ảnh (`variant`) | ĐIỂM PHÂN BIỆT — chữ to nhất phía trái. `name` ≤ 2 từ (cỡ / màu / số tầng); là SỐ + ĐƠN VỊ ("50CM", "1.2L") thì bộ dựng tự làm số to, đơn vị nhỏ. `sub` = kiểu, nằm trong Ô sáng dưới tên — chữ ít hay nhiều đều được: vừa một dòng thì để một dòng (tên to hơn), dài quá ~16 ký tự tự chia 2 dòng (ép bằng `\n`) | `"50CM"` + `"THANH TREO + MÓC"` |
+| `chips` | bộ | 2 (tối đa 3) điểm CHUNG của sản phẩm, mỗi cái ≤ 3 từ, có số thật — nhãn sáng chữ màu shop | `"NHÔM KHÔNG GỈ"`, `"BẢN DÀY 1.2MM"` |
+| `included` | bộ | phương thức lắp đặt đã gồm — ẢNH THẬT của phụ kiện (đã có: `keo-dan`, `oc-vit` = vít nở, `mieng-dan`; `coc-hut` chưa có). Bộ dựng tự cắt lề ảnh, vật dài (tuýp keo) nằm riêng hàng trên, còn lại hàng dưới. **Có ảnh VẪN PHẢI có dòng chữ dưới ảnh** (Sếp 12/11: "vẫn cần text để sub"): ≤ 2 món tự ghép ("KEO + VÍT") dưới tiêu đề "ĐÃ GỒM"; từ 3 món phải khai `label` ngắn 1–2 dòng — thiếu là LỖI. Nhãn 2 dòng thì tiêu đề trên tự bỏ để ảnh đủ to | `{"items": ["keo-dan", "oc-vit", "mieng-dan"], "label": "KEO - ỐC VÍT\nĐI KÈM"}` |
+| `warranty` | bộ | bảo hành — phải DỄ CHÚ Ý (Sếp 12/11): tấm màu nhấn phụ tràn tới mép khung, CON SỐ là chữ to nhất khung | `{"value": "10", "unit": "NĂM"}` |
+
+Kiểu dáng do Sếp sửa 12/11 theo ảnh mẫu (tên to + ô kiểu bo góc sáng hơn nền, nhãn sáng bên cạnh): màu nhấn phụ (vàng LTENG VN)
+CHỈ dành cho bảo hành — ô kiểu không dùng màu đó nữa (`"sub_style": "pop"` là kiểu cũ; `"plain"` = chữ trơn không hộp).
+**Kiểu của khung theo SHOP:** `shop.json → image.variant` (`name_font`, `font`, `tone`, `sub_style`) — job không khai lại. Đã chốt:
+`lteng_vn` = tên phân loại + số bảo hành Poppins ExtraBold, phần còn lại UTM Avo, ô kiểu hộp, khung navy (Sếp chọn biến thể A, 12/11).
+Shop chưa có mục này → dựng tấm so cho Sếp chọn rồi mới ghi vào shop, không tự chốt.
+**Chọn font bằng cách so, không mặc định:** dựng 3–4 biến thể `name_font` / `font` / `sub_style` trên cùng một ảnh, cắt riêng phần khung
+ghép cạnh nhau (mẫu `image-studio/jobs/phanloai-lteng-vn-ke-nhom/so-font.jpg`) rồi trình Sếp chọn.
+
+Tên phân loại trên ảnh phải KHỚP tên phân loại khách thấy trên sàn (`job.json → images.<key>.variant` / `brief.json`) — khách
+đối chiếu chữ trên ảnh với nút chọn. Mọi con số / cam kết phải có nguồn (luật 5 chung); không so sánh với hàng khác trên ảnh.
+
+**Quy trình** (thay bước 1, 4, 5 của 8 bước chung; các bước soát vẫn giữ)
+
+1. Lấy việc: `ims.py vpull [--shop <shop>]` (việc Sếp giao trên trang `/marketing/variant-images/` cho tài khoản bot; mỗi
+   (shop, sản phẩm) thành một job `phanloai-<shop>-<product_id>`; `--list` chỉ xem, `--all` = token admin xem việc mọi
+   người) — hoặc ảnh trên máy: `ims.py new <job> --shop <shop> --kind variant_image <ảnh…>`. Listing thường (`ims.py pull`)
+   có ô `variant_image` thì cũng làm theo mục này.
+2. `ims.py sheet <job>` → nhìn ảnh nguồn: đã sạch chữ Trung chưa (chưa → báo Sếp, `ims.py` không xoá chữ), đã có khung
+   chưa, sản phẩm ngang hay dọc → chọn `variant_set.style` (chưa chọn thì render dừng lại hỏi).
+3. `ims.py grid <job>` → khai `keep` của từng ảnh = hộp bao sản phẩm theo **% của ẢNH NGUỒN** (kèm số đo có sẵn trên ảnh).
+   Bộ dựng tự đặt ảnh sao cho sản phẩm nằm giữa vùng còn lại, tự đặt watermark + logo, và báo LỖI nếu khung che sản phẩm.
+   Sản phẩm nhỏ trong ảnh → `"zoom": 1.15` (ở `variant` của ảnh hoặc cả bộ); lệch → `"focus": [x, y]` (% ảnh nguồn).
+4. Điền `variant_set` + `variant` từng ảnh (trường: `references/layout.md` → "Ảnh phân loại"; mẫu:
+   `image-studio/examples/layout-lteng-vn-phan-loai.json`) → `ims.py render <job>` → phải ĐẠT.
+5. Soát mắt: `ims.py board <job>` (cả bộ cạnh nhau — có đồng nhất không, sản phẩm có bị khung lấn không) + từng
+   `qa/<key>.tem.jpg` (ảnh ở cỡ ô chọn 120px / 64px: còn đọc được tên phân loại không).
+6. Sếp duyệt → `ims.py push <job> --yes` (job `vpull`: nộp vào đúng ô việc + gửi duyệt; `--draft` = chỉ lưu nháp). Duyệt, đặt
+   mặc định và áp lên sàn vẫn là nút của Sếp trên trang đó.
+
+Số đo in sẵn trên ảnh nguồn (4cm / 12cm / 39.5cm…) là một phần ảnh nền — giữ. Nó LỆCH tên phân loại (ảnh ghi 39.5cm mà phân
+loại tên "30CM") → ghi vào "cần Sếp xác nhận", không tự sửa.
 
 ## Nội dung chữ (khi app chưa có design plan cho ảnh đó)
 
@@ -325,6 +388,10 @@ không lấy font khác thay.
 | `logo mờ trên nền này` | `"logo": {"file": "<tên file>"}` (bản sáng / đậm khác), hoặc dời logo sang góc nền đều màu |
 | `… nằm trong vùng khung Shopee che` (ảnh bìa) | dời khối lên (đáy khối ≤ y 88%) hoặc sang phải (mép trái khối ≥ x 42%). Không còn chỗ → thu chữ / bỏ bớt nhãn, không lấn vùng khung |
 | `hook bìa nằm nửa dưới` | đưa hook lên khoảng trống nửa trên; ảnh nền kín thì giữ và báo Sếp đề nghị đổi ảnh nền |
+| `khung phân biệt che sản phẩm` / `mép ảnh cắt sản phẩm` (ảnh phân loại) | giảm `panel`, chỉnh `focus` / `zoom`, hoặc đổi `style` (sản phẩm ngang → bottom, dọc → right); `keep` chỉ bao sản phẩm + số đo, không bao khăn / đạo cụ |
+| `chữ tràn ô của khung phân biệt` | rút chữ (tên ≤ 2 từ, điểm chung ≤ 3 từ), ngắt `sub` 2 dòng, bớt một phần (vd bỏ chip thứ 3) — không nới `panel` quá trần |
+| `bộ ảnh phân loại KHÔNG cùng thiết kế` / `cỡ chữ … lệch nhau` | bỏ `style` / `panel` / `tone` ghi riêng ở từng ảnh; render lại CẢ BỘ |
+| `chưa có ảnh PNG cho '…' — HÌNH VẼ TẠM` | xin Sếp PNG nền trong suốt → `image-studio/asset/<mã>.png`; chưa có thì chưa nộp |
 | `tiêu đề bìa …pt` | tiêu đề bìa đang < 48pt: rút chữ để to lên. Khoảng đẹp 56–72pt; font nén (HelvetIns của GDP) 70–80pt — không có cảnh báo cận trên, tự nhìn |
 
 Mức: **LỖI** = phải sửa (render trả mã lỗi, `push` từ chối) · **CẢNH BÁO** = nhìn bằng mắt rồi quyết · **GHI CHÚ** = thông tin.

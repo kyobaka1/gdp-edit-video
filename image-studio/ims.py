@@ -10,6 +10,7 @@
   python ims.py sheet <job>                          # ảnh so: Trung gốc | sạch | final
   python ims.py board <job>                          # tấm trình duyệt: cả bộ ảnh FINAL xếp hàng ngang (gửi Sếp)
   python ims.py push <job> [key…] --yes [--review]   # nộp ảnh final lên app (GHI ĐÈ kết quả) — chỉ khi Sếp đã duyệt
+  python ims.py vpull [--shop <shop>] [--q <sku>] [--list]   # ẢNH PHÂN LOẠI giao trên trang /marketing/variant-images/ → job theo (shop, sản phẩm)
 
 Quy trình + luật: skill `gdp-image-listing` (.claude/skills/gdp-image-listing/SKILL.md)."""
 
@@ -26,7 +27,7 @@ for _s in (sys.stdout, sys.stderr):
         pass
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from imslib import JOBS, KINDS, SHOPS, app, kit, qa, tools  # noqa: E402
+from imslib import JOBS, KINDS, SHOPS, app, kit, qa, tools, variant  # noqa: E402
 
 IMG_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 SCHEMA = "gdp_image_layout@1"
@@ -57,7 +58,12 @@ def seed_layout(job: Path, meta: dict) -> None:
         layout["images"].pop(key)                         # ảnh không thuộc job nữa (vd phần "giữ nguyên") và chưa làm gì
     for key, im in meta["images"].items():
         if im.get("clean"):
+            fresh = key not in layout["images"]
             spec = layout["images"].setdefault(key, {"kind": im["kind"], "base": im["clean"], "keep": [], "blocks": []})
+            if fresh and im["kind"] == "variant_image":             # ảnh phân loại: điền `variant` + chọn `variant_set.style` ở cấp job
+                spec["variant"] = {"name": ((im.get("variant") or {}).get("name") or key).upper(), "sub": ""}
+                layout.setdefault("variant_set", {"style": "", "_chon_style": "fill = ảnh nguồn ĐÃ CÓ khung mô tả (điền chữ vào ô) · "
+                                                  "bottom = dựng khung bên dưới (sản phẩm ngang) · right = dựng khung bên phải (sản phẩm dọc)"})
             if not spec["blocks"] and (im.get("plan") or {}).get("text_blocks"):
                 spec["blocks"], spec["_nhap_tu_plan"] = plan_blocks(im["plan"]["text_blocks"]), True
     save(path, layout)
@@ -254,6 +260,74 @@ def cmd_pull(a):
     print(f"  tiếp: python ims.py sheet {job.name} · python ims.py grid {job.name} → điền layout.json → python ims.py render {job.name}")
 
 
+def cmd_vpull(a):
+    """Việc làm ẢNH PHÂN LOẠI giao trên trang /marketing/variant-images/ → mỗi (shop, sản phẩm) một job:
+    mọi phân loại của một sản phẩm nằm CHUNG job để dựng cùng một thiết kế."""
+    rows = app.variant_queue(shop=a.shop or "", q=a.q or "", state=a.state or "", scope="all" if a.all else "")
+    if a.item:
+        rows = [r for r in rows if r["id"] in a.item]
+    if not rows:
+        print("Không có ảnh phân loại nào đang được giao" + (f" cho shop {a.shop}" if a.shop else "")
+              + " — Sếp giao việc cho tài khoản bot trên trang /marketing/variant-images/ (hoặc thêm --all nếu token là admin).")
+        return
+    groups = {}
+    for r in rows:
+        groups.setdefault((r["shop"]["name"], r.get("product_id") or r["variant_id"]), []).append(r)
+    for (shop, pid), items in groups.items():
+        name = items[0].get("product_name") or ""
+        print(f"\n[{shop}] sản phẩm {pid} — {name[:70]} · {len(items)} ảnh")
+        for r in items:
+            print(f"    item {r['id']:<6} {r['state_label']:<13} {r['sku']:<22} {r['variant_name'][:30]:<30}"
+                  + (f" · hạn {r['deadline'][:10]}" if r.get("deadline") else "")
+                  + (f" · Sếp dặn: {r['request_note'][:60]}" if r.get("request_note") else "")
+                  + (f" · CẦN SỬA: {r['review_note'][:60]}" if r["state"] == "fix" and r.get("review_note") else ""))
+        if a.list:
+            continue
+        if not (SHOPS / shop / "shop.json").is_file():
+            print(f"    ! chưa có hồ sơ shop '{shop}' trong assets/shops/ — tạo bằng tools\\init_shop.py rồi pull lại")
+            continue
+        job = job_dir(a.job if a.job and len(groups) == 1 else f"phanloai-{shop.replace('_', '-')}-{pid}", must_exist=False)
+        job.mkdir(parents=True, exist_ok=True)
+        old = json.loads((job / "job.json").read_text(encoding="utf-8")) if (job / "job.json").is_file() else {"images": {}}
+        images, seen, n_new = {}, {}, 0
+        for r in items:
+            gkey = (r["output_group"], r["variant_id"]) if r.get("output_group") else None
+            if gkey and gkey in seen:                              # artwork gộp: N shop cùng brand dùng CHUNG một ảnh → nộp 1 ô là đủ
+                images[seen[gkey]].setdefault("peers", []).append(r["id"])
+                continue
+            key = str(r["id"])
+            if gkey:
+                seen[gkey] = key
+            prev = old["images"].get(key) or {}
+            im = {"kind": "variant_image", "item_id": r["id"], "hub": True, "src": None, "state": r["state"], "status": r["status"],
+                  "variant": {"sku": r["sku"], "name": r["variant_name"], "options": r.get("options") or []},
+                  "variant_id": r["variant_id"], "request_note": r.get("request_note", ""), "batch_note": r.get("batch_note", ""),
+                  "review_note": r.get("review_note", ""), "deadline": r.get("deadline", ""), "pushed": prev.get("pushed"),
+                  "edited_in_app": bool(r.get("has_render_state"))}
+            if prev.get("clean") and (job / prev["clean"]).is_file() and not a.refresh:
+                im["clean"] = prev["clean"]
+            else:
+                f = app.download(r.get("source_url"), job / "clean" / key)
+                if not f:
+                    print(f"    ! item {key}: không tải được ảnh nguồn (Sếp chưa chọn ảnh nguồn?)")
+                    continue
+                im["clean"] = f"clean/{f.name}"
+                n_new += 1
+            images[key] = im
+        meta = {"job": job.name, "shop": shop, "source": "variant_hub", "listing_id": None, "product_id": pid, "name": name,
+                "images": images}
+        save(job / "job.json", meta)
+        seed_layout(job, meta)
+        save(job / "brief.json", {"source": "variant_hub", "shop": shop, "product_id": pid, "name": name,
+                                  "batch_notes": sorted({r["batch_note"] for r in items if r.get("batch_note")}),
+                                  "variants": [{"item": r["id"], "sku": r["sku"], "name": r["variant_name"], "options": r.get("options") or [],
+                                                "state": r["state_label"], "request_note": r.get("request_note", ""),
+                                                "review_note": r.get("review_note", "")} for r in items]})
+        print(f"    ✓ {len(images)} ảnh nguồn ({n_new} mới tải) → {job}")
+        print(f"      tiếp: python ims.py sheet {job.name} → chọn `variant_set.style` (fill = ảnh đã có khung · bottom / right = dựng khung) "
+              f"→ điền layout.json → python ims.py render {job.name}")
+
+
 # ----------------------------- grid / render / sheet -----------------------------
 def _keys(layout: dict, wanted: list[str]) -> list[str]:
     keys = list(layout["images"])
@@ -292,11 +366,17 @@ def cmd_render(a):
     meta, layout = load(job)
     theme = kit.load(layout.get("shop") or meta["shop"])
     keys = [k for k in _keys(layout, a.keys) if a.keys or layout["images"][k].get("blocks")]
+    is_card = lambda k: layout["images"][k].get("kind") == "variant_image" and layout["images"][k].get("variant")  # noqa: E731
+    if not a.keys:
+        keys = [k for k in layout["images"] if layout["images"][k].get("blocks") or is_card(k)]
     skipped = [] if a.keys else [k for k in layout["images"] if k not in keys]
+    vset = dict(layout.get("variant_set") or {})
+    vset["_all"] = variant.collect(layout)                    # mọi tên phân loại của bộ → cả bộ cùng một cỡ chữ
     n_err = n_warn = 0
+    reports = {}
     with Studio() as st:
         for key in keys:
-            r = st.render(job, key, layout["images"][key], theme)
+            r = reports[key] = st.render(job, key, layout["images"][key], theme, vset)
             errs = [i for i in r["issues"] if i["level"] == "LỖI"]
             warns = [i for i in r["issues"] if i["level"] == "CẢNH BÁO"]
             n_err += len(errs)
@@ -306,8 +386,18 @@ def cmd_render(a):
                   + (f" · logo {r['logo']['file']}" if r["logo"] else "") + (f" · tông {r['tones']}" if r["tones"] else ""))
             for i in r["issues"]:
                 print(f"    {i['level']:<8} {i['id']}: {i['msg']}")
-            if r.get("tem"):
+            if r.get("tem") and r["kind"] == "variant_image":
+                print(f"    ảnh phân loại ở cỡ ô chọn (120px / 64px): {job / r['tem']} — PHẢI nhìn ảnh này")
+            elif r.get("tem"):
                 print(f"    ảnh bìa như khách thấy (khung Shopee + cỡ tem): {job / r['tem']} — PHẢI nhìn ảnh này")
+    # cả bộ ảnh phân loại phải cùng một thiết kế — so trên MỌI ảnh đã render của job (kể cả lần render trước)
+    for k in layout["images"]:
+        rep = job / "qa" / f"{k}.json"
+        if k not in reports and is_card(k) and rep.is_file():
+            reports[k] = json.loads(rep.read_text(encoding="utf-8"))
+    for msg in variant.consistency(layout, reports):
+        n_err += 1
+        print(f"✗ [bộ phân loại] LỖI      {msg}")
     if skipped:
         print(f"(bỏ qua {len(skipped)} ảnh chưa có khối nào: {', '.join(skipped)})")
     print(f"\n{'ĐẠT' if not n_err else 'CHƯA ĐẠT'} — {len(keys)} ảnh · {n_err} lỗi · {n_warn} cảnh báo · ảnh soát: {job / 'qa'}")
@@ -336,8 +426,9 @@ def cmd_board(a):
 def cmd_push(a):
     job = job_dir(a.job)
     meta, layout = load(job)
-    if not meta.get("listing_id"):
-        raise SystemExit("Job này không gắn listing trên app (tạo bằng `new`) — không có gì để nộp.")
+    hub = meta.get("source") == "variant_hub"                 # job kéo từ trang Ảnh phân loại (`vpull`)
+    if not meta.get("listing_id") and not hub:
+        raise SystemExit("Job này không gắn listing / việc ảnh phân loại trên app (tạo bằng `new`) — không có gì để nộp.")
     todo = []
     for key in _keys(layout, a.keys):
         im, out, rep = meta["images"].get(key) or {}, job / "out" / f"{key}.jpg", job / "qa" / f"{key}.json"
@@ -347,7 +438,10 @@ def cmd_push(a):
             continue
         if out.stat().st_mtime < (job / "layout.json").stat().st_mtime - 1:
             raise SystemExit(f"[{key}] layout.json đã sửa SAU lần render cuối — render lại rồi mới nộp.")
-        errs = [i for i in json.loads(rep.read_text(encoding="utf-8"))["issues"] if i["level"] == "LỖI"]
+        found = json.loads(rep.read_text(encoding="utf-8"))["issues"]
+        if any("HÌNH VẼ TẠM" in i["msg"] for i in found) and not a.force:
+            raise SystemExit(f"[{key}] ảnh còn HÌNH VẼ TẠM của phụ kiện lắp đặt — thả PNG thật vào image-studio/asset/ rồi render lại mới nộp.")
+        errs = [i for i in found if i["level"] == "LỖI"]
         if errs and not a.force:
             raise SystemExit(f"[{key}] QA còn {len(errs)} lỗi — sửa cho ĐẠT rồi nộp (hoặc --force nếu Sếp đã chấp nhận).")
         if not im.get("item_id"):
@@ -355,17 +449,24 @@ def cmd_push(a):
         todo.append((key, im, out))
     if not todo:
         raise SystemExit("Không có ảnh nào đã render để nộp.")
-    print(f"Sẽ GHI ĐÈ ảnh kết quả của {len(todo)} item trên listing {meta['listing_id']} ({meta['shop']}): "
-          + ", ".join(k for k, _, _ in todo))
+    where = f"trang Ảnh phân loại, sản phẩm {meta.get('product_id')}" if hub else f"listing {meta['listing_id']}"
+    print(f"Sẽ GHI ĐÈ ảnh kết quả của {len(todo)} item trên {where} ({meta['shop']}): " + ", ".join(k for k, _, _ in todo))
     if not a.yes:
         raise SystemExit("→ chưa nộp. Sếp duyệt ảnh rồi thì chạy lại kèm --yes.")
     kinds = set()
     for key, im, out in todo:
-        app.upload_result(im["item_id"], out, a.note)
+        if hub:
+            app.variant_upload(im["item_id"], out, a.note, submit=not a.draft)
+        else:
+            app.upload_result(im["item_id"], out, a.note)
         im["pushed"] = out.stat().st_mtime
         kinds.add(im["kind"])
         print(f"  ✓ item {key} ← {out.name}")
     save(job / "job.json", meta)
+    if hub:
+        print(f"✓ đã nộp {len(todo)} ảnh phân loại ({'bản nháp — Sếp chưa thấy' if a.draft else 'gửi duyệt'}) → "
+              f"{app.cfg()[0]}/marketing/variant-images/")
+        return
     if a.review:
         for kind in sorted(kinds):
             if kind in ("cover", "product_image", "description_image"):
@@ -393,7 +494,14 @@ def main():
     p = sub.add_parser("board"); p.add_argument("job"); p.set_defaults(fn=cmd_board)
     p = sub.add_parser("push"); p.add_argument("job"); p.add_argument("keys", nargs="*"); p.add_argument("--yes", action="store_true")
     p.add_argument("--review", action="store_true"); p.add_argument("--force", action="store_true"); p.add_argument("--note", default="")
+    p.add_argument("--draft", action="store_true", help="ảnh phân loại (job vpull): chỉ lưu bản nháp, chưa gửi duyệt")
     p.set_defaults(fn=cmd_push)
+    p = sub.add_parser("vpull", help="việc làm ảnh phân loại giao trên trang /marketing/variant-images/ → job theo (shop, sản phẩm)")
+    p.add_argument("--shop"); p.add_argument("--q", help="lọc SKU / tên phân loại / tên sản phẩm"); p.add_argument("--state", help="todo,draft,fix,sent,ok,all")
+    p.add_argument("--item", type=int, nargs="*", help="chỉ các item này"); p.add_argument("--job", help="tên job (khi chỉ có 1 sản phẩm)")
+    p.add_argument("--all", action="store_true", help="token admin: việc của MỌI người, không chỉ việc giao cho bot")
+    p.add_argument("--list", action="store_true", help="chỉ liệt kê, không tải"); p.add_argument("--refresh", action="store_true")
+    p.set_defaults(fn=cmd_vpull)
     a = ap.parse_args()
     a.fn(a)
 

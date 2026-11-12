@@ -10,7 +10,7 @@ from pathlib import Path
 from PIL import Image
 from playwright.sync_api import sync_playwright
 
-from . import compose, qa
+from . import compose, qa, variant
 from .kit import contrast, luminance
 
 
@@ -54,6 +54,21 @@ class Studio:
         out = Image.new("RGB", (640 + 190 + 30, 640), (245, 245, 245))
         out.paste(big, (0, 0))
         out.paste(small, (640 + 20, 0))
+        out.save(dst, quality=90)
+        return dst
+
+    @staticmethod
+    def _variant_preview(final: Image.Image, dst: Path) -> Path:
+        """Ảnh phân loại như khách thấy: bản to + bản CỠ Ô CHỌN PHÂN LOẠI (≈ 120px và 64px trên điện thoại)."""
+        big = final.convert("RGB").resize((640, round(640 * final.height / final.width)), Image.LANCZOS)
+        out = Image.new("RGB", (640 + 120 + 40, max(big.height, 220)), (245, 245, 245))
+        out.paste(big, (0, 0))
+        y = 0
+        for s in (120, 64):
+            t = final.convert("RGB").copy()
+            t.thumbnail((s, s), Image.LANCZOS)
+            out.paste(t, (640 + 20, y))
+            y += t.height + 20
         out.save(dst, quality=90)
         return dst
 
@@ -102,12 +117,25 @@ class Studio:
         self._page.evaluate("([x]) => { document.getElementById('logo').style.left = x + '%'; }", [best[2] / W * 100])
         return best[1]
 
-    def render(self, job: Path, key: str, spec: dict, theme: dict) -> dict:
+    def render(self, job: Path, key: str, spec: dict, theme: dict, vset: dict | None = None) -> dict:
+        """`vset` = `layout.variant_set` (thiết kế chung của bộ ảnh phân loại). Ảnh `variant_image` có `variant` + bộ kiểu
+        bottom / right / left → dựng KHUNG PHÂN BIỆT (ảnh ra vuông); kiểu fill → điền khối mẫu của bộ vào khung có sẵn."""
         base = job / spec["base"]
         if not base.is_file():
             raise SystemExit(f"[{key}] không thấy ảnh nền {base}")
         src = Image.open(base)
         W, H = src.size
+        card = None
+        if spec.get("kind") == "variant_image" and spec.get("variant") and not spec.get("blocks"):
+            style = (vset or {}).get("style")
+            if style not in variant.STYLES:
+                raise SystemExit(f"[{key}] ảnh phân loại: chưa chọn `variant_set.style` trong layout.json — fill (ảnh nguồn ĐÃ CÓ khung mô tả: "
+                                 "điền chữ vào ô) · bottom (dựng khung bên dưới — sản phẩm ngang) · right / left (dựng khung bên cạnh — sản phẩm dọc).")
+            if style == "fill":
+                spec = {**spec, "blocks": variant.fill_blocks(vset or {}, spec["variant"])}
+            else:
+                card = variant.build(spec, vset or {}, theme, (W, H), job)
+                spec, (W, H) = card["spec"], card["canvas"]
         small = src.convert("RGB").copy()
         small.thumbnail((240, 240))
 
@@ -118,7 +146,7 @@ class Studio:
         tmp = job / "_tmp"
         tmp.mkdir(exist_ok=True)
         kind = spec.get("kind", "product_image")
-        doc, info = compose.page(spec, theme, base, (W, H), probe, tmp)
+        doc, info = compose.page(spec, theme, base, (W, H), probe, tmp, card)
         page_file = job / "html" / f"{key}.html"
         page_file.parent.mkdir(exist_ok=True)
         page_file.write_text(doc, encoding="utf-8")
@@ -220,6 +248,8 @@ class Studio:
         final.save(out, "JPEG", quality=95, subsampling=0, optimize=True)
 
         issues = qa.check(spec, theme, kind, ms, nobg, final.size, (W, H))
+        if card:
+            issues += card["issues"]
         if logo_note and logo_note["contrast"] < 2.0:
             issues.append({"level": "CẢNH BÁO", "id": "logo", "msg": f"logo mờ trên nền này (tương phản {logo_note['contrast']}) "
                            "— chỉ định file logo khác (khai `logo.file`) hoặc dời logo"})
@@ -228,8 +258,11 @@ class Studio:
                            "(muốn ghim: khai `logo.placement` / `logo.x`)"})
         qa.annotate(final, spec, ms, issues, job / "qa" / f"{key}.jpg", theme)
         tem = self._shopee_preview(final, job / "qa" / f"{key}.tem.jpg") if kind == "cover" else None
+        if kind == "variant_image":                              # ảnh phân loại như khách thấy: ô chọn phân loại rất nhỏ
+            tem = self._variant_preview(final, job / "qa" / f"{key}.tem.jpg")
         report = {"key": key, "kind": kind, "size": [W, H], "out": str(out.relative_to(job)), "tones": tones,
                   "logo": logo_note, "issues": issues, "tem": str(tem.relative_to(job)) if tem else None,
+                  "card": card["info"] if card else None,
                   "blocks": [{"id": m["id"], "type": m.get("type"), "rect_pct": [round(m["rect"][0] / W * 100, 1),
                               round(m["rect"][1] / H * 100, 1), round(m["rect"][2] / W * 100, 1), round(m["rect"][3] / H * 100, 1)],
                               **({"size_pt": m["got"]} if m.get("got") else {})} for m in ms]}

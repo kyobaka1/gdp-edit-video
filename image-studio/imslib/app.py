@@ -101,3 +101,36 @@ def comment(lid: int, kind: str, content: str) -> None:
     s, base = _session()
     _check(s.post(f"{base}{API}/listings/{lid}/section-comment/", json={"kind": kind, "content": content}, timeout=60),
            f"ghi trao đổi {kind}")
+
+
+# ----------------------------- ẢNH PHÂN LOẠI (trang /marketing/variant-images/) -----------------------------
+VAPI = "/marketing/variant-images/api/bot"
+
+
+def _vcheck(r: requests.Response, what: str) -> requests.Response:
+    if r.status_code == 404 and "/api/bot/queue" in r.url:
+        raise SystemExit(f"{what} → HTTP 404: app chưa có API bot cho trang Ảnh phân loại "
+                         "(marketing/variant_image_hub/bot_api.py chưa được deploy) — báo Sếp deploy bản mới.")
+    return _check(r, what)
+
+
+def variant_queue(shop: str = "", q: str = "", state: str = "", scope: str = "") -> list[dict]:
+    """Ảnh phân loại được GIAO cho tài khoản bot (mặc định: việc còn mở — cần làm / bản nháp / cần sửa).
+    `scope="all"` (token admin): việc của mọi người. Mỗi dòng có `source_url` ký sẵn 12 giờ → tải ngay."""
+    s, base = _session()
+    params = {k: v for k, v in (("shop", shop), ("q", q), ("state", state), ("scope", scope)) if v}
+    return _vcheck(s.get(f"{base}{VAPI}/queue/", params=params, timeout=120), "đọc hàng đợi ảnh phân loại").json()["data"]["items"]
+
+
+def variant_upload(item_id: int, file: Path, note: str = "", submit: bool = True) -> dict:
+    """Nộp ảnh kết quả cho 1 ô ảnh phân loại (GHI ĐÈ kết quả đang có). `submit=False` = lưu bản nháp, Sếp chưa thấy."""
+    s, base = _session()
+    with open(file, "rb") as fh:
+        r = s.post(f"{base}{VAPI}/items/{item_id}/upload-result/", files={"file": (file.name, fh)},
+                   data={"submit": "1" if submit else "0", **({"note": note} if note else {})}, timeout=300)
+    return _vcheck(r, f"nộp ảnh phân loại item {item_id}").json()["data"]
+
+
+def variant_comment(item_id: int, content: str) -> None:
+    s, base = _session()
+    _vcheck(s.post(f"{base}{VAPI}/items/{item_id}/comment/", json={"content": content}, timeout=60), f"ghi trao đổi item {item_id}")

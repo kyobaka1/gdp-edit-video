@@ -71,6 +71,11 @@ def check(spec: dict, theme: dict, kind: str, measures: list, bg: Image.Image, s
         add("LỖI", "ảnh", f"kích thước ảnh ra {size} khác ảnh nền {base_size}")
     if kind == "cover" and abs(W - H) > 2:
         add("CẢNH BÁO", "ảnh", f"ảnh bìa không vuông ({W}×{H}) — Shopee cắt bìa 1:1")
+    if kind == "variant_image" and abs(W - H) > 2:
+        add("CẢNH BÁO", "ảnh", f"ảnh phân loại không vuông ({W}×{H}) — Shopee hiện ảnh phân loại 1:1 "
+            "(ảnh chưa có khung: dựng khung vuông bằng `variant_set.style` bottom / right)")
+    if kind == "variant_image" and W <= 700:
+        add("LỖI", "ảnh", f"ảnh phân loại rộng {W}px — trang Ảnh phân loại trên app chỉ nhận ảnh rộng > 700px")
 
     keep = [(k[0] / 100 * W, k[1] / 100 * H, (k[2] - k[0]) / 100 * W, (k[3] - k[1]) / 100 * H) for k in spec.get("keep") or []]
     by_id = {b.get("id") or f"{b['type']}{i}": b for i, b in enumerate(spec.get("blocks") or [], 1)}
@@ -90,6 +95,9 @@ def check(spec: dict, theme: dict, kind: str, measures: list, bg: Image.Image, s
             continue
         if not m["texts"] and t != "html":
             add("LỖI", bid, "khối không có chữ")
+        if m.get("overflow"):
+            add("LỖI", bid, "chữ tràn ô của khung phân biệt dù đã co hết cỡ — rút gọn chữ (tên phân loại ≤ 2 từ, điểm chung ≤ 3 từ), "
+                "bớt một phần của khung, hoặc tăng `panel`")
         if m.get("want") and m.get("got") and m["got"] < m["want"] * 0.86:
             add("CẢNH BÁO", bid, f"chữ bị co {m['want']:g}pt → {m['got']:g}pt cho vừa khung — rút chữ, nới `w`, hoặc tăng `lines`")
         for tx in m["texts"]:
@@ -138,7 +146,8 @@ def check(spec: dict, theme: dict, kind: str, measures: list, bg: Image.Image, s
                 x, y, w, h = row
                 if x < -1 or y < -1 or x + w > W + 1 or y + h > H + 1:
                     add("LỖI", bid, "chữ tràn ra ngoài ảnh")
-                elif min(x, W - x - w) < SAFE_PCT / 100 * W - 1 or min(y, H - y - h) < SAFE_PCT / 100 * W - 1:
+                elif t != "variant" and (min(x, W - x - w) < SAFE_PCT / 100 * W - 1 or min(y, H - y - h) < SAFE_PCT / 100 * W - 1):
+                    # (khối của khung phân biệt ảnh phân loại: lề do chính khung bảo đảm — không xét)
                     add("CẢNH BÁO", bid, f"chữ sát mép ảnh (lề an toàn {SAFE_PCT}% bề rộng)")
                 if not src.get("over"):
                     for k in keep:
