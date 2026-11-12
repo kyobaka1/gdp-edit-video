@@ -100,7 +100,16 @@ def _detect_batch(paths: list[Path], usage: Path, label: str, engine: str = "gem
         for i, p in enumerate(paths):
             contents += [f"Khung {i}:", gemini.image_part(p)]
         contents.append(BOX_PROMPT.format(n=len(paths), last=len(paths) - 1))
-        data = gemini.generate_json(contents, BOX_SCHEMA, usage_log=usage, label=label)
+        try:
+            data = gemini.generate_json(contents, BOX_SCHEMA, usage_log=usage, label=label)
+        except RuntimeError:
+            # đo 12/11 (ke0490): một lô 10 khung làm Gemini lặp khoảng trắng tới hết token → JSON hỏng cả 3 lần, lần
+            # chạy lại vẫn y vậy → chia đôi lô rồi hỏi lại (lô 1 khung vẫn hỏng thì báo lỗi như cũ)
+            if len(paths) < 2:
+                raise
+            h = len(paths) // 2
+            return (_detect_batch(paths[:h], usage, f"{label}a", engine)
+                    + _detect_batch(paths[h:], usage, f"{label}b", engine))
     with Image.open(paths[0]) as im:
         aspect = im.height / im.width
     out: list[list[dict]] = [[] for _ in paths]
