@@ -1,6 +1,6 @@
 ---
 name: gdp-image-listing
-description: Hoàn thiện ẢNH LISTING Shopee cho các shop Gia Dụng Plus (PHALEDO, LTENG, GIADUNGPLUS…) bằng GDP Image Studio chạy local (repo gdp-video-studio, thư mục image-studio/, Windows / Mac) — nhân sự chỉ XOÁ CHỮ TRUNG rồi upload ảnh sạch lên app PluSor; Claude tải ảnh sạch về, phủ MỘT LỚP HTML lên ảnh (ảnh là nền cuối): chữ bán hàng tiếng Việt, nhãn, chú thích, bảng thông số, logo, watermark đúng NHẬN DIỆN SHOP (font, màu, kiểu nhãn — dùng chung assets/shops/ với video studio), bố cục theo mục đích từng ảnh (bìa / sản phẩm / mô tả / phân loại), ẢNH PHÂN LOẠI (ảnh đại diện variant) một thiết kế chung cho cả bộ — dựng khung phân biệt bên dưới / bên phải hoặc điền khung có sẵn, lấy việc từ trang /marketing/variant-images/ (`ims.py vpull`), QA tự động (chữ đè sản phẩm, chìm nền, tràn, quá nhỏ, sót chữ Hán) rồi nộp final lên app. Dùng khi Sếp nói "làm ảnh listing <id>", "gắn chữ / logo cho ảnh đã xoá text", "phủ chữ lên ảnh sạch", "dựng ảnh bìa / ảnh mô tả theo branding shop", "nhân sự xoá chữ xong rồi, làm tiếp", "làm ảnh listing nhiều shop song song", "làm ảnh phân loại / ảnh variant", "ảnh đại diện phân loại cho shop X", "việc ở trang variant-images", hoặc đưa ảnh đã xoá chữ + ảnh Trung gốc cần ra bản final. KHÔNG dùng để xoá chữ Trung / sửa nền ảnh (việc của nhân sự), viết tên + mô tả + plan nội dung (skill gdp-listing-plan), chấm điểm kết quả (skill gdp-listing-review), hay Việt hoá video (skill gdp-video-localize).
+description: Hoàn thiện ẢNH LISTING Shopee cho các shop Gia Dụng Plus (PHALEDO, LTENG, GIADUNGPLUS…) bằng GDP Image Studio chạy local (repo gdp-video-studio, thư mục image-studio/, Windows / Mac) — nhân sự chỉ XOÁ CHỮ TRUNG rồi upload ảnh sạch lên app PluSor; Claude tải ảnh sạch về, phủ MỘT LỚP HTML lên ảnh (ảnh là nền cuối): chữ bán hàng tiếng Việt, nhãn, chú thích, bảng thông số, logo, watermark đúng NHẬN DIỆN SHOP (font, màu, kiểu nhãn — dùng chung assets/shops/ với video studio), bố cục theo mục đích từng ảnh (bìa / sản phẩm / mô tả / phân loại), ẢNH PHÂN LOẠI (ảnh đại diện variant) một thiết kế chung cho cả bộ — dựng khung phân biệt bên dưới / bên phải hoặc điền khung có sẵn, lấy việc từ trang /marketing/variant-images/ (`ims.py vpull`), QA tự động (chữ đè sản phẩm, chìm nền, tràn, quá nhỏ, sót chữ Hán) rồi nộp final lên app. Dùng khi Sếp nói "làm ảnh listing <id>", "gắn chữ / logo cho ảnh đã xoá text", "phủ chữ lên ảnh sạch", "dựng ảnh bìa / ảnh mô tả theo branding shop", "nhân sự xoá chữ xong rồi, làm tiếp", "làm ảnh listing nhiều shop song song", "làm ảnh phân loại / ảnh variant", "ảnh đại diện phân loại cho shop X", "việc ở trang variant-images", hoặc đưa ảnh đã xoá chữ + ảnh Trung gốc cần ra bản final. Ảnh được giao mà CÒN chữ Trung → xoá trước bằng skill gdp-image-remove-text (Photoshop web Remove), ảnh đã sạch thì bỏ qua bước xoá. KHÔNG dùng để sửa nền / chỉnh màu ảnh, viết tên + mô tả + plan nội dung (skill gdp-listing-plan), chấm điểm kết quả (skill gdp-listing-review), hay Việt hoá video (skill gdp-video-localize).
 ---
 
 # GDP Image Listing — phủ chữ + nhận diện shop lên ảnh đã xoá chữ
@@ -13,7 +13,7 @@ Giao tiếp với Sếp bằng tiếng Việt. Công cụ: `image-studio/ims.py`
 |---|---|
 | **Sếp** | Chỉ GIAO việc trên app (chọn phần cần làm của listing) và DUYỆT ảnh. |
 | **Nhân sự** | Xoá chữ Trung trên ảnh cho sạch, gọn → upload ảnh sạch lên trang `/marketing/listing/<id>/work/` (mỗi ảnh thành một ô "kết quả"). Hết. |
-| **Claude (skill này)** | Tải ảnh sạch + ảnh Trung gốc về → viết chữ Việt + chọn bố cục theo mục đích ảnh → phủ lớp HTML đúng nhận diện shop → QA → Sếp duyệt → nộp final lên app. |
+| **Claude (skill này)** | Tải ảnh sạch + ảnh Trung gốc về → **ảnh nào còn chữ Trung thì xoá bằng skill `gdp-image-remove-text`, ảnh đã sạch thì bỏ qua** (Sếp 13/11) → viết chữ Việt + chọn bố cục theo mục đích ảnh → phủ lớp HTML đúng nhận diện shop → QA → Sếp duyệt → nộp final lên app. |
 
 Nguyên lý: **ảnh là nền cuối cùng, không bị sửa**. Mọi thứ thêm vào (chữ, nhãn, logo, watermark) là một lớp
 HTML chụp bằng Chrome. Muốn đổi → sửa `layout.json` rồi render lại, vài giây một ảnh.
@@ -60,12 +60,15 @@ Kết nối app dùng chung token của `plusor.py` (`PLUSOR_BASE_URL` / `PLUSOR
    vị trí (kiểm lại cặp ở bước 2). Đọc các dòng lệnh in ra:
    - `listing CẢI TIẾN — được giao: … / GIỮ NGUYÊN: …` = phạm vi việc. Chỉ làm phần được giao.
    - `⚠ đã qua Editor trên app` = ảnh kết quả có thể ĐÃ có chữ (làm theo kiểu cũ), không phải ảnh sạch → soát ở bước 2.
-   - `⏳ chưa có bản sạch` = nhân sự chưa xoá chữ / chưa upload → báo Sếp, KHÔNG tự lấy ảnh Trung làm nền. Ảnh gốc vốn
-     không có chữ thì `pull --allow-source`.
+   - `⏳ chưa có bản sạch` = nhân sự chưa xoá chữ / chưa upload → `pull --allow-source` lấy ảnh Trung làm nền; ảnh gốc
+     vốn không có chữ thì dùng thẳng, CÒN chữ Trung thì xoá bằng skill `gdp-image-remove-text` rồi ghi đè file
+     `clean/<key>.*` (giữ tên). Báo Sếp ảnh nào Claude tự xoá.
 2. **Soát đầu vào bằng mắt** — `ims.py sheet <job>` rồi ĐỌC ảnh sheet. Với từng ảnh: nền đã sạch chưa (còn chữ Hán, vết
-   xoá loang, khung / biển chữ sót)? Cặp gốc ↔ sạch có đúng ảnh không? Ảnh chưa sạch → ghi lại số item báo Sếp trả nhân sự;
-   **không tự vá nền, không lấy chữ che vết bẩn** (trừ khi một khối chữ đằng nào cũng nằm đúng chỗ đó).
-   Ngưỡng: còn chữ Hán / mảng loang / khung chữ sót → DỪNG ảnh đó, trả nhân sự. Soi thêm WATERMARK CHÉO MỜ của shop Trung
+   xoá loang, khung / biển chữ sót)? Cặp gốc ↔ sạch có đúng ảnh không?
+   **Ảnh ĐÃ sạch → bỏ qua bước xoá, làm tiếp. Ảnh CÒN chữ Hán / khung - biển chữ sót → Claude xoá nốt bằng skill
+   `gdp-image-remove-text` (Photoshop web: lasso sát chữ, chọn hết rồi Remove một lần), ghi đè `clean/<key>.*`, soát lại
+   sheet** (Sếp 13/11). Mảng loang / vết bẩn do nhân sự xoá hỏng (không phải chữ) → báo Sếp trả nhân sự; **không lấy chữ che
+   vết bẩn** (trừ khi một khối chữ đằng nào cũng nằm đúng chỗ đó). Soi thêm WATERMARK CHÉO MỜ của shop Trung
    (vd "蓝藤版权 盗版必究" rải khắp ảnh — chỉ phóng to `grid --zoom` mới thấy): nhân sự hay bỏ sót; nền trắng thì lộ rõ →
    báo Sếp (toạ độ + ảnh nào) để Sếp quyết trả nhân sự hay chấp nhận. Chữ in trên phụ kiện trong cảnh (màng bảo vệ cốc hút…)
    là chữ trong cảnh — giữ, nhưng nêu trong báo cáo. Vết li ti (vài điểm ảnh) → làm tiếp, ghi
@@ -265,7 +268,8 @@ Tên phân loại trên ảnh phải KHỚP tên phân loại khách thấy trê
    (shop, sản phẩm) thành một job `phanloai-<shop>-<product_id>`; `--list` chỉ xem, `--all` = token admin xem việc mọi
    người) — hoặc ảnh trên máy: `ims.py new <job> --shop <shop> --kind variant_image <ảnh…>`. Listing thường (`ims.py pull`)
    có ô `variant_image` thì cũng làm theo mục này.
-2. `ims.py sheet <job>` → nhìn ảnh nguồn: đã sạch chữ Trung chưa (chưa → báo Sếp, `ims.py` không xoá chữ), đã có khung
+2. `ims.py sheet <job>` → nhìn ảnh nguồn: đã sạch chữ Trung chưa (sạch → bỏ qua; còn chữ → xoá bằng skill
+   `gdp-image-remove-text`, ghi đè `clean/`), đã có khung
    chưa, sản phẩm ngang hay dọc → chọn `variant_set.style` (chưa chọn thì render dừng lại hỏi).
 3. `ims.py grid <job>` → khai `keep` của từng ảnh = hộp bao sản phẩm theo **% của ẢNH NGUỒN** (kèm số đo có sẵn trên ảnh).
    Bộ dựng tự đặt ảnh sao cho sản phẩm nằm giữa vùng còn lại, tự đặt watermark + logo, và báo LỖI nếu khung che sản phẩm.

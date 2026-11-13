@@ -1,0 +1,8 @@
+[
+  {"name": "tieu-de", "box": [340, 110, 1090, 415], "kind": "dark", "thr": 150},
+  {"name": "dong-phu", "box": [340, 440, 1090, 505], "kind": "dark", "thr": 165},
+  {"name": "bien-go", "box": [160, 520, 555, 680], "kind": "badge"},
+  {"name": "nhan-1", "box": [350, 1794, 515, 1862], "kind": "dark", "thr": 160},
+  {"name": "nhan-2", "box": [620, 1794, 795, 1862], "kind": "dark", "thr": 160},
+  {"name": "nhan-3", "box": [885, 1794, 1085, 1862], "kind": "dark", "thr": 160}
+]

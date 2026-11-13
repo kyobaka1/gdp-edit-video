@@ -88,6 +88,11 @@ Set-Location C:\Users\Admin\gdp-video-studio\image-studio; $env:PYTHONIOENCODING
 ..\.venv\Scripts\python.exe ..\tools\test_image_studio.py     # test bộ dựng + QA
 ```
 
+XOÁ CHỮ TRUNG GIỮ NỀN (Sếp 13/11): ảnh được giao CÒN chữ Trung mới làm, ảnh đã sạch thì bỏ qua — skill **`gdp-image-remove-text`**:
+Photoshop web (Chrome của Sếp) → Tools → Lasso ôm sát chữ (đường bao tính từ pixel: `image-studio\ps_remove\text_polys.py`, vẽ bằng
+`lasso.js`) → chọn HẾT các cụm rồi **Remove MỘT lần** → xuất PNG qua Adobe cloud → kéo về `clean\` → **đóng tab Chrome ngay**
+(Photoshop web nặng máy). Adobe MCP không có Remove.
+
 Nhận diện dùng chung `assets/shops/<shop>/`: `shop.json` (+ mục `image`: bộ font, viền chữ, logo…) và `image/kit.json` (brand kit
 lấy từ app, không sửa tay). Bộ font: PHALEDO = Averta (ExtraBold / Regular) · GDP chữ lớn = UTM HelvetIns · UTM Avo ưu tiên cấp 1 ·
 Poppins / PS Young để đổi gió. Layout không ghi mã màu, không che sản phẩm (`keep`), không thêm tuyên bố ngoài nguồn.
