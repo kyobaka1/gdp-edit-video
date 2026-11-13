@@ -1,0 +1,49 @@
+{
+ "image-studio/source/COVER_IMAGE_JOB/4648e113-4415-40d9-a74a-4615d204debd.jpeg": [
+  {
+   "name": "tieu-de-1",
+   "box": [
+    350,
+    55,
+    765,
+    135
+   ],
+   "kind": "dark",
+   "thr": 90
+  },
+  {
+   "name": "tieu-de-2",
+   "box": [
+    445,
+    140,
+    765,
+    228
+   ],
+   "kind": "dark",
+   "thr": 90
+  }
+ ],
+ "image-studio/source/COVER_IMAGE_JOB/O1CN01a85r14AYAMJ1chua_!!4611686018427387078-0-item_pic.jpg": [
+  {
+   "name": "tieu-de",
+   "box": [
+    20,
+    25,
+    475,
+    130
+   ],
+   "kind": "dark",
+   "thr": 70
+  },
+  {
+   "name": "nhan-do",
+   "box": [
+    40,
+    132,
+    292,
+    212
+   ],
+   "kind": "red"
+  }
+ ]
+}
